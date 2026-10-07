@@ -46,6 +46,7 @@ export function RecentEntries({
         .from('journal_entries')
         .select('id, member_id, entry_date, journal_lines(amount, direction, account:accounts(name, type), contact:contacts(name))')
         .eq('group_id', groupId).is('deleted_at', null)
+        .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
         .limit(30)
         .overrideTypes<RawEntry[]>()
