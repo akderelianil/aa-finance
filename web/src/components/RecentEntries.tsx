@@ -77,7 +77,7 @@ export function RecentEntries({
           contact: cat ? contact : '',
           original: cat && cat.currency !== membership.group.base_currency ? formatMinor(cat.amount, cat.currency, i18n.language) : '',
           amount: fromMinor((cat ?? first)?.base_amount ?? 0, exponent),
-          editable: e.journal_lines.length === 2 && !!cat && cat.currency === membership.group.base_currency && first.currency === membership.group.base_currency,
+          editable: !e.source_type && e.journal_lines.length === 2 && !!cat && cat.currency === membership.group.base_currency && first.currency === membership.group.base_currency,
         }
       })
     },

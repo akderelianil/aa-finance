@@ -65,6 +65,7 @@ export default function Home({ membership }: { membership: Membership }) {
       <RecentEntries membership={membership} exponent={exponent} onEdit={setEditing} />
       <Button variant="outline" nativeButton={false} render={<Link to="/accounts" />}>{t('accounts.title')}</Button>
       <Button variant="outline" nativeButton={false} render={<Link to="/people" />}>{t('people.title')}</Button>
+      <Button variant="outline" nativeButton={false} render={<Link to="/installments" />}>{t('installments.title')}</Button>
       <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>{t('common.logout')}</Button>
     </PageShell>
   )

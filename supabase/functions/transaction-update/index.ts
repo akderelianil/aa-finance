@@ -14,6 +14,9 @@ serve(async (req, user) => {
     await setActor(tx, m.member_id)
     const entry = await loadOwnedEntry(tx, body.entry_id, m)
 
+    const [src] = await tx`select source_type from journal_entries where id = ${entry.id}`
+    if (src.source_type) throw new HttpError(422, 'Bu kayıt türü henüz düzenlenemiyor', 'unsupported_entry')
+
     const lines = await tx`
       select l.id, l.account_id, l.currency, a.type as account_type
       from journal_lines l join accounts a on a.id = l.account_id
