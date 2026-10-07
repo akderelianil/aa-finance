@@ -109,6 +109,14 @@ export const en: Translation = {
     otherFx: 'Buy / sell currency',
     otherInvest: 'Investment',
     undo: 'Undo',
+    options: 'Options',
+    note: 'Note',
+    addNote: '+ Add note',
+    installment: { toggle: 'Installments', count: 'How many installments?', each: 'About {{amount}} a month', card: 'Which card', noCard: 'Add a credit card on the Accounts page first.' },
+    split: {
+      toggle: 'Split', with: 'Who did you split with?', person: 'Name', share: 'Share', sharePlaceholder: 'Amount / %',
+      add: 'Add person', remove: 'Remove', more: 'Enter shares', equalHint: 'Split equally, you included.', mine: 'Your share: {{amount}} · The rest is owed to you.',
+    },
     undone: 'Undone',
     cardPayment: 'Pays the card debt',
     debt: {
@@ -258,6 +266,8 @@ export const en: Translation = {
     invalid_currency: 'Currency is invalid.',
     insufficient_balance: 'Not enough balance in the account.',
     invalid_count: 'Number of installments is invalid.',
+    invalid_split: 'The split is not valid.',
+    split_exceeds_total: 'The shares are more than the total.',
     invalid_first_due_date: 'First installment date is invalid.',
     already_paid: 'This installment is already paid.',
     plan_has_payments: 'A purchase with paid installments cannot be deleted.',

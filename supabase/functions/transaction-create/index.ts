@@ -7,6 +7,7 @@ import {
 import {
   averageCost, exponentOf, fxGainLossAccount, parseRate, resolveRate, saveRate, toBase,
 } from '../_shared/fx.ts'
+import { parseSplit, splitDebitLines } from '../_shared/split.ts'
 
 // Hızlı gider/gelir kaydı (ana para biriminde). Tek transaction, çift taraflı:
 //   gider: Borç kategori / Alacak hesap     gelir: Borç hesap / Alacak kategori
@@ -15,6 +16,7 @@ import {
 // Döviz: (A) döviz hesabından/hesabına: tutar hesabın para biriminde; harcamada ortalama maliyetle düşülür,
 // piyasa farkı fx_gain_loss'a yazılır. (B) `currency` farklı + TRY hesap (yurt dışı kart): TRY karşılığı
 // kurdan tahmin edilir (is_estimated), `base_amount` verilirse kesin tutar olur.
+// Paylaştır (`split`, yalnız ana para biriminde gider): benim payım gider, diğerleri bana borçlu.
 
 serve(async (req, user) => {
   const body = await readBody(req)
@@ -26,6 +28,8 @@ serve(async (req, user) => {
   const date = entryDate(body.date)
   const givenRate = parseRate(body.rate)
   const reqCurrency = body.currency ? requireString(body.currency, 'currency', 3).toUpperCase() : null
+  const split = parseSplit(body.split)
+  if (split && kind !== 'expense') throw new HttpError(422, 'split geçersiz', 'invalid_split')
 
   const entryId = await sql.begin(async (tx) => {
     const m = await loadMember(tx, user.id)
@@ -52,7 +56,11 @@ serve(async (req, user) => {
     const push = (account: string, dir: 'debit' | 'credit', amt: bigint, cur: string, base: bigint, rate?: string) =>
       lines.push({ account, dir, amount: amt, currency: cur, base, rate, contactId })
 
-    if (currency === m.base_currency) {
+    if (split && currency !== m.base_currency) throw new HttpError(422, 'split geçersiz', 'invalid_split')
+    if (split) {
+      lines.push(...await splitDebitLines(tx, m, catId, amount, split))
+      push(acct.id, 'credit', amount, currency, amount)
+    } else if (currency === m.base_currency) {
       push(catId, kind === 'expense' ? 'debit' : 'credit', amount, currency, amount)
       push(acct.id, kind === 'expense' ? 'credit' : 'debit', amount, currency, amount)
     } else if (acct.currency !== m.base_currency) {

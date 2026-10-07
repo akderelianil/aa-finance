@@ -107,6 +107,14 @@ export const tr = {
     otherFx: 'Döviz al / sat',
     otherInvest: 'Yatırım',
     undo: 'Geri al',
+    options: 'Seçenekler',
+    note: 'Not',
+    addNote: '+ Not ekle',
+    installment: { toggle: 'Taksitli', count: 'Kaç taksit?', each: 'Aylık yaklaşık {{amount}}', card: 'Hangi kart', noCard: 'Taksit için önce Hesaplar sayfasından bir kredi kartı ekle.' },
+    split: {
+      toggle: 'Paylaştır', with: 'Kimlerle paylaştın?', person: 'Kişi adı', share: 'Payı', sharePlaceholder: 'Tutar / %',
+      add: 'Kişi ekle', remove: 'Kaldır', more: 'Payları ayrı gir', equalHint: 'Tutar eşit bölünür, sen de dahilsin.', mine: 'Senin payın: {{amount}} · Kalanı sana borçlu olur.',
+    },
     undone: 'Geri alındı',
     cardPayment: 'Kart borcu ödenir',
     debt: {
@@ -256,6 +264,8 @@ export const tr = {
     invalid_currency: 'Para birimi geçersiz.',
     insufficient_balance: 'Hesapta yeterli bakiye yok.',
     invalid_count: 'Taksit sayısı geçersiz.',
+    invalid_split: 'Paylaşım bilgisi geçersiz.',
+    split_exceeds_total: 'Paylar toplamı tutarı aşıyor.',
     invalid_first_due_date: 'İlk taksit tarihi geçersiz.',
     already_paid: 'Bu taksit zaten ödenmiş.',
     plan_has_payments: 'Ödenmiş taksitleri olan alışveriş silinemez.',

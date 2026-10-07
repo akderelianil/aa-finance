@@ -56,7 +56,8 @@ End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (wit
 - Delete test users and test data (or use a new project).
 
 ## Known debt and limits
-- Edit works only for simple records (2 lines, base currency) of expense/income. Transfer, debt, FX, investment and installment records can be deleted but not edited.
+- Edit works only for simple records (2 lines, base currency) of expense/income. Other records (transfer, debt, split, FX, investment, installment) can be deleted from the list but not edited.
+- `installment-pay` records a separate "installment paid" event. This conflicts with harita principle 1 (the card payment is the real event); F4 replaces it.
 - No unrealized FX revaluation (the line constraint `amount > 0` allows only amount changes). FX gain/loss is realized on spend or sale.
 - No cross-currency (USD→EUR) and no transfer between FX accounts. For an investment, the payment account must match the instrument currency or the base currency.
 - The transactions page loads 30 records at a time (client-side search/type filter covers loaded records only). Reports compute on the client (minor-unit amounts as JS number, in the safe range).
@@ -68,5 +69,6 @@ End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (wit
 ## UI (shadcn) and account tree
 - shadcn: `web/components.json` (base `base` = base-ui, preset `bKsFTYsS`: luma/cyan/stone/Inter). Change preset: `npx shadcn@latest apply <code>` (in `web/`). Add a component: `npx shadcn@latest add <name>`. Project skill: `web/.agents/skills/shadcn`; MCP `shadcn` in `.mcp.json`.
 - Quick entry (`QuickEntry` → `components/entry/*`): Expense · Income · Transfer · Debt · ATM. `transfer-create` treats a missing side as the member's cash account (ATM). After a create, `useAfterSave` (`lib/entry.ts`) shows an Undo toast (= `transaction-delete`).
+- Expense options: installment (`installment-create`; first due date derives from `credit_card_settings`, else +1 month) and split (`split: [{name, amount?|percent?}]` on `transaction-create`/`installment-create`, `_shared/split.ts`): my share = expense, each person = receivable line; blanks and I share the rest equally, the extra cent stays with me.
 - Shell: mobile has 5 bottom tabs + an "Add" button; desktop has a left sidebar (`AppShell`). Routes: `/`, `/islemler`, `/hesaplar`, `/raporlar`, `/ayarlar` (+ `/ayarlar/kisiler|taksitler|yatirimlar`).
 - Account tree: `accounts.parent_id` (any depth). DB trigger `accounts_parent_chk`: same group/type; for a balance-sheet account, same owner + currency; no cycles. View `account_tree_balances` gives balances including the subtree. `account-create` (`parent_id`, `type` for categories), `account-update` (move with `parent_id`), `account-delete` (hard delete if the subtree has no movements/installments/investments, else archive).

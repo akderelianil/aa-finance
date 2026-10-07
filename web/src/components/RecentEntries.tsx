@@ -94,7 +94,8 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
         // Sistem kategorileri (kur farkı, yatırım kâr/zarar) ve özel kayıt türleri başlık sayılmaz.
         const cat = e.source_type && e.source_type !== 'installment' ? undefined
           : e.journal_lines.find((l) => !l.account.system_key && (l.account.type === 'expense' || l.account.type === 'income'))
-        const contact = e.journal_lines.find((l) => l.contact)?.contact?.name ?? ''
+        // Paylaşılan giderde birden çok kişi olabilir.
+        const contact = [...new Set(e.journal_lines.flatMap((l) => (l.contact ? [l.contact.name] : [])))].join(', ')
         const first = e.journal_lines[0]
         let kind: EntryRow['kind'] = cat ? (cat.account.type === 'income' ? 'income' : 'expense') : 'other'
         let category = cat?.account.name ?? '—'
@@ -131,7 +132,7 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
 
   const remove = useMutation({
     mutationFn: (id: string) => callFunction('transaction-delete', { entry_id: id }),
-    onSuccess: () => { setDeleting(null); void queryClient.invalidateQueries({ queryKey: ['entries', groupId] }) },
+    onSuccess: () => { setDeleting(null); void queryClient.invalidateQueries() },
   })
 
   const fmt = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: membership.group.base_currency })
@@ -173,12 +174,12 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
             <PaperclipIcon />
           </Button>
           {mine && e.editable && (
-            <>
-              <Button size="icon-sm" variant="ghost" aria-label={t('entry.edit')} onClick={() => openEntry(e)}><PencilIcon /></Button>
-              <Button size="icon-sm" variant="ghost" aria-label={t('entry.delete')} onClick={() => { remove.reset(); setDeleting(e) }}>
-                <Trash2Icon />
-              </Button>
-            </>
+            <Button size="icon-sm" variant="ghost" aria-label={t('entry.edit')} onClick={() => openEntry(e)}><PencilIcon /></Button>
+          )}
+          {mine && (
+            <Button size="icon-sm" variant="ghost" aria-label={t('entry.delete')} onClick={() => { remove.reset(); setDeleting(e) }}>
+              <Trash2Icon />
+            </Button>
           )}
         </div>
         {openId === e.id && <EntryAttachments entryId={e.id} canEdit={mine} />}

@@ -11,6 +11,18 @@ export const AMOUNT = '[0-9]+([.,][0-9]+)?'
 export const today = () => new Date().toLocaleDateString('sv-SE')
 export const decimal = (v: string) => v.replace(',', '.')
 
+// Paylaştır satırı. share: '' (eşit) · '185,78' (tutar) · '%20' (yüzde)
+export type SplitRow = { name: string; share: string }
+
+// İstek gövdesi: boş isimler atılır; "%20" → percent, "185,78" → amount.
+export function splitPayload(rows: SplitRow[]) {
+  return rows.filter((r) => r.name.trim()).map((r) => {
+    const s = r.share.trim().replace(',', '.')
+    if (!s) return { name: r.name.trim() }
+    return s.includes('%') ? { name: r.name.trim(), percent: s.replace('%', '').trim() } : { name: r.name.trim(), amount: s }
+  })
+}
+
 export type MyAccount = { id: string; name: string; currency: string; subtype: string | null }
 
 // Üyenin kayıt atılabilir kendi hesapları (varlık + borç), açılış sırasıyla.
