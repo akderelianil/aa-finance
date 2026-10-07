@@ -13,7 +13,7 @@ import { errorMessage } from '@/lib/errors'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
 
-type AccountRow = { id: string; name: string; type: string; subtype: string | null; archived_at: string | null }
+type AccountRow = { id: string; name: string; type: string; subtype: string | null; archived_at: string | null; currency: string | null }
 const SUBTYPES = ['cash', 'bank', 'credit_card', 'loan'] as const
 
 export default function Accounts({ membership }: { membership: Membership }) {
@@ -24,6 +24,12 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const [name, setName] = useState('')
   const [subtype, setSubtype] = useState<(typeof SUBTYPES)[number]>('bank')
   const [opening, setOpening] = useState('')
+  const [accCurrency, setAccCurrency] = useState(currency)
+  const [accRate, setAccRate] = useState('')
+  const [xFrom, setXFrom] = useState('')
+  const [xTo, setXTo] = useState('')
+  const [xFromAmt, setXFromAmt] = useState('')
+  const [xToAmt, setXToAmt] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [tAmount, setTAmount] = useState('')
@@ -33,7 +39,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
     queryKey: ['accounts', groupId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('accounts').select('id, name, type, subtype, archived_at, owner_member_id')
+        .from('accounts').select('id, name, type, subtype, archived_at, owner_member_id, currency')
         .eq('group_id', groupId).is('system_key', null).order('name')
       if (error) throw error
       const { data: bal, error: be } = await supabase.from('account_balances').select('account_id, net_amount')
@@ -50,13 +56,38 @@ export default function Accounts({ membership }: { membership: Membership }) {
 
   const create = useMutation({
     mutationFn: () =>
-      callFunction('account-create', { name, subtype, opening_balance: opening.replace(',', '.') || undefined }),
-    onSuccess: () => { setName(''); setOpening(''); refresh() },
+      callFunction('account-create', {
+        name, subtype, currency: accCurrency, opening_balance: opening.replace(',', '.') || undefined,
+        rate: accRate.replace(',', '.') || undefined,
+      }),
+    onSuccess: () => { setName(''); setOpening(''); setAccRate(''); refresh() },
   })
 
   const update = useMutation({
     mutationFn: (b: { account_id: string; name?: string; archived?: boolean }) => callFunction('account-update', b),
     onSuccess: () => { setRenaming(null); refresh() },
+  })
+
+  const currencies = useQuery({
+    queryKey: ['currencies'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('currencies').select('code').order('code')
+      if (error) throw error
+      return data.map((r) => r.code as string)
+    },
+  })
+
+  const exchange = useMutation({
+    mutationFn: () =>
+      callFunction('fx-exchange', {
+        from_account_id: xFrom, to_account_id: xTo,
+        from_amount: xFromAmt.replace(',', '.'), to_amount: xToAmt.replace(',', '.'),
+      }),
+    onSuccess: () => {
+      setXFromAmt(''); setXToAmt('')
+      refresh()
+      void queryClient.invalidateQueries({ queryKey: ['entries', groupId] })
+    },
   })
 
   const transfer = useMutation({
@@ -119,7 +150,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
           {mine.map((a) => {
             const net = accounts.data?.net.get(a.id) ?? 0
             const shown = a.type === 'liability' ? -net : net
-            return row(a, formatMinor(shown, currency, i18n.language))
+            return row(a, formatMinor(shown, a.currency ?? currency, i18n.language))
           })}
           <form onSubmit={onSubmit} className="flex flex-col gap-3 pt-2">
             <Label htmlFor="acc-name">{t('accounts.add')}</Label>
@@ -131,11 +162,24 @@ export default function Accounts({ membership }: { membership: Membership }) {
             >
               {SUBTYPES.map((s) => <option key={s} value={s}>{t(`accounts.subtype.${s}`)}</option>)}
             </select>
+            <select
+              aria-label={t('accounts.currency')} value={accCurrency} onChange={(e) => setAccCurrency(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            >
+              {currencies.data?.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
             <Input
               inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
               placeholder={t(subtype === 'credit_card' || subtype === 'loan' ? 'accounts.openingDebt' : 'accounts.opening')}
               value={opening} onChange={(e) => setOpening(e.target.value)}
             />
+            {accCurrency !== currency && opening && (
+              <Input
+                inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                placeholder={t('accounts.rateHint', { from: accCurrency, to: currency })}
+                value={accRate} onChange={(e) => setAccRate(e.target.value)}
+              />
+            )}
             <FormError message={create.error ? errorMessage(t, create.error) : null} />
             <Button type="submit" disabled={create.isPending}>{t('accounts.addButton')}</Button>
           </form>
@@ -161,6 +205,34 @@ export default function Accounts({ membership }: { membership: Membership }) {
               />
               <FormError message={transfer.error ? errorMessage(t, transfer.error) : null} />
               <Button type="submit" disabled={transfer.isPending}>{t('accounts.transferButton')}</Button>
+            </CardContent>
+          </form>
+        </Card>
+      )}
+      {mine.some((a) => a.currency !== currency) && mine.some((a) => a.currency === currency) && (
+        <Card>
+          <form onSubmit={(e) => { e.preventDefault(); exchange.mutate() }}>
+            <CardHeader><CardTitle>{t('accounts.exchange')}</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3 pt-4">
+              {([['from', xFrom, setXFrom, xFromAmt, setXFromAmt], ['to', xTo, setXTo, xToAmt, setXToAmt]] as const).map(
+                ([k, v, set, amt, setAmt]) => (
+                  <div key={k} className="flex gap-2">
+                    <select
+                      required aria-label={t(`accounts.${k}`)} value={v} onChange={(e) => set(e.target.value)}
+                      className="h-9 min-w-0 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                    >
+                      <option value="">{t(`accounts.${k}`)}</option>
+                      {mine.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
+                    </select>
+                    <Input
+                      required inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?" className="w-28"
+                      placeholder={t('entry.amount')} value={amt} onChange={(e) => setAmt(e.target.value)}
+                    />
+                  </div>
+                ),
+              )}
+              <FormError message={exchange.error ? errorMessage(t, exchange.error) : null} />
+              <Button type="submit" disabled={exchange.isPending}>{t('accounts.exchangeButton')}</Button>
             </CardContent>
           </form>
         </Card>

@@ -1,10 +1,12 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
-import { loadMember, parseAmount } from '../_shared/entries.ts'
+import { loadMember, parseAmount, postRawEntry } from '../_shared/entries.ts'
+import { exponentOf, parseRate, resolveRate, saveRate, toBase } from '../_shared/fx.ts'
 
 // Kullanıcının kendi hesabı: nakit, banka, kredi kartı, kredi/borç.
-// Şimdilik yalnız grubun ana para biriminde. Başlangıç bakiyesi (kartta: mevcut borç) opsiyonel.
+// Para birimi varsayılan grubun ana para birimi; döviz hesabında başlangıç bakiyesi için kur (verilmezse son kur) gerekir.
+// Başlangıç bakiyesi (kartta: mevcut borç) opsiyonel.
 const SUBTYPES: Record<string, 'asset' | 'liability'> = {
   cash: 'asset', bank: 'asset', credit_card: 'liability', loan: 'liability',
 }
@@ -22,32 +24,36 @@ serve(async (req, user) => {
     const m = await loadMember(tx, user.id)
     await setActor(tx, m.member_id)
     const currency = body.currency ? requireString(body.currency, 'currency', 3).toUpperCase() : m.base_currency
-    if (currency !== m.base_currency) throw new HttpError(422, 'Şimdilik yalnız ana para birimi', 'currency_mismatch')
+    const exp = await exponentOf(tx, currency)
 
     await tx`
       insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
       values (${id}, ${m.group_id}, ${m.member_id}, ${type}, ${subtype}, ${name}, ${currency})`
 
     if (body.opening_balance !== undefined && body.opening_balance !== '' && body.opening_balance !== null) {
-      const amount = parseAmount(body.opening_balance, m.exponent).toString()
+      const amount = parseAmount(body.opening_balance, exp)
+      let base = amount
+      let rate: string | undefined
+      if (currency !== m.base_currency) {
+        const given = parseRate(body.rate)
+        rate = await resolveRate(tx, m.group_id, currency, m.base_currency, given)
+        base = await toBase(tx, amount, exp, m.exponent, rate)
+        if (given) await saveRate(tx, m.group_id, currency, m.base_currency, new Date().toISOString().slice(0, 10), given)
+      }
       const [eq] = await tx`
         select id from accounts
         where group_id = ${m.group_id} and owner_member_id = ${m.member_id} and system_key = 'opening_balance'
         for update`
       if (!eq) throw new Error('opening_balance account missing for member ' + m.member_id)
-      const entryId = uuidv7()
-      await tx`
-        insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type)
-        values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, current_date, ${name}, 'opening_balance')`
       // Varlık: Borç hesap / Alacak açılış. Borç hesabı: Borç açılış / Alacak hesap.
-      const lines = type === 'asset'
-        ? [{ a: id, d: 'debit' }, { a: eq.id, d: 'credit' }]
-        : [{ a: eq.id, d: 'debit' }, { a: id, d: 'credit' }]
-      for (const [i, l] of lines.entries()) {
-        await tx`
-          insert into journal_lines (id, entry_id, account_id, direction, amount, currency, base_amount, fx_rate, position)
-          values (${uuidv7()}, ${entryId}, ${l.a}, ${l.d}, ${amount}, ${currency}, ${amount}, 1, ${i})`
-      }
+      const acct = { amount, currency, base, rate }
+      const eqLine = { amount: base, currency: m.base_currency, base }
+      await postRawEntry(tx, m, {
+        date: new Date().toISOString().slice(0, 10), description: name, sourceType: 'opening_balance',
+        lines: type === 'asset'
+          ? [{ account: id, dir: 'debit', ...acct }, { account: eq.id, dir: 'credit', ...eqLine }]
+          : [{ account: eq.id, dir: 'debit', ...eqLine }, { account: id, dir: 'credit', ...acct }],
+      })
     }
   })
 

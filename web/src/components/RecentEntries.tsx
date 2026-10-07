@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
+import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
 
 export type EntryRow = {
@@ -15,6 +16,7 @@ export type EntryRow = {
   kind: 'expense' | 'income' | 'other'
   category: string
   contact: string
+  original: string // yabancı para satırı ise orijinal tutar (biçimli), değilse ''
   amount: string // ondalık string, para birimi üyenin grup ana para birimi
   editable: boolean // 2 satırlı gider/gelir; diğerleri şimdilik sadece görüntülenir
 }
@@ -24,7 +26,7 @@ type RawEntry = {
   member_id: string
   entry_date: string
   source_type: string | null
-  journal_lines: { amount: number; direction: string; account: { name: string; type: string }; contact: { name: string } | null }[]
+  journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string }; contact: { name: string } | null }[]
 }
 
 // Minor unit (number, < 2^53 pratikte) → ondalık string. Gösterim için; hesap için kullanılmaz.
@@ -45,7 +47,7 @@ export function RecentEntries({
     queryFn: async (): Promise<EntryRow[]> => {
       const { data, error } = await supabase
         .from('journal_entries')
-        .select('id, member_id, entry_date, source_type, journal_lines(amount, direction, account:accounts(name, type), contact:contacts(name))')
+        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type), contact:contacts(name))')
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
@@ -73,8 +75,9 @@ export function RecentEntries({
           kind,
           category,
           contact: cat ? contact : '',
-          amount: fromMinor((cat ?? first)?.amount ?? 0, exponent),
-          editable: e.journal_lines.length === 2 && !!cat,
+          original: cat && cat.currency !== membership.group.base_currency ? formatMinor(cat.amount, cat.currency, i18n.language) : '',
+          amount: fromMinor((cat ?? first)?.base_amount ?? 0, exponent),
+          editable: e.journal_lines.length === 2 && !!cat && cat.currency === membership.group.base_currency && first.currency === membership.group.base_currency,
         }
       })
     },
@@ -99,7 +102,7 @@ export function RecentEntries({
             <div className="min-w-0">
               <p className="truncate font-medium">{e.category}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {e.entry_date}{e.contact && ` · ${e.contact}`}
+                {e.entry_date}{e.contact && ` · ${e.contact}`}{e.original && ` · ${e.original}`}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">

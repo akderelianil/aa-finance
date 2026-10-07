@@ -130,22 +130,60 @@ export async function resolveDebtAccount(
 
 export type NewLine = { account: string; dir: 'debit' | 'credit'; contactId?: string | null }
 
-// Ana para biriminde, tek tutarlı, çift taraflı kayıt yazar (denge DB trigger'ında da zorlanır).
-export async function postEntry(
+export type RawLine = {
+  account: string
+  dir: 'debit' | 'credit'
+  amount: bigint // satırın para biriminde (minor)
+  currency: string
+  base: bigint // grup ana para biriminde (minor)
+  rate?: string // 1 satır para birimi = rate ana para birimi (varsayılan 1)
+  contactId?: string | null
+}
+
+type EntryOwner = { group_id: string; member_id: string; base_currency: string }
+
+// Çok para birimli, çift taraflı kayıt yazar (denge DB trigger'ında da zorlanır).
+export async function postRawEntry(
   tx: Tx,
-  m: { group_id: string; member_id: string; base_currency: string },
-  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[] },
+  m: EntryOwner,
+  e: { date: string; description?: string; sourceType?: string; isEstimated?: boolean; lines: RawLine[] },
 ) {
   const entryId = uuidv7()
-  const amount = e.amount.toString()
   await tx`
-    insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type)
-    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''}, ${e.sourceType ?? null})`
+    insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type, is_estimated)
+    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''},
+            ${e.sourceType ?? null}, ${e.isEstimated ?? false})`
   for (const [i, l] of e.lines.entries()) {
     await tx`
       insert into journal_lines (id, entry_id, account_id, contact_id, direction, amount, currency, base_amount, fx_rate, position)
-      values (${uuidv7()}, ${entryId}, ${l.account}, ${l.contactId ?? null}, ${l.dir}, ${amount}, ${m.base_currency},
-              ${amount}, 1, ${i})`
+      values (${uuidv7()}, ${entryId}, ${l.account}, ${l.contactId ?? null}, ${l.dir}, ${l.amount.toString()}, ${l.currency},
+              ${l.base.toString()}, ${l.rate ?? '1'}, ${i})`
   }
   return entryId
+}
+
+// Ana para biriminde, tek tutarlı kayıt (kısayol).
+export function postEntry(
+  tx: Tx,
+  m: EntryOwner,
+  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[] },
+) {
+  return postRawEntry(tx, m, {
+    date: e.date, description: e.description, sourceType: e.sourceType,
+    lines: e.lines.map((l) => ({
+      account: l.account, dir: l.dir, amount: e.amount, currency: m.base_currency, base: e.amount, contactId: l.contactId,
+    })),
+  })
+}
+
+// Üyenin kendi bilanço hesabını (herhangi bir para biriminde) kilitleyip döndürür.
+export async function lockOwnAccount(tx: Tx, groupId: string, memberId: string, accountId: unknown) {
+  if (typeof accountId !== 'string') throw new HttpError(422, 'account geçersiz', 'invalid_account')
+  const [acc] = await tx`
+    select id, currency, type from accounts
+    where id = ${accountId} and group_id = ${groupId} and owner_member_id = ${memberId}
+      and type in ('asset', 'liability') and not is_placeholder and archived_at is null
+    for update`
+  if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
+  return acc as { id: string; currency: string; type: 'asset' | 'liability' }
 }

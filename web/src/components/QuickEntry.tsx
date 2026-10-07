@@ -29,6 +29,9 @@ export function QuickEntry({
   const [contact, setContact] = useState(editing?.contact ?? '')
   const [category, setCategory] = useState(editing?.category ?? '')
   const [accountId, setAccountId] = useState('')
+  const [otherCurrency, setOtherCurrency] = useState('')
+  const [rate, setRate] = useState('')
+  const [baseAmount, setBaseAmount] = useState('')
   const [saved, setSaved] = useState(false)
 
   const categories = useQuery({
@@ -47,7 +50,7 @@ export function QuickEntry({
     queryKey: ['accounts', groupId, 'mine'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('accounts').select('id, name')
+        .from('accounts').select('id, name, currency')
         .eq('owner_member_id', membership.id).in('type', ['asset', 'liability']).is('system_key', null)
         .is('archived_at', null).order('created_at')
       if (error) throw error
@@ -65,6 +68,20 @@ export function QuickEntry({
     },
   })
 
+  const currencies = useQuery({
+    queryKey: ['currencies'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('currencies').select('code').order('code')
+      if (error) throw error
+      return data.map((r) => r.code as string)
+    },
+  })
+
+  const baseCurrency = membership.group.base_currency
+  const selected = accounts.data?.find((a) => a.id === accountId)
+  const foreignAccount = !!selected && selected.currency !== baseCurrency
+  const effectiveCurrency = foreignAccount ? selected.currency : otherCurrency || baseCurrency
+
   const save = useMutation({
     mutationFn: () => {
       const payload = {
@@ -77,11 +94,16 @@ export function QuickEntry({
         ? callFunction('transaction-update', { entry_id: editing.id, ...payload })
         : callFunction('transaction-create', {
             kind, ...payload, contact_name: contact || undefined, account_id: accountId || undefined,
+            currency: !foreignAccount && otherCurrency ? otherCurrency : undefined,
+            rate: effectiveCurrency !== baseCurrency ? rate.replace(',', '.') || undefined : undefined,
+            base_amount: !foreignAccount && otherCurrency ? baseAmount.replace(',', '.') || undefined : undefined,
           })
     },
     onSuccess: () => {
       if (!editing) {
         setAmount('')
+        setRate('')
+        setBaseAmount('')
         setContact('')
         setCategory('')
         setDate(today())
@@ -121,7 +143,7 @@ export function QuickEntry({
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label htmlFor="amount">{t('entry.amount')} ({membership.group.base_currency})</Label>
+            <Label htmlFor="amount">{t('entry.amount')} ({effectiveCurrency})</Label>
             <Input
               id="amount" required inputMode="decimal" autoComplete="off" placeholder="0,00"
               pattern="[0-9]+([.,][0-9]+)?" value={amount} onChange={(e) => setAmount(e.target.value)}
@@ -147,6 +169,31 @@ export function QuickEntry({
               {contacts.data?.map((n) => <option key={n} value={n} />)}
             </datalist>
           </div>
+          {!editing && !foreignAccount && (currencies.data?.length ?? 0) > 1 && (
+            <select
+              aria-label={t('accounts.currency')} value={otherCurrency} onChange={(e) => setOtherCurrency(e.target.value)}
+              className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+            >
+              <option value="">{t('entry.sameCurrency', { currency: baseCurrency })}</option>
+              {currencies.data!.filter((c) => c !== baseCurrency).map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          {!editing && effectiveCurrency !== baseCurrency && (
+            <>
+              <Input
+                inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                placeholder={t('accounts.rateHint', { from: effectiveCurrency, to: baseCurrency })}
+                value={rate} onChange={(e) => setRate(e.target.value)}
+              />
+              {!foreignAccount && (
+                <Input
+                  inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                  placeholder={t('entry.baseAmountHint', { currency: baseCurrency })}
+                  value={baseAmount} onChange={(e) => setBaseAmount(e.target.value)}
+                />
+              )}
+            </>
+          )}
           {!editing && (accounts.data?.length ?? 0) > 1 && (
             <div className="flex flex-col gap-2">
               <Label htmlFor="account">{t('accounts.account')}</Label>
