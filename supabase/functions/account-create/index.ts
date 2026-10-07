@@ -1,5 +1,6 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
+import { saveCardDays } from '../_shared/accounts.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import { loadMember, parseAmount, postRawEntry } from '../_shared/entries.ts'
 import { exponentOf, parseRate, resolveRate, saveRate, toBase } from '../_shared/fx.ts'
@@ -66,6 +67,7 @@ serve(async (req, user) => {
     await tx`
       insert into accounts (id, group_id, owner_member_id, parent_id, type, subtype, name, currency)
       values (${id}, ${m.group_id}, ${m.member_id}, ${parentId}, ${type}, ${subtype}, ${name}, ${currency})`
+    if (subtype === 'credit_card') await saveCardDays(tx, id, body)
 
     if (body.opening_balance !== undefined && body.opening_balance !== '' && body.opening_balance !== null) {
       const amount = parseAmount(body.opening_balance, exp)

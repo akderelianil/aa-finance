@@ -20,6 +20,8 @@ serve(async (req, user) => {
       await tx`delete from installment_plans where id = ${plan.id}`
     }
     await tx`update installments set payment_entry_id = null where payment_entry_id = ${entry.id}`
+    // Bu kayıtla doğan plan (borç vadesi) da gider.
+    await tx`delete from plans where source_entry_id = ${entry.id}`
     await tx`update journal_entries set deleted_at = now(), deleted_by = ${m.member_id}, updated_at = now()
              where id = ${entry.id}`
   })

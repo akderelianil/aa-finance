@@ -8,7 +8,7 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
-import { decimal, today, useAfterSave, useMyAccounts } from '@/lib/entry'
+import { decimal, today, useAfterSave, useMyAccounts, type EntryPreset } from '@/lib/entry'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
 
@@ -17,17 +17,22 @@ type Payer = 'they' | 'me'
 type BalanceRow = { net_base_amount: number; contact: { name: string } | null }
 
 // Borç tek düğme: Aldım / Verdim / Ödeşme. Ödeşmede yön kişinin bakiyesinden gelir, değiştirilebilir.
-export function DebtForm({ membership, onDone }: { membership: Membership; onDone?: () => void }) {
+export function DebtForm({ membership, preset, onDone }: {
+  membership: Membership
+  preset?: Extract<EntryPreset, { kind: 'debt' }>
+  onDone?: () => void
+}) {
   const { t, i18n } = useTranslation()
   const afterSave = useAfterSave()
   const currency = membership.group.base_currency
   const accounts = useMyAccounts(membership)
-  const [mode, setMode] = useState<Mode>('borrow')
+  const [mode, setMode] = useState<Mode>(preset?.mode ?? 'borrow')
   const [payer, setPayer] = useState<Payer | null>(null)
-  const [contact, setContact] = useState('')
+  const [contact, setContact] = useState(preset?.contact ?? '')
   const [accountId, setAccountId] = useState('')
-  const [amount, setAmount] = useState('')
+  const [amount, setAmount] = useState(preset?.amount ?? '')
   const [date, setDate] = useState(today)
+  const [due, setDue] = useState('')
 
   const contacts = useQuery({
     queryKey: ['contacts', membership.group.id],
@@ -63,6 +68,7 @@ export function DebtForm({ membership, onDone }: { membership: Membership; onDon
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('debt-create', {
       action, contact_name: contact.trim(), account_id: accountId || undefined, amount: decimal(amount), date,
+      due_date: mode !== 'settle' && due ? due : undefined,
     }),
     onSuccess: (r) => { afterSave(r.entry_id); onDone?.() },
   })
@@ -121,6 +127,13 @@ export function DebtForm({ membership, onDone }: { membership: Membership; onDon
           </Field>
         )}
         <DateField value={date} onChange={setDate} />
+        {mode !== 'settle' && (
+          <Field>
+            <FieldLabel htmlFor="debt-due">{t('entry.debt.due')}</FieldLabel>
+            <Input id="debt-due" type="date" min={date} value={due} onChange={(e) => setDue(e.target.value)} />
+            <FieldDescription>{t('entry.debt.dueHint')}</FieldDescription>
+          </Field>
+        )}
         <EntryFooter error={save.error} pending={save.isPending} onCancel={onDone} />
       </FieldGroup>
     </form>

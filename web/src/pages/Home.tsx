@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Cell, Pie, PieChart } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
+import { Upcoming } from '@/components/Upcoming'
 import { RecentEntries } from '@/components/RecentEntries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,16 +65,6 @@ export default function Home({ membership }: { membership: Membership }) {
       return data as Total[]
     },
   })
-  const installments = useQuery({
-    queryKey: ['entries', groupId, 'dash-installments'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('installments').select('id, due_date, amount').is('payment_entry_id', null).order('due_date').limit(3)
-      if (error) throw error
-      return data as { id: string; due_date: string; amount: number }[]
-    },
-  })
-
   const stats = useMemo(() => {
     const accs = new Map((accounts.data ?? []).map((a) => [a.id, a]))
     const root = (id: string): Acc | undefined => {
@@ -111,7 +102,6 @@ export default function Home({ membership }: { membership: Membership }) {
   const error = accounts.error ?? asOf.error ?? month.error
   const net = stats.income - stats.expense
   const config: ChartConfig = Object.fromEntries(stats.slices.map((s) => [s.name, { label: s.name }]))
-  const dateFmt = new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long' })
 
   return (
     <>
@@ -141,7 +131,9 @@ export default function Home({ membership }: { membership: Membership }) {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Yaklaşanlar: uygulamanın üç ana yerinden biri; özetin hemen altında. */}
+      <Upcoming membership={membership} />
+      <div className="flex flex-col gap-4">
         <Card>
           <CardHeader>
             <CardTitle>{t('dashboard.spending')}</CardTitle>
@@ -173,23 +165,6 @@ export default function Home({ membership }: { membership: Membership }) {
                 </ul>
               </div>
             )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('installments.upcoming')}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {installments.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('installments.empty')}</p>}
-            {installments.data?.map((i) => (
-              <div key={i.id} className="flex items-center justify-between text-sm">
-                <span>{dateFmt.format(new Date(`${i.due_date}T00:00:00`))}</span>
-                <span className="tabular-nums">{formatMinor(Number(i.amount), base, i18n.language)}</span>
-              </div>
-            ))}
-            <Button variant="ghost" size="sm" className="self-start" nativeButton={false} render={<Link to="/ayarlar/taksitler" />}>
-              {t('installments.title')}
-            </Button>
           </CardContent>
         </Card>
       </div>

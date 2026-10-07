@@ -23,6 +23,11 @@ export function splitPayload(rows: SplitRow[]) {
   })
 }
 
+// Yaklaşanlar satırından açılan hazır doldurulmuş kayıt.
+export type EntryPreset =
+  | { kind: 'transfer'; to?: string; amount?: string }
+  | { kind: 'debt'; mode: 'settle'; contact: string; amount?: string }
+
 export type MyAccount = { id: string; name: string; currency: string; subtype: string | null }
 
 // Üyenin kayıt atılabilir kendi hesapları (varlık + borç), açılış sırasıyla.

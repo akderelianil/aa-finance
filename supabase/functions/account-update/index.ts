@@ -1,5 +1,6 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
+import { saveCardDays } from '../_shared/accounts.ts'
 import { loadMember } from '../_shared/entries.ts'
 
 // Hesap/kategori yeniden adlandırma ve arşivleme (silme yok; geçmiş kayıtlar korunur).
@@ -12,7 +13,7 @@ serve(async (req, user) => {
     const m = await loadMember(tx, user.id)
     await setActor(tx, m.member_id)
     const [a] = await tx`
-      select id, type, owner_member_id, system_key from accounts
+      select id, type, subtype, owner_member_id, system_key from accounts
       where id = ${body.account_id as string} and group_id = ${m.group_id} for update`
     if (!a) throw new HttpError(404, 'Hesap bulunamadı', 'not_found')
     if (a.system_key) throw new HttpError(422, 'Sistem hesabı değiştirilemez', 'system_account')
@@ -21,6 +22,7 @@ serve(async (req, user) => {
       throw new HttpError(403, 'Bu hesabı sadece sahibi değiştirebilir', 'not_owner')
     }
 
+    if (a.subtype === 'credit_card') await saveCardDays(tx, a.id, body)
     if (body.name !== undefined) {
       await tx`update accounts set name = ${requireString(body.name, 'name', 60)} where id = ${a.id}`
     }

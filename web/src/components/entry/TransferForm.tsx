@@ -6,19 +6,23 @@ import { AmountField, DateField, EntryFooter } from '@/components/entry/Fields'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { callFunction } from '@/lib/api'
-import { decimal, today, useAfterSave, useMyAccounts } from '@/lib/entry'
+import { decimal, today, useAfterSave, useMyAccounts, type EntryPreset } from '@/lib/entry'
 
 const MOVABLE = ['cash', 'bank', 'credit_card', 'loan', 'other']
 
 // Kendi hesapların arasında para: hedef kredi kartıysa bu kart ödemesidir.
-export function TransferForm({ membership, onDone }: { membership: Membership; onDone?: () => void }) {
+export function TransferForm({ membership, preset, onDone }: {
+  membership: Membership
+  preset?: Extract<EntryPreset, { kind: 'transfer' }>
+  onDone?: () => void
+}) {
   const { t } = useTranslation()
   const afterSave = useAfterSave()
   const currency = membership.group.base_currency
   const accounts = useMyAccounts(membership)
   const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
+  const [to, setTo] = useState(preset?.to ?? '')
+  const [amount, setAmount] = useState(preset?.amount ?? '')
   const [date, setDate] = useState(today)
 
   const options = (accounts.data ?? [])

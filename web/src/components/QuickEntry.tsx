@@ -9,6 +9,7 @@ import { ExpenseIncomeForm } from '@/components/entry/ExpenseIncomeForm'
 import { TransferForm } from '@/components/entry/TransferForm'
 import type { EntryRow } from '@/components/RecentEntries'
 import { Button } from '@/components/ui/button'
+import type { EntryPreset } from '@/lib/entry'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type Kind = 'expense' | 'income' | 'transfer' | 'debt' | 'atm'
@@ -23,10 +24,10 @@ const KINDS: { kind: Kind; icon: LucideIcon }[] = [
 
 // Hızlı Kayıt: "Ne oldu?" → beş düğme + küçük "Diğer" (döviz, yatırım). Düzenlemede yalnız gider/gelir formu açılır.
 export function QuickEntry({
-  membership, editing, onDone,
-}: { membership: Membership; editing?: EntryRow | null; onDone?: () => void }) {
+  membership, editing, preset, onDone,
+}: { membership: Membership; editing?: EntryRow | null; preset?: EntryPreset; onDone?: () => void }) {
   const { t } = useTranslation()
-  const [kind, setKind] = useState<Kind>('expense')
+  const [kind, setKind] = useState<Kind>(preset?.kind ?? 'expense')
 
   if (editing) {
     return (
@@ -51,8 +52,8 @@ export function QuickEntry({
         ))}
       </ToggleGroup>
       {(kind === 'expense' || kind === 'income') && <ExpenseIncomeForm key={kind} kind={kind} {...props} />}
-      {kind === 'transfer' && <TransferForm {...props} />}
-      {kind === 'debt' && <DebtForm {...props} />}
+      {kind === 'transfer' && <TransferForm {...props} preset={preset?.kind === 'transfer' ? preset : undefined} />}
+      {kind === 'debt' && <DebtForm {...props} preset={preset?.kind === 'debt' ? preset : undefined} />}
       {kind === 'atm' && <AtmForm {...props} />}
       <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-muted-foreground">
         <span>{t('entry.other')}:</span>
