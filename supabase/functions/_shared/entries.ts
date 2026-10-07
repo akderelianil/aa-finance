@@ -31,12 +31,14 @@ export function assertNotLocked(lockDate: string | null, date: string) {
   if (lockDate && date <= lockDate) throw new HttpError(422, 'Bu dönem kilitli', 'period_locked')
 }
 
+// Gruplayıcı kategori adı yazılırsa aynı adla yeni kategori açılmaz; alt kategori seçilmeli.
 export async function findOrCreateCategory(tx: Tx, groupId: string, type: string, name: string) {
   const [found] = await tx`
-    select id from accounts
+    select id, is_placeholder from accounts
     where group_id = ${groupId} and type = ${type} and system_key is null and archived_at is null
-      and not is_placeholder and lower(name) = lower(${name})
-    order by created_at limit 1`
+      and lower(name) = lower(${name})
+    order by is_placeholder, created_at limit 1`
+  if (found?.is_placeholder) throw new HttpError(422, 'Gruplayıcı kategoriye kayıt girilmez', 'placeholder_account')
   if (found) return found.id as string
   const id = uuidv7()
   await tx`insert into accounts (id, group_id, type, name) values (${id}, ${groupId}, ${type}, ${name})`
@@ -127,7 +129,7 @@ export async function resolveDebtAccount(
   const [found] = await tx`
     select id from accounts
     where group_id = ${m.group_id} and owner_member_id = ${m.member_id} and subtype = ${subtype}
-      and currency = ${m.base_currency} and archived_at is null
+      and currency = ${m.base_currency} and not is_placeholder and archived_at is null
     order by created_at limit 1 for update`
   if (found) return found.id as string
   const id = uuidv7()

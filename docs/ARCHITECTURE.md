@@ -16,6 +16,27 @@ status: active
 - **UX principle: minimum input, zero mandatory fields.** The server derives every derivable value: rate, TRY amount, average cost, FX and investment gain/loss, account creation, installment schedule. These request fields are optional; a user-given value wins. The user never sees accounting terms.
 - AI, auto-fill and bank import are out of scope.
 
+## Ledger model (GnuCash)
+The ledger follows the GnuCash SQL model.
+
+| GnuCash | aa-finance |
+|---|---|
+| `transactions` | `journal_entries` |
+| `splits` | `journal_lines` |
+| split `quantity` (account commodity) | `amount` + `currency` |
+| split `value` (transaction currency) | `base_amount` (group base currency) |
+| `accounts.placeholder` | `accounts.is_placeholder` |
+| `accounts.parent_guid` | `accounts.parent_id` |
+
+The DB enforces these rules for every writer (`20261008030000_ledger_integrity.sql`):
+- An entry balances on `base_amount` and has ≥2 lines (deferred trigger).
+- A line cannot post to a placeholder account.
+- A line account is in the entry's group. A balance-sheet line account belongs to the entry member.
+- A line on a balance-sheet account is in that account's currency. A base-currency line has `amount` = `base_amount`.
+- An account with lines keeps its type and currency, and cannot become a placeholder.
+
+A receipt with more than one category is one entry with one line per category (`transaction-create` `items`).
+
 ## Multi-currency
 - Categories have no currency. A balance-sheet account has one currency.
 - Each line: original amount + currency + base-currency amount (`base_amount`) + rate.
@@ -37,5 +58,4 @@ status: active
 
 ## Rules the app enforces (the DB does not)
 - Only the record owner edits or deletes. No change before `lock_date`.
-- A balance-sheet account on a line must belong to the record's member. The line currency must equal that account's currency.
 - Editing a past record recalculates the average cost (the account's lines in date order).

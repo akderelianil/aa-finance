@@ -5,6 +5,7 @@ import type { Membership } from '@/auth/useMembership'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
 import { OptionSelect } from '@/components/OptionSelect'
+import { ItemsEditor } from '@/components/entry/ItemsEditor'
 import { SplitEditor } from '@/components/entry/SplitEditor'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
 import type { EntryRow } from '@/components/RecentEntries'
-import { splitPayload, useAfterSave, useMyAccounts, type SplitRow } from '@/lib/entry'
+import { itemsPayload, splitPayload, useAfterSave, useMyAccounts, type ItemRow, type SplitRow } from '@/lib/entry'
 import { exponentOf, formatMinor } from '@/lib/money'
 
 const today = () => new Date().toLocaleDateString('sv-SE')
@@ -35,10 +36,11 @@ export function ExpenseIncomeForm({
   const [otherCurrency, setOtherCurrency] = useState('')
   const [rate, setRate] = useState('')
   const [baseAmount, setBaseAmount] = useState('')
-  // Seçenekler (yalnız yeni kayıt): taksit (gider + kredi kartı), paylaştır (gider), not.
+  // Seçenekler (yalnız yeni kayıt): taksit (gider + kredi kartı), paylaştır (gider), kalemler (gider), not.
   const [installment, setInstallment] = useState(false)
   const [count, setCount] = useState('3')
   const [split, setSplit] = useState<SplitRow[] | null>(null)
+  const [items, setItems] = useState<ItemRow[] | null>(null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState('')
 
@@ -47,7 +49,7 @@ export function ExpenseIncomeForm({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts').select('name')
-        .eq('group_id', groupId).eq('type', kind).is('system_key', null).is('archived_at', null)
+        .eq('group_id', groupId).eq('type', kind).is('system_key', null).eq('is_placeholder', false).is('archived_at', null)
         .order('name')
       if (error) throw error
       return data.map((r) => r.name)
@@ -97,7 +99,7 @@ export function ExpenseIncomeForm({
   const accountOptions = installment ? cards : (accounts.data ?? [])
   const totalMinor = Math.round(Number(amount.replace(',', '.')) * 10 ** exponentOf(baseCurrency))
   const perInstallment = installment && Number(count) >= 2 && totalMinor > 0 ? Math.floor(totalMinor / Number(count)) : null
-  const simple = !installment && !split // döviz yalnız sade giderde
+  const simple = !installment && !split && !items // döviz yalnız sade giderde
 
   const save = useMutation({
     mutationFn: () => {
@@ -108,6 +110,7 @@ export function ExpenseIncomeForm({
         contact_name: contact,
       }
       const extras = { description: note.trim() || undefined, split: split ? splitPayload(split) : undefined }
+      const lineItems = items && itemsPayload(items).length ? itemsPayload(items) : undefined
       if (!editing && installment) {
         return callFunction<{ entry_id?: string }>('installment-create', {
           card_account_id: cardId, total_amount: payload.amount, installment_count: Number(count),
@@ -117,7 +120,7 @@ export function ExpenseIncomeForm({
       return editing
         ? callFunction<{ entry_id?: string }>('transaction-update', { entry_id: editing.id, ...payload })
         : callFunction<{ entry_id?: string }>('transaction-create', {
-            kind, ...payload, ...extras, contact_name: contact || undefined, account_id: accountId || undefined,
+            kind, ...payload, ...extras, items: lineItems, contact_name: contact || undefined, account_id: accountId || undefined,
             currency: !foreignAccount && otherCurrency ? otherCurrency : undefined,
             rate: effectiveCurrency !== baseCurrency ? rate.replace(',', '.') || undefined : undefined,
             base_amount: !foreignAccount && otherCurrency ? baseAmount.replace(',', '.') || undefined : undefined,
@@ -203,9 +206,16 @@ export function ExpenseIncomeForm({
         )}
         {!editing && kind === 'expense' && (
           <div className="flex flex-wrap gap-2" role="group" aria-label={t('entry.options')}>
-            <Toggle variant="outline" size="sm" pressed={installment} onPressedChange={setInstallment}>{t('entry.installment.toggle')}</Toggle>
-            <Toggle variant="outline" size="sm" pressed={!!split} onPressedChange={(p) => setSplit(p ? [{ name: '', share: '' }] : null)}>
+            {/* Kalemler, taksit ve paylaştır ile birlikte kullanılmaz. */}
+            <Toggle variant="outline" size="sm" pressed={installment} disabled={!!items} onPressedChange={setInstallment}>{t('entry.installment.toggle')}</Toggle>
+            <Toggle variant="outline" size="sm" pressed={!!split} disabled={!!items} onPressedChange={(p) => setSplit(p ? [{ name: '', share: '' }] : null)}>
               {t('entry.split.toggle')}
+            </Toggle>
+            <Toggle
+              variant="outline" size="sm" pressed={!!items} disabled={installment || !!split || foreignAccount || !!otherCurrency}
+              onPressedChange={(p) => setItems(p ? [{ category: '', amount: '' }] : null)}
+            >
+              {t('entry.items.toggle')}
             </Toggle>
             <Toggle variant="outline" size="sm" pressed={noteOpen} onPressedChange={setNoteOpen}>{t('entry.note')}</Toggle>
           </div>
@@ -227,6 +237,9 @@ export function ExpenseIncomeForm({
         )}
         {split && (
           <SplitEditor rows={split} onChange={setSplit} contacts={contacts.data ?? []} totalMinor={totalMinor} currency={baseCurrency} />
+        )}
+        {items && (
+          <ItemsEditor rows={items} onChange={setItems} totalMinor={totalMinor} currency={baseCurrency} category={category} />
         )}
         {noteOpen && (
           <Field>

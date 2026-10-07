@@ -9,6 +9,7 @@ import { exponentOf, parseRate, resolveRate, saveRate, toBase } from '../_shared
 // parent_id (opsiyonel): alt hesap; tip, sahip, para birimi ve (verilmezse) alt tür üstten türetilir.
 // Para birimi varsayılan grubun ana para birimi; döviz hesabında başlangıç bakiyesi için kur (verilmezse son kur) gerekir.
 // Başlangıç bakiyesi (kartta: mevcut borç) opsiyonel.
+// is_placeholder: yalnız gruplama (GnuCash placeholder); kayıt atılmaz, başlangıç bakiyesi olmaz.
 const SUBTYPES: Record<string, 'asset' | 'liability'> = {
   cash: 'asset', bank: 'asset', credit_card: 'liability', loan: 'liability',
 }
@@ -21,6 +22,8 @@ serve(async (req, user) => {
   }
   const parentId = (body.parent_id as string | null | undefined) ?? null
   const kind = typeof body.type === 'string' ? body.type : ''
+  const placeholder = body.is_placeholder === true
+  if (placeholder && body.opening_balance) throw new HttpError(422, 'Gruplayıcı hesaba bakiye girilmez', 'placeholder_account')
   if (kind && kind !== 'income' && kind !== 'expense') throw new HttpError(422, 'type geçersiz', 'invalid_type')
 
   const id = uuidv7()
@@ -46,8 +49,8 @@ serve(async (req, user) => {
     const catType = parent ? (parent.type === 'income' || parent.type === 'expense' ? parent.type : '') : kind
     if (catType) {
       await tx`
-        insert into accounts (id, group_id, parent_id, type, name)
-        values (${id}, ${m.group_id}, ${parentId}, ${catType}, ${name})`
+        insert into accounts (id, group_id, parent_id, type, name, is_placeholder)
+        values (${id}, ${m.group_id}, ${parentId}, ${catType}, ${name}, ${placeholder})`
       return
     }
 
@@ -65,8 +68,8 @@ serve(async (req, user) => {
     const exp = await exponentOf(tx, currency)
 
     await tx`
-      insert into accounts (id, group_id, owner_member_id, parent_id, type, subtype, name, currency)
-      values (${id}, ${m.group_id}, ${m.member_id}, ${parentId}, ${type}, ${subtype}, ${name}, ${currency})`
+      insert into accounts (id, group_id, owner_member_id, parent_id, type, subtype, name, currency, is_placeholder)
+      values (${id}, ${m.group_id}, ${m.member_id}, ${parentId}, ${type}, ${subtype}, ${name}, ${currency}, ${placeholder})`
     if (subtype === 'credit_card') await saveCardDays(tx, id, body)
 
     if (body.opening_balance !== undefined && body.opening_balance !== '' && body.opening_balance !== null) {

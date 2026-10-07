@@ -23,6 +23,12 @@ export function splitPayload(rows: SplitRow[]) {
   })
 }
 
+// Kalem satırı (fişteki diğer kategori). Boş satırlar atılır.
+export type ItemRow = { category: string; amount: string }
+
+export const itemsPayload = (rows: ItemRow[]) =>
+  rows.filter((r) => r.category.trim() && r.amount.trim()).map((r) => ({ category_name: r.category.trim(), amount: decimal(r.amount) }))
+
 // Yaklaşanlar satırından açılan hazır doldurulmuş kayıt.
 export type EntryPreset =
   | { kind: 'transfer'; to?: string; amount?: string }

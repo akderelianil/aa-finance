@@ -4,6 +4,7 @@ import { saveCardDays } from '../_shared/accounts.ts'
 import { loadMember } from '../_shared/entries.ts'
 
 // Hesap/kategori yeniden adlandırma ve arşivleme (silme yok; geçmiş kayıtlar korunur).
+// is_placeholder: gruplayıcı yap/kaldır; kaydı olan hesap gruplayıcı olamaz (DB trigger'ı).
 // Hesap: yalnız sahibi. Kategori (grup geneli): grubun herhangi bir üyesi. Sistem hesapları değişmez.
 serve(async (req, user) => {
   const body = await readBody(req)
@@ -43,6 +44,14 @@ serve(async (req, user) => {
         await tx`update accounts set parent_id = ${(body.parent_id as string | null) ?? null} where id = ${a.id}`
       } catch (e) {
         if ((e as { code?: string }).code === '23514') throw new HttpError(422, 'Geçersiz üst hesap', 'invalid_parent')
+        throw e
+      }
+    }
+    if (typeof body.is_placeholder === 'boolean') {
+      try {
+        await tx`update accounts set is_placeholder = ${body.is_placeholder} where id = ${a.id}`
+      } catch (e) {
+        if ((e as { code?: string }).code === '23514') throw new HttpError(422, 'Kaydı olan hesap gruplayıcı olamaz', 'account_has_records')
         throw e
       }
     }

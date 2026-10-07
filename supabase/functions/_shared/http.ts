@@ -58,6 +58,8 @@ export function serve(
       if (e.code === '23505' && e.constraint_name === 'members_one_group_per_user') {
         return json({ error: 'already_member', message: 'Zaten bir gruba üyesin' }, 409, cors)
       }
+      // Defter kuralı (DB trigger/check, ör. gruplayıcı hesaba kayıt): istemci hatası.
+      if (e.code === '23514') return json({ error: 'ledger_rule', message: (err as Error).message }, 422, cors)
       console.error(err)
       return json({ error: 'internal', message: 'Beklenmeyen bir hata oluştu' }, 500, cors)
     }
