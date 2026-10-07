@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
-import { AmountField, DateField, EntryFooter } from '@/components/entry/Fields'
+import { AmountField, DateChip, EntryFooter } from '@/components/entry/Fields'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -53,11 +53,11 @@ export function LoanForm({ membership, lender, onLenderChange, onDone }: {
   return (
     <form onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
       <FieldGroup>
+        <AmountField value={amount} onChange={setAmount} currency={currency} />
         <Field>
           <FieldLabel htmlFor="loan-bank">{t('entry.loan.bank')}</FieldLabel>
           <Input id="loan-bank" required maxLength={100} autoComplete="off" value={lender} onChange={(e) => onLenderChange(e.target.value)} />
         </Field>
-        <AmountField value={amount} onChange={setAmount} currency={currency} />
         {banks.length > 1 && (
           <Field>
             <FieldLabel>{t('entry.loan.account')}</FieldLabel>
@@ -99,8 +99,8 @@ export function LoanForm({ membership, lender, onLenderChange, onDone }: {
             </Field>
           </>
         )}
-        <DateField value={date} onChange={setDate} />
-        <EntryFooter error={save.error} pending={save.isPending} onCancel={onDone} />
+        <DateChip value={date} onChange={setDate} />
+        <EntryFooter error={save.error} pending={save.isPending} />
       </FieldGroup>
     </form>
   )

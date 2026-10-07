@@ -1,7 +1,7 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
-import { assertNotLocked, entryDate, loadMember, parseAmount, postEntry, resolveAccount } from '../_shared/entries.ts'
+import { assertNotLocked, entryDate, parseTags, loadMember, parseAmount, postEntry, resolveAccount } from '../_shared/entries.ts'
 import { addDays, parseDays, parseRatePercent } from '../_shared/deposit.ts'
 
 // Vadeli hesap aç (Transfer → yeni vadeli hesap): para hesaptan vadeliye geçer; gelir/gider yok.
@@ -14,6 +14,7 @@ serve(async (req, user) => {
   const withholding = body.withholding_rate === undefined || body.withholding_rate === null || body.withholding_rate === ''
     ? '0' : parseRatePercent(body.withholding_rate, 'withholding_rate', 100)
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
   const fromId = typeof body.from_account_id === 'string' && body.from_account_id ? body.from_account_id : undefined
   const returnId = typeof body.return_account_id === 'string' && body.return_account_id ? body.return_account_id : null
 
@@ -33,7 +34,7 @@ serve(async (req, user) => {
       insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
       values (${id}, ${m.group_id}, ${m.member_id}, 'asset', 'deposit', ${name}, ${m.base_currency})`
     const entryId = await postEntry(tx, m, {
-      date, amount, sourceType: 'deposit_open',
+      date, amount, sourceType: 'deposit_open', tags,
       lines: [{ account: id, dir: 'debit' }, { account: from, dir: 'credit' }],
     })
     await tx`

@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { EntryAttachments } from '@/components/EntryAttachments'
+import { useGroupTags } from '@/lib/entry'
+import { OptionSelect } from '@/components/OptionSelect'
 import { useEntryDialog } from '@/components/EntryDialog'
 import { FormError } from '@/components/PageShell'
 import {
@@ -39,6 +41,7 @@ export type EntryRow = {
   amount: string // ondalık string, para birimi üyenin grup ana para birimi
   parts: { category: string; amount: string }[] // kategori satırları (ilki ana kategori, diğerleri kalemler)
   editable: boolean // tek hesaplı, ana para birimli gider/gelir; diğerleri şimdilik sadece görüntülenir
+  tags: string[]
 }
 
 type RawEntry = {
@@ -46,6 +49,7 @@ type RawEntry = {
   member_id: string
   entry_date: string
   source_type: string | null
+  tags: { tag: { name: string } }[]
   journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string; subtype: string | null; system_key: string | null }; contact: { name: string } | null }[]
 }
 
@@ -80,15 +84,19 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [kinds, setKinds] = useState<string[]>([])
+  const [tag, setTag] = useState('')
   const [deleting, setDeleting] = useState<EntryRow | null>(null)
-  const fetchCount = full ? count : limit
+  // Etiket seçiliyse o etiketin bütün kayıtları gelir (toplam doğru olsun).
+  const fetchCount = full ? (tag ? 1000 : count) : limit
+  const groupTags = useGroupTags(groupId)
 
   const entries = useQuery({
-    queryKey: ['entries', groupId, fetchCount],
+    queryKey: ['entries', groupId, fetchCount, tag],
     queryFn: async (): Promise<EntryRow[]> => {
-      const { data, error } = await supabase
-        .from('journal_entries')
-        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type, subtype, system_key), contact:contacts(name))')
+      const base = 'id, member_id, entry_date, source_type, tags:entry_tags(tag:tags(name)), journal_lines(amount, base_amount, currency, direction, account:accounts(name, type, subtype, system_key), contact:contacts(name))'
+      let query = supabase.from('journal_entries').select(tag ? `${base}, tf:entry_tags!inner(tag_id)` : base)
+      if (tag) query = query.eq('tf.tag_id', tag)
+      const { data, error } = await query
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
@@ -143,6 +151,7 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
           parts: cats.map((l) => ({ category: l.account.name, amount: fromMinor(l.base_amount, exponent) })),
           editable: !e.source_type && !!cat && e.journal_lines.length === cats.length + 1
             && e.journal_lines.every((l) => l.currency === membership.group.base_currency),
+          tags: e.tags.map((x) => x.tag.name).sort(),
         }
       })
     },
@@ -159,7 +168,9 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
   const q = search.trim().toLocaleLowerCase(i18n.language)
   const rows = (entries.data ?? []).filter((e) =>
     (kinds.length === 0 || kinds.includes(e.kind))
-    && (!q || `${e.category} ${e.contact}`.toLocaleLowerCase(i18n.language).includes(q)))
+    && (!q || `${e.category} ${e.contact} ${e.tags.join(' ')}`.toLocaleLowerCase(i18n.language).includes(q)))
+  const tagName = groupTags.data?.find((x) => x.id === tag)?.name
+  const sum = (k: EntryRow['kind']) => rows.filter((e) => e.kind === k).reduce((s, e) => s + Number(e.amount), 0)
 
   function row(e: EntryRow) {
     const mine = e.memberId === membership.id
@@ -176,8 +187,13 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
               </span>
               <div className="min-w-0">
                 <p className="truncate font-medium">{e.category}</p>
-                {(e.contact || e.original) && (
-                  <p className="truncate text-xs text-muted-foreground">{[e.contact, e.original].filter(Boolean).join(' · ')}</p>
+                {(e.contact || e.original || e.tags.length > 0) && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[e.contact, e.original].filter(Boolean).join(' · ')}
+                    {e.tags.map((name) => (
+                      <span key={name} className="ml-1.5 text-primary">#{name}</span>
+                    ))}
+                  </p>
                 )}
               </div>
             </div>
@@ -248,14 +264,25 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
                 <ToggleGroupItem key={k} value={k} variant="outline" size="sm">{t(`journal.kind.${k}`)}</ToggleGroupItem>
               ))}
             </ToggleGroup>
+            {(groupTags.data?.length ?? 0) > 0 && (
+              <OptionSelect
+                value={tag} onChange={setTag} label={t('journal.tag')} className="sm:w-44"
+                options={[{ value: '', label: t('journal.allTags') }, ...groupTags.data!.map((x) => ({ value: x.id, label: `#${x.name}` }))]}
+              />
+            )}
           </div>
+        )}
+        {full && tagName && entries.data && (
+          <p className="text-sm text-muted-foreground">
+            {t('journal.tagTotal', { tag: tagName, expense: fmt.format(sum('expense')), income: fmt.format(sum('income')) })}
+          </p>
         )}
         {entries.isLoading && (
           <div className="flex flex-col gap-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
         )}
         {entries.data && rows.length === 0 && (
           <Empty><EmptyHeader><EmptyTitle>{t('entry.empty')}</EmptyTitle>
-            {full && (search || kinds.length > 0) && <EmptyDescription>{t('journal.noMatch')}</EmptyDescription>}
+            {full && (search || kinds.length > 0 || tag) && <EmptyDescription>{t('journal.noMatch')}</EmptyDescription>}
           </EmptyHeader></Empty>
         )}
         {rows.length > 0 && (

@@ -2,7 +2,7 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateContact, findTemplateCategory, loadMember, parseAmount, postRawEntry,
+  assertNotLocked, entryDate, parseTags, findOrCreateContact, findTemplateCategory, loadMember, parseAmount, postRawEntry,
   resolveAccount, type RawLine,
 } from '../_shared/entries.ts'
 
@@ -26,6 +26,7 @@ serve(async (req, user) => {
   const count = Number(body.installment_count)
   if (!Number.isInteger(count) || count < 1 || count > 120) throw new HttpError(422, 'installment_count geçersiz', 'invalid_count')
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
   const firstDue = given(body.first_due_date) ? body.first_due_date : addMonths(date, 1)
   if (!(typeof firstDue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(firstDue) && firstDue > date
     && !isNaN(new Date(firstDue + 'T00:00:00Z').getTime()))) {
@@ -59,7 +60,7 @@ serve(async (req, user) => {
     if (total > principal) lines.push(line(await findTemplateCategory(tx, m.group_id, 'loan_cost', 'expense', 'Kredi Maliyeti'), 'debit', total - principal))
     lines.push(line(loanId, 'credit', total))
 
-    const entryId = await postRawEntry(tx, m, { date, description: `${lender} kredisi`, sourceType: 'loan', lines })
+    const entryId = await postRawEntry(tx, m, { date, description: `${lender} kredisi`, sourceType: 'loan', lines, tags })
     await tx`
       insert into loan_settings (account_id, group_id, lender_contact_id, principal, total_repayment, installment_count,
                                  installment_amount, first_due_date, source_entry_id)

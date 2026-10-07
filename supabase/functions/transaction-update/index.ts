@@ -2,14 +2,16 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
   assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, insertLines, loadMember, loadOwnedEntry,
-  parseAmount, parseItems, withRest, type Part,
+  parseAmount, parseItems, parseTags, setEntryTags, withRest, type Part,
 } from '../_shared/entries.ts'
 
 // Hızlı kayıtla girilmiş gider/gelir kaydını düzenler: ana para biriminde, tek hesap satırı + bir ya da
 // çok kategori satırı (kalemler). Verilmeyen alanlar değişmez; contact_name boş string = kişiyi kaldır,
-// items boş dizi = kalemleri kaldır. Tutar/kategori/kalem değişince satırlar yeniden yazılır.
+// items boş dizi = kalemleri kaldır, tags verilirse etiketler bu listeyle değişir.
+// Tutar/kategori/kalem değişince satırlar yeniden yazılır.
 serve(async (req, user) => {
   const body = await readBody(req)
+  const tags = body.tags === undefined ? undefined : parseTags(body.tags)
 
   await sql.begin(async (tx) => {
     const m = await loadMember(tx, user.id)
@@ -39,6 +41,7 @@ serve(async (req, user) => {
     await tx`
       update journal_entries set updated_at = now(), description = coalesce(${description ?? null}, description)
       where id = ${entry.id}`
+    if (tags) await setEntryTags(tx, m.group_id, entry.id, tags)
 
     const contactId = body.contact_name === undefined ? cats[0].contact_id as string | null
       : body.contact_name

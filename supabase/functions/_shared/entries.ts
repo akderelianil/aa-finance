@@ -164,11 +164,36 @@ export type RawLine = {
 
 type EntryOwner = { group_id: string; member_id: string; base_currency: string }
 
+// Etiketler: ["Tatil 2026", ...]. Boş/tekrar eden adlar atılır; en çok 10, her biri en çok 40 karakter.
+export function parseTags(v: unknown): string[] {
+  if (v === undefined || v === null) return []
+  if (!Array.isArray(v) || v.length > 10) throw new HttpError(422, 'tags geçersiz', 'invalid_tags')
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const t of v) {
+    const s = typeof t === 'string' ? t.trim().replace(/^#/, '').trim() : ''
+    if (s.length > 40) throw new HttpError(422, 'tags geçersiz', 'invalid_tags')
+    if (s && !seen.has(s.toLocaleLowerCase('tr'))) { seen.add(s.toLocaleLowerCase('tr')); out.push(s) }
+  }
+  return out
+}
+
+// Kaydın etiketlerini verilen listeyle değiştirir; yeni ad grupta etiket olarak açılır.
+export async function setEntryTags(tx: Tx, groupId: string, entryId: string, names: string[]) {
+  await tx`delete from entry_tags where entry_id = ${entryId}`
+  for (const name of names) {
+    const [found] = await tx`select id from tags where group_id = ${groupId} and lower(name) = lower(${name})`
+    const tagId = (found?.id as string | undefined) ?? uuidv7()
+    if (!found) await tx`insert into tags (id, group_id, name) values (${tagId}, ${groupId}, ${name})`
+    await tx`insert into entry_tags (entry_id, tag_id, group_id) values (${entryId}, ${tagId}, ${groupId})`
+  }
+}
+
 // Çok para birimli, çift taraflı kayıt yazar (denge DB trigger'ında da zorlanır).
 export async function postRawEntry(
   tx: Tx,
   m: EntryOwner,
-  e: { date: string; description?: string; sourceType?: string; isEstimated?: boolean; lines: RawLine[] },
+  e: { date: string; description?: string; sourceType?: string; isEstimated?: boolean; lines: RawLine[]; tags?: string[] },
 ) {
   const entryId = uuidv7()
   await tx`
@@ -176,6 +201,7 @@ export async function postRawEntry(
     values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''},
             ${e.sourceType ?? null}, ${e.isEstimated ?? false})`
   await insertLines(tx, entryId, e.lines)
+  if (e.tags?.length) await setEntryTags(tx, m.group_id, entryId, e.tags)
   return entryId
 }
 
@@ -219,10 +245,10 @@ export function withRest(mainAccount: string, total: bigint, parts: Part[]): Par
 export function postEntry(
   tx: Tx,
   m: EntryOwner,
-  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[] },
+  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[]; tags?: string[] },
 ) {
   return postRawEntry(tx, m, {
-    date: e.date, description: e.description, sourceType: e.sourceType,
+    date: e.date, description: e.description, sourceType: e.sourceType, tags: e.tags,
     lines: e.lines.map((l) => ({
       account: l.account, dir: l.dir, amount: e.amount, currency: m.base_currency, base: e.amount, contactId: l.contactId,
     })),

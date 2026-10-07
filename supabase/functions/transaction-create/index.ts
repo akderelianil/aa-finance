@@ -1,7 +1,7 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount,
+  assertNotLocked, entryDate, parseTags, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount,
   parseAmount, parseItems, postRawEntry, resolveAccount, withRest, type RawLine,
 } from '../_shared/entries.ts'
 import {
@@ -27,6 +27,7 @@ serve(async (req, user) => {
   const contactName = body.contact_name ? requireString(body.contact_name, 'contact_name', 100) : null
   const description = body.description ? requireString(body.description, 'description', 200) : ''
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
   const givenRate = parseRate(body.rate)
   const reqCurrency = body.currency ? requireString(body.currency, 'currency', 3).toUpperCase() : null
   const split = parseSplit(body.split)
@@ -111,7 +112,7 @@ serve(async (req, user) => {
       push(acct.id, kind === 'expense' ? 'credit' : 'debit', base, m.base_currency, base)
     }
 
-    return postRawEntry(tx, m, { date, description, isEstimated: estimated, lines })
+    return postRawEntry(tx, m, { date, description, isEstimated: estimated, lines, tags })
   })
 
   return { entry_id: entryId }

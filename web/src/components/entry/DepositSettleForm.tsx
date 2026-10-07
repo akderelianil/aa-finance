@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
-import { DateField, EntryFooter } from '@/components/entry/Fields'
+import { DateChip, EntryFooter } from '@/components/entry/Fields'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -144,8 +144,8 @@ export function DepositSettleForm({ membership, accountId, onDone }: { membershi
               placeholder={t('entry.deposit.target')} label={t('entry.deposit.target')} />
           </Field>
         )}
-        <DateField value={date} onChange={setDate} />
-        <EntryFooter error={save.error} pending={save.isPending} onCancel={onDone} />
+        <DateChip value={date} onChange={setDate} />
+        <EntryFooter error={save.error} pending={save.isPending} />
       </FieldGroup>
     </form>
   )

@@ -2,7 +2,7 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateContact, loadMember, parseAmount, postEntry, resolveAccount,
+  assertNotLocked, entryDate, parseTags, findOrCreateContact, loadMember, parseAmount, postEntry, resolveAccount,
   resolveDebtAccount,
 } from '../_shared/entries.ts'
 
@@ -21,6 +21,7 @@ serve(async (req, user) => {
   const contactName = requireString(body.contact_name, 'contact_name', 100)
   const accountId = typeof body.account_id === 'string' ? body.account_id : undefined
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
   const due = body.due_date === undefined || body.due_date === null || body.due_date === '' ? null : body.due_date
   if (due !== null && !(typeof due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(due) && due >= date
     && !isNaN(new Date(due + 'T00:00:00Z').getTime()))) {
@@ -38,7 +39,7 @@ serve(async (req, user) => {
     const lines = action === 'lend' || action === 'repay'
       ? [{ account: debtAcct, dir: 'debit' as const, contactId }, { account: acct, dir: 'credit' as const, contactId }]
       : [{ account: acct, dir: 'debit' as const, contactId }, { account: debtAcct, dir: 'credit' as const, contactId }]
-    const eid = await postEntry(tx, m, { date, amount, sourceType: 'debt', lines })
+    const eid = await postEntry(tx, m, { date, amount, sourceType: 'debt', lines, tags })
     if (due && (action === 'lend' || action === 'borrow')) {
       await tx`
         insert into plans (id, group_id, member_id, kind, contact_id, due_date, source_entry_id)

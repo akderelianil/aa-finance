@@ -2,7 +2,7 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount, parseAmount,
+  assertNotLocked, entryDate, parseTags, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount, parseAmount,
   postRawEntry, type RawLine,
 } from '../_shared/entries.ts'
 import { parseSplit, splitDebitLines } from '../_shared/split.ts'
@@ -49,6 +49,7 @@ serve(async (req, user) => {
   const contactName = body.contact_name ? requireString(body.contact_name, 'contact_name', 100) : null
   const split = parseSplit(body.split)
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
   // İlk vade ileri tarihli olabilir; requireDate geleceği reddeder, bu yüzden kendi doğrulamamız.
   const givenDue = body.first_due_date === undefined || body.first_due_date === null || body.first_due_date === ''
     ? null : body.first_due_date
@@ -80,7 +81,7 @@ serve(async (req, user) => {
       : [{ account: catId, dir: 'debit', amount: total, currency: cur, base: total, contactId }]
     lines.push({ account: card.id, dir: 'credit', amount: total, currency: cur, base: total, contactId })
 
-    const eid = await postRawEntry(tx, m, { date, description, sourceType: 'installment', lines })
+    const eid = await postRawEntry(tx, m, { date, description, sourceType: 'installment', lines, tags })
     await tx`
       insert into installment_plans (id, group_id, member_id, purchase_entry_id, card_account_id, description,
                                      total_amount, currency, installment_count, first_due_date)

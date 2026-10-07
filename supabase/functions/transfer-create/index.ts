@@ -1,7 +1,7 @@
 import { HttpError, readBody, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findTemplateCategory, loadMember, parseAmount, postRawEntry, resolveAccount,
+  assertNotLocked, entryDate, parseTags, findOrCreateCategory, findTemplateCategory, loadMember, parseAmount, postRawEntry, resolveAccount,
 } from '../_shared/entries.ts'
 
 // Kendi hesapların arası aktarım (kart ödemesi dahil): Borç hedef / Alacak kaynak.
@@ -14,6 +14,7 @@ serve(async (req, user) => {
   const toId = typeof body.to_account_id === 'string' && body.to_account_id ? body.to_account_id : undefined
   if (!fromId && !toId) throw new HttpError(422, 'account geçersiz', 'invalid_account')
   const date = entryDate(body.date)
+  const tags = parseTags(body.tags)
 
   const entryId = await sql.begin(async (tx) => {
     const m = await loadMember(tx, user.id)
@@ -29,7 +30,8 @@ serve(async (req, user) => {
     const to = locked.get(toId)!
     if (from === to) throw new HttpError(422, 'Aynı hesap', 'same_account')
     const [src] = await tx`select subtype from accounts where id = ${from}`
-    const toCash = !toId
+    const [dst] = await tx`select subtype from accounts where id = ${to}`
+    const toCash = dst.subtype === 'cash'
     const advance = src.subtype === 'credit_card' && toCash
     const fee = body.fee === undefined || body.fee === null || body.fee === '' ? 0n : parseAmount(body.fee, m.exponent)
     if (fee > 0n && !advance) throw new HttpError(422, 'Komisyon yalnız nakit avansta', 'invalid_fee')
@@ -45,7 +47,7 @@ serve(async (req, user) => {
         : await findTemplateCategory(tx, m.group_id, 'cash_advance_fee', 'expense', 'Nakit Avans Masrafı')
       lines.splice(1, 0, { account: feeCat, dir: 'debit', amount: fee, currency: cur, base: fee })
     }
-    return postRawEntry(tx, m, { date, sourceType: advance ? 'cash_advance' : 'transfer', lines })
+    return postRawEntry(tx, m, { date, sourceType: advance ? 'cash_advance' : 'transfer', lines, tags })
   })
 
   return { entry_id: entryId }

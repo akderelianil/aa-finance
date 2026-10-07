@@ -41,6 +41,20 @@ export function expectedReturn(principal: number, annualRate: number, days: numb
   return Math.floor(principal * (annualRate / 100) * (days / 365) * (1 - withholding / 100))
 }
 
+// Form alt satırındaki çiplerin (hesap, tarih, daha fazla) ortak görünümü.
+export const chipClass = 'h-8 w-auto max-w-full gap-1.5 rounded-full border border-input bg-background px-3 text-sm'
+
+export function useGroupTags(groupId: string) {
+  return useQuery({
+    queryKey: ['tags', groupId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('tags').select('id, name').eq('group_id', groupId).order('name')
+      if (error) throw error
+      return data as { id: string; name: string }[]
+    },
+  })
+}
+
 export type MyAccount = { id: string; name: string; currency: string; subtype: string | null }
 
 // Üyenin kayıt atılabilir kendi hesapları (varlık + borç), açılış sırasıyla.
