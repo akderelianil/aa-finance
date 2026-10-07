@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { PageShell, FormError } from '@/components/PageShell'
 import { QuickEntry } from '@/components/QuickEntry'
+import { RecentEntries, type EntryRow } from '@/components/RecentEntries'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { callFunction } from '@/lib/api'
@@ -13,6 +14,9 @@ import { supabase } from '@/lib/supabase'
 export default function Home({ membership }: { membership: Membership }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
+  const [editing, setEditing] = useState<EntryRow | null>(null)
+  const exponent = new Intl.NumberFormat('en', { style: 'currency', currency: membership.group.base_currency })
+    .resolvedOptions().maximumFractionDigits ?? 2
 
   const invite = useMutation({
     mutationFn: () => callFunction<{ code: string; expires_at: string }>('invite-create'),
@@ -54,7 +58,10 @@ export default function Home({ membership }: { membership: Membership }) {
           </CardContent>
         )}
       </Card>
-      <QuickEntry membership={membership} />
+      <QuickEntry
+        key={editing?.id ?? 'new'} membership={membership} editing={editing} onDone={() => setEditing(null)}
+      />
+      <RecentEntries membership={membership} exponent={exponent} onEdit={setEditing} />
       <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>{t('common.logout')}</Button>
     </PageShell>
   )

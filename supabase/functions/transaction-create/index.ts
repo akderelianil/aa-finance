@@ -1,57 +1,14 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql, type Tx } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
+import {
+  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, parseAmount,
+} from '../_shared/entries.ts'
 
 // Hızlı gider/gelir kaydı (ana para biriminde). Tek transaction, çift taraflı:
 //   gider: Borç kategori / Alacak hesap     gelir: Borç hesap / Alacak kategori
 // Opsiyonel/otomatik: tarih (bugün), hesap (üyenin nakit hesabı, yoksa açılır),
 // kategori ve kişi (isimle bulunur, yoksa açılır).
-const MAX_MINOR = 10n ** 15n
-
-function parseAmount(v: unknown, exponent: number): bigint {
-  const s = typeof v === 'string' ? v.trim() : typeof v === 'number' ? String(v) : ''
-  const m = /^(\d{1,15})(?:\.(\d+))?$/.exec(s)
-  if (!m || (m[2]?.length ?? 0) > exponent) throw new HttpError(422, 'amount geçersiz', 'invalid_amount')
-  const minor = BigInt(m[1] + (m[2] ?? '').padEnd(exponent, '0'))
-  if (minor <= 0n || minor >= MAX_MINOR) throw new HttpError(422, 'amount geçersiz', 'invalid_amount')
-  return minor
-}
-
-// İstemci saat dilimi UTC'den ileride olabilir; bir gün tolerans.
-function entryDate(v: unknown): string {
-  const today = new Date().toISOString().slice(0, 10)
-  if (v === undefined || v === null || v === '') return today
-  const s = typeof v === 'string' ? v : ''
-  const d = new Date(s + 'T00:00:00Z')
-  const valid = /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(d.getTime()) && d.toISOString().startsWith(s)
-  if (!valid || s < '2000-01-01' || d.getTime() > Date.now() + 86_400_000) {
-    throw new HttpError(422, 'date geçersiz', 'invalid_date')
-  }
-  return s
-}
-
-async function findOrCreateCategory(tx: Tx, groupId: string, type: string, name: string) {
-  const [found] = await tx`
-    select id from accounts
-    where group_id = ${groupId} and type = ${type} and system_key is null and archived_at is null
-      and not is_placeholder and lower(name) = lower(${name})
-    order by created_at limit 1`
-  if (found) return found.id as string
-  const id = uuidv7()
-  await tx`insert into accounts (id, group_id, type, name) values (${id}, ${groupId}, ${type}, ${name})`
-  return id
-}
-
-async function findOrCreateContact(tx: Tx, groupId: string, name: string) {
-  const [found] = await tx`
-    select id from contacts
-    where group_id = ${groupId} and archived_at is null and lower(name) = lower(${name})
-    order by created_at limit 1`
-  if (found) return found.id as string
-  const id = uuidv7()
-  await tx`insert into contacts (id, group_id, name) values (${id}, ${groupId}, ${name})`
-  return id
-}
 
 // Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Nakit" açılır.
 async function resolveAccount(tx: Tx, groupId: string, memberId: string, currency: string, accountId?: string) {
@@ -92,18 +49,12 @@ serve(async (req, user) => {
   const entryId = uuidv7()
 
   await sql.begin(async (tx) => {
-    const [m] = await tx`
-      select m.id as member_id, m.group_id, g.base_currency, g.lock_date, c.exponent
-      from members m
-      join groups g on g.id = m.group_id
-      join currencies c on c.code = g.base_currency
-      where m.user_id = ${user.id}`
-    if (!m) throw new HttpError(403, 'Bir gruba üye değilsin', 'not_member')
+    const m = await loadMember(tx, user.id)
     await setActor(tx, m.member_id)
-    if (m.lock_date && date <= m.lock_date) throw new HttpError(422, 'Bu dönem kilitli', 'period_locked')
+    assertNotLocked(m.lock_date, date)
 
     const amount = parseAmount(body.amount, m.exponent)
-    const currency = m.base_currency as string
+    const currency = m.base_currency
     const acctId = await resolveAccount(tx, m.group_id, m.member_id, currency, accountId)
     const catId = await findOrCreateCategory(tx, m.group_id, kind, categoryName)
     const contactId = contactName ? await findOrCreateContact(tx, m.group_id, contactName) : null

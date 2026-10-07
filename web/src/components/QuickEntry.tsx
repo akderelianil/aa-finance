@@ -10,20 +10,24 @@ import { Label } from '@/components/ui/label'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
+import type { EntryRow } from '@/components/RecentEntries'
 
 type Kind = 'expense' | 'income'
 
 const today = () => new Date().toLocaleDateString('sv-SE')
 
-export function QuickEntry({ membership }: { membership: Membership }) {
+// editing verilirse form o kaydı düzenler (üst bileşen key={editing.id} ile yeniden kurar).
+export function QuickEntry({
+  membership, editing, onDone,
+}: { membership: Membership; editing?: EntryRow | null; onDone?: () => void }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const groupId = membership.group.id
-  const [kind, setKind] = useState<Kind>('expense')
-  const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(today)
-  const [contact, setContact] = useState('')
-  const [category, setCategory] = useState('')
+  const [kind, setKind] = useState<Kind>(editing?.kind ?? 'expense')
+  const [amount, setAmount] = useState(editing?.amount ?? '')
+  const [date, setDate] = useState(editing?.entry_date ?? today())
+  const [contact, setContact] = useState(editing?.contact ?? '')
+  const [category, setCategory] = useState(editing?.category ?? '')
   const [saved, setSaved] = useState(false)
 
   const categories = useQuery({
@@ -48,50 +52,59 @@ export function QuickEntry({ membership }: { membership: Membership }) {
     },
   })
 
-  const create = useMutation({
-    mutationFn: () =>
-      callFunction('transaction-create', {
-        kind,
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = {
         amount: amount.replace(',', '.'),
         date,
         category_name: category,
-        contact_name: contact || undefined,
-      }),
+        contact_name: contact,
+      }
+      return editing
+        ? callFunction('transaction-update', { entry_id: editing.id, ...payload })
+        : callFunction('transaction-create', { kind, ...payload, contact_name: contact || undefined })
+    },
     onSuccess: () => {
-      setAmount('')
-      setContact('')
-      setCategory('')
-      setDate(today())
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      if (!editing) {
+        setAmount('')
+        setContact('')
+        setCategory('')
+        setDate(today())
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      }
       void queryClient.invalidateQueries({ queryKey: ['categories', groupId] })
       void queryClient.invalidateQueries({ queryKey: ['contacts', groupId] })
+      void queryClient.invalidateQueries({ queryKey: ['entries', groupId] })
+      onDone?.()
     },
   })
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSaved(false)
-    create.mutate()
+    save.mutate()
   }
 
   return (
     <Card>
       <form onSubmit={onSubmit}>
         <CardHeader>
-          <CardTitle>{t('entry.title')}</CardTitle>
+          <CardTitle>{editing ? t('entry.editTitle') : t('entry.title')}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4">
-          <div className="grid grid-cols-2 gap-2">
-            {(['expense', 'income'] as const).map((k) => (
-              <Button
-                key={k} type="button" variant={kind === k ? 'default' : 'outline'}
-                onClick={() => { setKind(k); setCategory('') }}
-              >
-                {t(`entry.kind.${k}`)}
-              </Button>
-            ))}
-          </div>
+          {!editing && (
+            <div className="grid grid-cols-2 gap-2">
+              {(['expense', 'income'] as const).map((k) => (
+                <Button
+                  key={k} type="button" variant={kind === k ? 'default' : 'outline'}
+                  onClick={() => { setKind(k); setCategory('') }}
+                >
+                  {t(`entry.kind.${k}`)}
+                </Button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="amount">{t('entry.amount')} ({membership.group.base_currency})</Label>
             <Input
@@ -123,9 +136,12 @@ export function QuickEntry({ membership }: { membership: Membership }) {
             <Label htmlFor="date">{t('entry.date')}</Label>
             <Input id="date" type="date" required max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
-          <FormError message={create.error ? errorMessage(t, create.error) : null} />
+          <FormError message={save.error ? errorMessage(t, save.error) : null} />
           {saved && <p className="text-center text-sm text-green-600">{t('entry.saved')}</p>}
-          <Button type="submit" disabled={create.isPending}>{t('entry.save')}</Button>
+          <Button type="submit" disabled={save.isPending}>{t('entry.save')}</Button>
+          {editing && (
+            <Button type="button" variant="ghost" onClick={onDone}>{t('entry.cancel')}</Button>
+          )}
         </CardContent>
       </form>
     </Card>
