@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -7,6 +7,8 @@ import { PageShell, FormError } from '@/components/PageShell'
 import { QuickEntry } from '@/components/QuickEntry'
 import { RecentEntries, type EntryRow } from '@/components/RecentEntries'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
@@ -15,6 +17,12 @@ import { supabase } from '@/lib/supabase'
 export default function Home({ membership }: { membership: Membership }) {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
+  const queryClient = useQueryClient()
+  const [lockDate, setLockDate] = useState(membership.group.lock_date ?? '')
+  const lock = useMutation({
+    mutationFn: () => callFunction('group-update', { lock_date: lockDate || null }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['membership'] }),
+  })
   const [editing, setEditing] = useState<EntryRow | null>(null)
   const exponent = new Intl.NumberFormat('en', { style: 'currency', currency: membership.group.base_currency })
     .resolvedOptions().maximumFractionDigits ?? 2
@@ -56,6 +64,15 @@ export default function Home({ membership }: { membership: Membership }) {
               </Button>
             )}
             <FormError message={invite.error ? errorMessage(t, invite.error) : null} />
+            <div className="flex flex-col gap-2 border-t pt-3">
+              <Label htmlFor="lock-date">{t('home.lockDate')}</Label>
+              <div className="flex gap-2">
+                <Input id="lock-date" type="date" value={lockDate} onChange={(e) => setLockDate(e.target.value)} />
+                <Button variant="outline" disabled={lock.isPending} onClick={() => lock.mutate()}>{t('entry.save')}</Button>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('home.lockHint')}</p>
+              <FormError message={lock.error ? errorMessage(t, lock.error) : null} />
+            </div>
           </CardContent>
         )}
       </Card>

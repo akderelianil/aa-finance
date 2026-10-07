@@ -57,7 +57,7 @@ export async function findOrCreateContact(tx: Tx, groupId: string, name: string)
 // Çağıran kullanıcının üyeliği + grup bilgisi.
 export async function loadMember(tx: Tx, userId: string) {
   const [m] = await tx`
-    select m.id as member_id, m.group_id, g.base_currency, g.lock_date, c.exponent
+    select m.id as member_id, m.group_id, g.base_currency, g.lock_date::text as lock_date, c.exponent
     from members m
     join groups g on g.id = m.group_id
     join currencies c on c.code = g.base_currency

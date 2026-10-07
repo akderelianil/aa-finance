@@ -46,6 +46,8 @@ export const tr = {
     inviteHint: 'Kodu aile üyelerine gönder. 7 gün geçerli.',
     inviteCode: 'Davet kodu',
     copy: 'Kopyala',
+    lockDate: 'Dönem kilidi (bu tarihe kadar kayıt değişmez)',
+    lockHint: 'Boş bırakırsan kilit kalkar.',
     copied: 'Kopyalandı',
   },
   entry: {
@@ -182,6 +184,8 @@ export const tr = {
     invalid_file_type: 'Dosya türü desteklenmiyor (JPG, PNG, WEBP, HEIC, PDF).',
     file_too_large: 'Dosya en fazla 10 MB olabilir.',
     invalid_attachment: 'Ek geçersiz.',
+    too_many_attempts: 'Çok fazla yanlış deneme. 15 dakika sonra tekrar dene.',
+    invalid_lock_date: 'Tarih geçersiz.',
     invalid_action: 'İşlem türü geçersiz.',
     invalid_account: 'Hesap geçersiz.',
     same_account: 'Kaynak ve hedef hesap aynı olamaz.',

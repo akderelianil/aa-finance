@@ -1,9 +1,20 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2'
 
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// İzin verilen kökenler: ALLOWED_ORIGINS (virgülle ayrılmış, Supabase secret). Tanımsızsa yalnız yerel geliştirme.
+const allowedOrigins = (Deno.env.get('ALLOWED_ORIGINS') ?? 'http://localhost:5173,http://127.0.0.1:5173')
+  .split(',').map((o) => o.trim()).filter(Boolean)
+
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin')
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
+  if (origin && (allowedOrigins.includes('*') || allowedOrigins.includes(origin))) {
+    headers['Access-Control-Allow-Origin'] = origin
+  }
+  return headers
 }
 
 export class HttpError extends Error {
@@ -14,10 +25,10 @@ export class HttpError extends Error {
 
 export type AuthUser = { id: string }
 
-export function json(body: unknown, status = 200): Response {
+export function json(body: unknown, status = 200, cors: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...cors, 'Content-Type': 'application/json' },
   })
 }
 
@@ -35,19 +46,20 @@ export function serve(
   successStatus = 200,
 ) {
   Deno.serve(async (req) => {
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-    if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
+    const cors = corsFor(req)
+    if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+    if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, cors)
     try {
       const user = await authenticate(req)
-      return json(await handler(req, user), successStatus)
+      return json(await handler(req, user), successStatus, cors)
     } catch (err) {
-      if (err instanceof HttpError) return json({ error: err.code, message: err.message }, err.status)
+      if (err instanceof HttpError) return json({ error: err.code, message: err.message }, err.status, cors)
       const e = err as { code?: string; constraint_name?: string }
       if (e.code === '23505' && e.constraint_name === 'members_one_group_per_user') {
-        return json({ error: 'already_member', message: 'Zaten bir gruba üyesin' }, 409)
+        return json({ error: 'already_member', message: 'Zaten bir gruba üyesin' }, 409, cors)
       }
       console.error(err)
-      return json({ error: 'internal', message: 'Beklenmeyen bir hata oluştu' }, 500)
+      return json({ error: 'internal', message: 'Beklenmeyen bir hata oluştu' }, 500, cors)
     }
   })
 }

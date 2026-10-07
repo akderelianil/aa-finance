@@ -1,19 +1,21 @@
+import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { useMembership } from '@/auth/useMembership'
 import { PageShell } from '@/components/PageShell'
-import Accounts from '@/pages/Accounts'
 import Home from '@/pages/Home'
 import Login from '@/pages/Login'
-import Installments from '@/pages/Installments'
-import Investments from '@/pages/Investments'
-import Reports from '@/pages/Reports'
-import People from '@/pages/People'
 import OnboardingChoice from '@/pages/OnboardingChoice'
 import OnboardingCreate from '@/pages/OnboardingCreate'
 import OnboardingJoin from '@/pages/OnboardingJoin'
 import Register from '@/pages/Register'
+
+const Accounts = lazy(() => import('@/pages/Accounts'))
+const Installments = lazy(() => import('@/pages/Installments'))
+const Investments = lazy(() => import('@/pages/Investments'))
+const Reports = lazy(() => import('@/pages/Reports'))
+const People = lazy(() => import('@/pages/People'))
 
 function Loading() {
   const { t } = useTranslation()
@@ -49,6 +51,7 @@ export default function App() {
   }
 
   return (
+    <Suspense fallback={<Loading />}>
     <Routes>
       <Route path="/" element={<Home membership={membership.data} />} />
       <Route path="/accounts" element={<Accounts membership={membership.data} />} />
@@ -58,5 +61,6 @@ export default function App() {
       <Route path="/people" element={<People membership={membership.data} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }

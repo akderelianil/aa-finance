@@ -37,9 +37,25 @@ Değişiklik sonrası asgari doğrulama: `npm run lint && npm run build` (şu an
 5. Kütüphane sözdizimi emin değilse context7 ile güncel dokümana bak (react-router 8, tailwind 4, vite 8, i18next 26 gibi yeni sürümler eğitim verisinden farklı olabilir).
 6. UI değişikliğini playwright MCP ile gerçekten aç ve ekran görüntüsü al; ekran görüntüleri `.playwright-mcp/` altında (gitignore'da).
 
-## Bilinen borçlar
-- `api/openapi.yaml` Go dönemi taslağı, güncel değil (bkz. ARCHITECTURE). Edge Function uçları oturunca üretilen tiplerle değiştir ya da sil.
-- `web` JS paketi tek parça ~737 kB (gzip 225 kB); rota bazlı `import()` ile bölünebilir.
-- Lint uyarısı: `src/components/ui/button.tsx:57` (shadcn dosyası, `only-export-components`), zararsız.
-- `transaction-create` (hızlı gider/gelir, ana para birimi) yazıldı ve dev'e deploy edildi, uçtan uca denenmedi (giriş yapılı tarayıcıyla test gerek). Hesap otomatik ("Nakit"), kategori/kişi isimle bulunur/açılır.
-- Sıradaki iş: kayıt listesi/düzenle/sil, hesap yönetimi ekranı, çoklu para birimi, PWA ikonları, CORS kısıtlaması, davet kodu rate limit, özel SMTP (yerleşik e-posta saatte 2).
+## Durum (2026-10-07)
+Tüm aşamalar dev projede çalışıyor ve uçtan uca denendi: hızlı gider/gelir, düzenle/sil, hesaplar/kategoriler, transfer, borç/alacak, çoklu para birimi (ortalama maliyet, kur farkı), taksit, yatırım, raporlar, ekler, dönem kilidi.
+
+Edge Function'lar: onboarding-create-group, onboarding-join-group, invite-create, group-update, transaction-create/update/delete, account-create/update, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
+
+Uçtan uca test: `.env` (service_role dolu) + `@supabase/supabase-js` ile onaylı test kullanıcısı oluşturup fonksiyonları çağıran node betikleri (geçici, repoda yok). Dev projede test kullanıcıları var: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`.
+
+## Yayın öncesi yapılacaklar (kullanıcı)
+- Cloudflare Pages: build `cd web && npm run build`, çıktı `web/dist`, değişkenler `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. `public/_redirects` SPA yönlendirmesini içerir.
+- Edge Function CORS: yayın adresini ekle: `npx supabase secrets set ALLOWED_ORIGINS=https://<adres>,http://localhost:5173` (tanımsızsa yalnız yerel geliştirme izinli).
+- Özel SMTP (yerleşik e-posta saatte 2), Auth ayarlarında sızdırılmış şifre koruması (dashboard; advisor uyarısı), Site URL/redirect URL.
+- Test kullanıcılarını ve test verisini temizle (ya da yeni proje).
+
+## Bilinen borçlar / sınırlar
+- Düzenleme yalnız basit (2 satırlı, ana para birimli) gider/gelir kayıtlarında; transfer, borç, döviz, yatırım, taksit kayıtları silinebilir ama düzenlenemez.
+- Gerçekleşmemiş kur farkı değerlemesi yok (satır `amount > 0` kısıtı yüzünden yalnız tutar değişimi yazılabilir); kur farkı harcama/satışta gerçekleşir.
+- Çapraz döviz (USD→EUR) ve döviz hesapları arası transfer yok; yatırımda ödeme hesabı enstrümanla aynı ya da ana para birimi olmalı.
+- Kayıt listesi son 30 kayıt (sayfalama/filtre yok); raporlar istemcide hesaplanır (kuruş tutarları JS number, güvenli aralıkta).
+- Ek yükleme yarım kalırsa (satır var, dosya yok) yetim satır kalır.
+- Taksit: yalnız ana para birimi + kredi kartı; ödenmiş taksit geri alınmaz (ödeme kaydı silinerek açılır).
+- Fiyat/kur otomatik çekilmiyor (elle).
+- Lint uyarısı: `src/components/ui/button.tsx:57` (shadcn, zararsız).

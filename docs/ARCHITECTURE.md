@@ -2,9 +2,9 @@
 
 ## Kararlar
 - **Stack (güncel):** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (iş mantığı, direkt Postgres bağlantısıyla tek transaction) + React/Vite/shadcn PWA (Cloudflare'de yayın). Migration: Supabase CLI (`supabase/migrations`). Go/GORM/goose kararı iptal. UUID v7 uygulama/fonksiyon üretir. Giriş: e-posta+şifre (Google sonra). Depolama: Supabase Storage (R2 sonra, yedekler için).
-- **API sözleşmesi:** `api/openapi.yaml` Go dönemi taslağıdır; Edge Function uçları netleşince güncellenecek veya üretilen tiplerle değiştirilecek.
+- **API sözleşmesi:** Edge Function'lar (`supabase/functions/*`) ve veritabanı view/fonksiyonları (`account_balances`, `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`) sözleşmedir; eski `api/openapi.yaml` kaldırıldı.
 - **Çift taraflı kayıt zorunlu:** her kayıt ≥2 satır, toplam borç = toplam alacak (ana para biriminde). DB'de deferred constraint trigger + uygulamada doğrulama.
-- **API-first:** `api/openapi.yaml` sözleşmesi koddan önce.
+- **Yazma = Edge Function, okuma = RLS ile doğrudan** (istemci tablolara yazamaz).
 - **Kayıtlar düzenlenebilir**, tüm değişiklikler `audit_log`'a (DB trigger, actor = `app.member_id`). Silme = soft delete. Opsiyonel `groups.lock_date` ile dönem kilidi.
 - **Yetki:** Grup içinde herkes her şeyi görür. Kaydı yalnızca kaydın sahibi üye (`journal_entries.member_id`) düzenler/siler.
 - **Her kayıt tek üyeye aittir.** Kimin kartı/parasıyla harcandıysa onun gideri/geliridir. Ortak hesap yok. Aile raporu = üyelerin toplamı (eve giren/çıkan para); kategoriler grup seviyesinde.

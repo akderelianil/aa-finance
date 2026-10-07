@@ -48,6 +48,8 @@ export const en: Translation = {
     inviteHint: 'Send the code to your family members. Valid for 7 days.',
     inviteCode: 'Invite code',
     copy: 'Copy',
+    lockDate: 'Lock period (no changes up to this date)',
+    lockHint: 'Leave empty to remove the lock.',
     copied: 'Copied',
   },
   entry: {
@@ -184,6 +186,8 @@ export const en: Translation = {
     invalid_file_type: 'Unsupported file type (JPG, PNG, WEBP, HEIC, PDF).',
     file_too_large: 'File must be 10 MB or smaller.',
     invalid_attachment: 'Attachment is invalid.',
+    too_many_attempts: 'Too many wrong attempts. Try again in 15 minutes.',
+    invalid_lock_date: 'Date is invalid.',
     invalid_action: 'Action is invalid.',
     invalid_account: 'Account is invalid.',
     same_account: 'Source and target accounts must differ.',
