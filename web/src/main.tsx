@@ -7,6 +7,7 @@ import './index.css'
 import App from './App'
 import { AuthProvider } from './auth/AuthProvider'
 import { initTheme } from './components/ThemeToggle'
+import { Toaster } from './components/ui/toast'
 
 initTheme()
 
@@ -15,11 +16,13 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, ref
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </AuthProvider>
+      <Toaster>
+        <AuthProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthProvider>
+      </Toaster>
     </QueryClientProvider>
   </StrictMode>,
 )

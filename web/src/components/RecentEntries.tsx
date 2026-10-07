@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PaperclipIcon, PencilIcon, SearchIcon, Trash2Icon } from 'lucide-react'
+import {
+  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, PaperclipIcon, PencilIcon, SearchIcon, Trash2Icon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
@@ -10,7 +12,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
@@ -21,6 +22,7 @@ import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
 
 export type EntryRow = {
   id: string
@@ -39,10 +41,16 @@ type RawEntry = {
   member_id: string
   entry_date: string
   source_type: string | null
-  journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string; system_key: string | null }; contact: { name: string } | null }[]
+  journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string; subtype: string | null; system_key: string | null }; contact: { name: string } | null }[]
 }
 
 const PAGE = 30
+
+const DIRECTION = {
+  income: { icon: ArrowDownLeftIcon, sign: '+', className: 'text-emerald-700 dark:text-emerald-400' },
+  expense: { icon: ArrowUpRightIcon, sign: '−', className: 'text-rose-700 dark:text-rose-400' },
+  other: { icon: ArrowLeftRightIcon, sign: '', className: 'text-muted-foreground' },
+} as const
 
 // Minor unit (number, < 2^53 pratikte) → ondalık string. Gösterim için; hesap için kullanılmaz.
 function fromMinor(minor: number, exponent: number): string {
@@ -75,7 +83,7 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
     queryFn: async (): Promise<EntryRow[]> => {
       const { data, error } = await supabase
         .from('journal_entries')
-        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type, system_key), contact:contacts(name))')
+        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type, subtype, system_key), contact:contacts(name))')
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
@@ -91,9 +99,11 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
         let kind: EntryRow['kind'] = cat ? (cat.account.type === 'income' ? 'income' : 'expense') : 'other'
         let category = cat?.account.name ?? '—'
         if (!cat && e.source_type === 'transfer') {
-          const from = e.journal_lines.find((l) => l.direction === 'credit')?.account.name
-          const to = e.journal_lines.find((l) => l.direction === 'debit')?.account.name
-          category = `${t('entry.transfer')}: ${from} → ${to}`
+          const from = e.journal_lines.find((l) => l.direction === 'credit')?.account
+          const to = e.journal_lines.find((l) => l.direction === 'debit')?.account
+          // Banka ↔ nakit = ATM (kullanıcının dili).
+          const atm = [from?.subtype, to?.subtype].sort().join() === 'bank,cash'
+          category = `${t(atm ? 'entry.kind.atm' : 'entry.transfer')}: ${from?.name} → ${to?.name}`
         } else if (!cat && (e.source_type === 'investment' || e.source_type === 'valuation')) {
           category = t(e.source_type === 'valuation' ? 'investments.valuation' : 'investments.title')
         } else if (!cat && e.source_type === 'fx_exchange') {
@@ -151,9 +161,10 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
               <p className="truncate text-xs text-muted-foreground">{[e.contact, e.original].filter(Boolean).join(' · ')}</p>
             )}
           </div>
-          <span className="shrink-0 text-sm font-medium tabular-nums">
-            {e.kind === 'income' ? <Badge variant="secondary">+{fmt.format(Number(e.amount))}</Badge>
-              : <>{e.kind === 'expense' ? '−' : ''}{fmt.format(Number(e.amount))}</>}
+          {/* Yön üç işaretle: renk + ikon + (+/−). */}
+          <span className={cn('flex shrink-0 items-center gap-1 text-sm font-medium tabular-nums', DIRECTION[e.kind].className)}>
+            {(() => { const Icon = DIRECTION[e.kind].icon; return <Icon className="size-4" aria-hidden /> })()}
+            {DIRECTION[e.kind].sign}{fmt.format(Number(e.amount))}
           </span>
           <Button
             size="icon-sm" variant="ghost" aria-label={t('attachments.show')} aria-expanded={openId === e.id}

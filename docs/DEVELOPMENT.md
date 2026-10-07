@@ -67,5 +67,6 @@ End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (wit
 
 ## UI (shadcn) and account tree
 - shadcn: `web/components.json` (base `base` = base-ui, preset `bKsFTYsS`: luma/cyan/stone/Inter). Change preset: `npx shadcn@latest apply <code>` (in `web/`). Add a component: `npx shadcn@latest add <name>`. Project skill: `web/.agents/skills/shadcn`; MCP `shadcn` in `.mcp.json`.
+- Quick entry (`QuickEntry` → `components/entry/*`): Expense · Income · Transfer · Debt · ATM. `transfer-create` treats a missing side as the member's cash account (ATM). After a create, `useAfterSave` (`lib/entry.ts`) shows an Undo toast (= `transaction-delete`).
 - Shell: mobile has 5 bottom tabs + an "Add" button; desktop has a left sidebar (`AppShell`). Routes: `/`, `/islemler`, `/hesaplar`, `/raporlar`, `/ayarlar` (+ `/ayarlar/kisiler|taksitler|yatirimlar`).
 - Account tree: `accounts.parent_id` (any depth). DB trigger `accounts_parent_chk`: same group/type; for a balance-sheet account, same owner + currency; no cycles. View `account_tree_balances` gives balances including the subtree. `account-create` (`parent_id`, `type` for categories), `account-update` (move with `parent_id`), `account-delete` (hard delete if the subtree has no movements/installments/investments, else archive).
