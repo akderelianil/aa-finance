@@ -23,7 +23,7 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 | F3 Directory (Rehber) | person · brand · business; brand ↔ business many-to-many; brand default category; People page → Directory | Done 2026-10-07 |
 | F4 Plan + Upcoming | `plans` table (debt due, card due, installment); one list on Home, overdue first; a real record closes the plan | Done 2026-10-07 |
 | F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Done 2026-10-07 |
-| F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | |
+| F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | Done 2026-10-07 |
 | Later | Deposit-for-father, FX and stock flows redesign | |
 
 Each phase ends with: migration + deploy, `npm run lint && npm run build`, a Playwright screenshot.

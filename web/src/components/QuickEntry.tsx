@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { AtmForm } from '@/components/entry/AtmForm'
 import { DebtForm } from '@/components/entry/DebtForm'
+import { DepositSettleForm } from '@/components/entry/DepositSettleForm'
 import { ExpenseIncomeForm } from '@/components/entry/ExpenseIncomeForm'
 import { TransferForm } from '@/components/entry/TransferForm'
 import type { EntryRow } from '@/components/RecentEntries'
@@ -27,7 +28,7 @@ export function QuickEntry({
   membership, editing, preset, onDone,
 }: { membership: Membership; editing?: EntryRow | null; preset?: EntryPreset; onDone?: () => void }) {
   const { t } = useTranslation()
-  const [kind, setKind] = useState<Kind>(preset?.kind ?? 'expense')
+  const [kind, setKind] = useState<Kind>(preset && preset.kind !== 'deposit' ? preset.kind : 'expense')
 
   if (editing) {
     return (
@@ -36,6 +37,9 @@ export function QuickEntry({
       />
     )
   }
+
+  // Vade sonu Yaklaşanlar'dan açılır; beş düğme gösterilmez.
+  if (preset?.kind === 'deposit') return <DepositSettleForm membership={membership} accountId={preset.accountId} onDone={onDone} />
 
   const props = { membership, onDone }
   return (

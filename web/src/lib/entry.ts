@@ -27,6 +27,13 @@ export function splitPayload(rows: SplitRow[]) {
 export type EntryPreset =
   | { kind: 'transfer'; to?: string; amount?: string }
   | { kind: 'debt'; mode: 'settle'; contact: string; amount?: string }
+  | { kind: 'deposit'; accountId: string }
+
+// Vadeli hesabın beklenen net getirisi (minor): anapara × yıllık oran × gün / 365 × (1 − stopaj). Yalnız gösterim.
+export function expectedReturn(principal: number, annualRate: number, days: number, withholding: number): number {
+  if (!(principal > 0 && annualRate >= 0 && days > 0)) return 0
+  return Math.floor(principal * (annualRate / 100) * (days / 365) * (1 - withholding / 100))
+}
 
 export type MyAccount = { id: string; name: string; currency: string; subtype: string | null }
 

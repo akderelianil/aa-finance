@@ -109,6 +109,9 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
           category = t(e.source_type === 'valuation' ? 'investments.valuation' : 'investments.title')
         } else if (!cat && e.source_type === 'fx_exchange') {
           category = t('accounts.exchange')
+        } else if (!cat && (e.source_type === 'deposit_open' || e.source_type === 'deposit')) {
+          const dep = e.journal_lines.find((l) => l.account.subtype === 'deposit')?.account.name
+          category = `${t(e.source_type === 'deposit' ? 'entry.deposit.settled' : 'entry.deposit.opened')}: ${dep}`
         } else if (!cat && e.source_type === 'loan') {
           category = `${t('entry.loan.label')}: ${contact}`
         } else if (!cat && e.source_type === 'cash_advance') {
