@@ -19,6 +19,7 @@ const Directory = lazy(() => import('@/pages/Directory'))
 const Installments = lazy(() => import('@/pages/Installments'))
 const Investments = lazy(() => import('@/pages/Investments'))
 const Reports = lazy(() => import('@/pages/Reports'))
+const Setup = lazy(() => import('@/pages/Setup'))
 
 function Loading() {
   const { t } = useTranslation()
@@ -67,6 +68,9 @@ export default function App() {
         <Route path="/ayarlar/taksitler" element={<Installments membership={membership.data} />} />
         <Route path="/ayarlar/yatirimlar" element={<Investments membership={membership.data} />} />
       </Route>
+      <Route path="/baslangic" element={<Setup membership={membership.data} />} />
+      {/* Grup kurulunca / gruba katılınca adres hâlâ /onboarding/...: başlangıç sihirbazına geç. */}
+      <Route path="/onboarding/*" element={<Navigate to="/baslangic" replace />} />
       <Route path="/accounts" element={<Navigate to="/hesaplar" replace />} />
       <Route path="/reports" element={<Navigate to="/raporlar" replace />} />
       <Route path="/people" element={<Navigate to="/rehber" replace />} />

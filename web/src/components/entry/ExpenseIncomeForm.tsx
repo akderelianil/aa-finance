@@ -49,11 +49,12 @@ export function ExpenseIncomeForm({
     queryKey: ['categories', groupId, kind],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('accounts').select('name')
+        .from('accounts').select('name, parent:parent_id(name)')
         .eq('group_id', groupId).eq('type', kind).is('system_key', null).eq('is_placeholder', false).is('archived_at', null)
         .order('name')
+        .overrideTypes<{ name: string; parent: { name: string } | null }[]>()
       if (error) throw error
-      return data.map((r) => r.name)
+      return data
     },
   })
 
@@ -168,7 +169,8 @@ export function ExpenseIncomeForm({
             value={category} onChange={(e) => { setCategory(e.target.value); setAutoCategory(false) }}
           />
           <datalist id="category-list">
-            {categories.data?.map((n) => <option key={n} value={n} />)}
+            {/* Üst kategori ipucu olarak görünür: "Taksi · Ulaşım" */}
+            {categories.data?.map((c) => <option key={c.name} value={c.name} label={c.parent?.name} />)}
           </datalist>
         </Field>
         {!editing && simple && !foreignAccount && (currencies.data?.length ?? 0) > 1 && (

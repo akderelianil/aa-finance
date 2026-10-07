@@ -14,6 +14,7 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 
 - Loan (2026-10-07): the total repayment is the debt on the loan day; total − agreed amount is a cost expense that day; agreed − deposited amount is a fee expense. Each installment is a transfer to the loan account. An early-payoff discount is a "Fark" that reduces the cost.
 - Term deposit (2026-10-07): the user enters principal + rate + days; the expected net return is derived (withholding rate per account). At maturity the real amount is entered; the difference is income or expense.
+- Account template (2026-10-08): placeholder is a manual setting per category (not derived from children). Every member gets a cash account. The start wizard asks for bank accounts, cards and loans. Allowance between members = expense for the giver, income for the receiver (two records). "Kupon & Hediye Çeki" is income (discount coupon, gift balance). Brand → category defaults are part of the template. Existing groups get it by migration.
 
 ## Phases
 | Phase | Content | Status |
@@ -24,6 +25,8 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 | F4 Plan + Upcoming | `plans` table (debt due, card due, installment); one list on Home, overdue first; a real record closes the plan | Done 2026-10-07 |
 | F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Done 2026-10-07 |
 | F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | Done 2026-10-07 |
+| F7 Account template | Category tree + `template_key`, brand defaults, wallet per member, start wizard `/baslangic` | Done 2026-10-08 |
 | Later | Deposit-for-father, FX and stock flows redesign | |
+| v2 backlog | Real estate and vehicle assets (own subtype, value change record) | |
 
 Each phase ends with: migration + deploy, `npm run lint && npm run build`, a Playwright screenshot.

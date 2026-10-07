@@ -104,6 +104,14 @@ export const tr = {
     submitCreate: 'Grubu kur',
     submitJoin: 'Gruba katıl',
   },
+  setup: {
+    title: 'Hesaplarını ekleyelim',
+    intro: 'Nakit cüzdanın ve kategorilerin hazır. Bankadaki paranı, kartlarını ve kredilerini ekle. İstersen boş geç, sonra Hesaplar’dan eklersin.',
+    bank: { title: 'Banka hesapların', hint: 'Bugünkü bakiyesini yaz.', add: 'Banka hesabı ekle' },
+    credit_card: { title: 'Kredi kartların', hint: 'Bugünkü borcunu ve kesim / son ödeme gününü yaz.', add: 'Kredi kartı ekle' },
+    loan: { title: 'Kredilerin', hint: 'Kalan borcunu yaz.', add: 'Kredi ekle' },
+    done: 'Bitti, başla',
+  },
   home: {
     greeting: 'Merhaba, {{name}}',
     group: 'Grup',

@@ -1,9 +1,9 @@
 import { HttpError, readBody, requireDate, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
-import { createGroupSystemAccounts, createOpeningBalanceAccount } from '../_shared/accounts.ts'
+import { applyAccountTemplate, createGroupSystemAccounts, createMemberAccounts } from '../_shared/accounts.ts'
 
-// Aile/Grup kur: profil bilgileri + grup + kurucu (admin) + sistem hesapları, tek transaction.
+// Aile/Grup kur: profil bilgileri + grup + kurucu (admin) + sistem hesapları + hesap şablonu, tek transaction.
 serve(async (req, user) => {
   const body = await readBody(req)
   const first = requireString(body.first_name, 'first_name')
@@ -28,7 +28,8 @@ serve(async (req, user) => {
     await tx`insert into groups (id, name, base_currency) values (${groupId}, ${groupName}, ${currency})`
     await tx`insert into members (id, group_id, user_id, role) values (${memberId}, ${groupId}, ${user.id}, 'admin')`
     await createGroupSystemAccounts(tx, groupId)
-    await createOpeningBalanceAccount(tx, groupId, memberId, currency)
+    await applyAccountTemplate(tx, groupId)
+    await createMemberAccounts(tx, groupId, memberId, currency)
   })
 
   return { group_id: groupId, member_id: memberId }

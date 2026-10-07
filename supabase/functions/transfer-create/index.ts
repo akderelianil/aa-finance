@@ -1,7 +1,7 @@
 import { HttpError, readBody, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, loadMember, parseAmount, postRawEntry, resolveAccount,
+  assertNotLocked, entryDate, findOrCreateCategory, findTemplateCategory, loadMember, parseAmount, postRawEntry, resolveAccount,
 } from '../_shared/entries.ts'
 
 // Kendi hesapların arası aktarım (kart ödemesi dahil): Borç hedef / Alacak kaynak.
@@ -39,9 +39,10 @@ serve(async (req, user) => {
       { account: from, dir: 'credit' as const, amount: amount + fee, currency: cur, base: amount + fee },
     ]
     if (fee > 0n) {
-      const feeName = typeof body.fee_category_name === 'string' && body.fee_category_name.trim()
-        ? body.fee_category_name.trim().slice(0, 60) : 'Nakit avans masrafı'
-      const feeCat = await findOrCreateCategory(tx, m.group_id, 'expense', feeName)
+      const feeName = typeof body.fee_category_name === 'string' ? body.fee_category_name.trim().slice(0, 60) : ''
+      const feeCat = feeName
+        ? await findOrCreateCategory(tx, m.group_id, 'expense', feeName)
+        : await findTemplateCategory(tx, m.group_id, 'cash_advance_fee', 'expense', 'Nakit Avans Masrafı')
       lines.splice(1, 0, { account: feeCat, dir: 'debit', amount: fee, currency: cur, base: fee })
     }
     return postRawEntry(tx, m, { date, sourceType: advance ? 'cash_advance' : 'transfer', lines })

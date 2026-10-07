@@ -2,12 +2,12 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, parseAmount, postRawEntry,
+  assertNotLocked, entryDate, findOrCreateContact, findTemplateCategory, loadMember, parseAmount, postRawEntry,
   resolveAccount, type RawLine,
 } from '../_shared/entries.ts'
 
 // Banka kredisi (Borç → Aldım → bankadan). Karar 2026-10-07: toplam geri ödeme kredi günü borçtur.
-//   Borç hesap (yatan net) + Borç "Kredi masrafı" (anlaşılan − yatan) + Borç "Kredi maliyeti" (toplam − anlaşılan)
+//   Borç hesap (yatan net) + Borç "Kredi Masrafı" (anlaşılan − yatan) + Borç "Kredi Maliyeti" (toplam − anlaşılan)
 //   / Alacak kredi hesabı (toplam geri ödeme)
 // Türetilen: anlaşılan = yatan, toplam = taksit sayısı × taksit tutarı, ilk taksit = bir ay sonra, kredi hesabı açılır.
 function addMonths(iso: string, n: number): string {
@@ -55,8 +55,8 @@ serve(async (req, user) => {
     const line = (account: string, dir: 'debit' | 'credit', amt: bigint): RawLine =>
       ({ account, dir, amount: amt, currency: cur, base: amt, contactId: lenderId })
     const lines: RawLine[] = [line(target, 'debit', received)]
-    if (principal > received) lines.push(line(await findOrCreateCategory(tx, m.group_id, 'expense', 'Kredi masrafı'), 'debit', principal - received))
-    if (total > principal) lines.push(line(await findOrCreateCategory(tx, m.group_id, 'expense', 'Kredi maliyeti'), 'debit', total - principal))
+    if (principal > received) lines.push(line(await findTemplateCategory(tx, m.group_id, 'loan_fee', 'expense', 'Kredi Masrafı'), 'debit', principal - received))
+    if (total > principal) lines.push(line(await findTemplateCategory(tx, m.group_id, 'loan_cost', 'expense', 'Kredi Maliyeti'), 'debit', total - principal))
     lines.push(line(loanId, 'credit', total))
 
     const entryId = await postRawEntry(tx, m, { date, description: `${lender} kredisi`, sourceType: 'loan', lines })

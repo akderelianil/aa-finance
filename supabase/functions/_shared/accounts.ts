@@ -10,16 +10,22 @@ export async function createGroupSystemAccounts(tx: Tx, groupId: string) {
       (${uuidv7()}, ${groupId}, 'income', 'Yatırım Kâr/Zarar', 'investment_gain_loss')`
 }
 
-// Üye başına açılış bakiyesi (özkaynak) hesabı; grubun ana para biriminde.
-export async function createOpeningBalanceAccount(
+// Hazır kategori ağacı ve marka → kategori eşleşmeleri (migration 20261008040000).
+export async function applyAccountTemplate(tx: Tx, groupId: string) {
+  await tx`select apply_account_template(${groupId})`
+}
+
+// Yeni üyenin başlangıç hesapları: açılış bakiyesi (özkaynak) ve cüzdan ("Nakit"); grubun ana para biriminde.
+export async function createMemberAccounts(
   tx: Tx,
   groupId: string,
   memberId: string,
   currency: string,
 ) {
   await tx`
-    insert into accounts (id, group_id, owner_member_id, type, name, currency, system_key)
-    values (${uuidv7()}, ${groupId}, ${memberId}, 'equity', 'Açılış Bakiyesi', ${currency}, 'opening_balance')`
+    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency, system_key) values
+      (${uuidv7()}, ${groupId}, ${memberId}, 'equity', null, 'Açılış Bakiyesi', ${currency}, 'opening_balance'),
+      (${uuidv7()}, ${groupId}, ${memberId}, 'asset', 'cash', 'Nakit', ${currency}, null)`
 }
 
 // Kredi kartı kesim / son ödeme günü (kart başına bir kez; Yaklaşanlar buradan türer). Alan verilmezse dokunulmaz.

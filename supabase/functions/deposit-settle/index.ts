@@ -1,7 +1,7 @@
 import { HttpError, readBody, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, loadMember, parseAmount, postRawEntry, resolveAccount, type RawLine,
+  assertNotLocked, entryDate, findTemplateCategory, loadMember, parseAmount, postRawEntry, resolveAccount, type RawLine,
 } from '../_shared/entries.ts'
 import { accountNet } from '../_shared/fx.ts'
 import { addDays, parseDays, parseRatePercent } from '../_shared/deposit.ts'
@@ -41,7 +41,7 @@ serve(async (req, user) => {
       principal: String(d.principal), annual_rate: String(d.annual_rate), days: d.days, start_date: String(d.start_date),
       maturity_date: String(d.maturity_date), last_settle_entry_id: d.last_settle_entry_id, prev: d.prev,
     }
-    const income = async () => findOrCreateCategory(tx, m.group_id, 'income', 'Vadeli getiri')
+    const income = async () => findTemplateCategory(tx, m.group_id, 'deposit_return', 'income', 'Faiz & Vadeli Getiri')
 
     if (outcome === 'return') {
       const received = parseAmount(body.received, m.exponent)
@@ -49,7 +49,7 @@ serve(async (req, user) => {
       if (balance > 0n) lines.push(line(d.account_id, 'credit', balance))
       const diff = received - balance
       if (diff > 0n) lines.push(line(await income(), 'credit', diff))
-      if (diff < 0n) lines.push(line(await findOrCreateCategory(tx, m.group_id, 'expense', 'Vadeli bozma kesintisi'), 'debit', -diff))
+      if (diff < 0n) lines.push(line(await findTemplateCategory(tx, m.group_id, 'deposit_break_fee', 'expense', 'Vadeli Bozma Kesintisi'), 'debit', -diff))
     } else {
       const gain = body.income === undefined || body.income === '' || body.income === null ? 0n : parseAmount(body.income, m.exponent)
       const withdrawn = body.withdrawn === undefined || body.withdrawn === '' || body.withdrawn === null ? 0n : parseAmount(body.withdrawn, m.exponent)

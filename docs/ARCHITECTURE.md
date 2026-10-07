@@ -37,6 +37,20 @@ The DB enforces these rules for every writer (`20261008030000_ledger_integrity.s
 
 A receipt with more than one category is one entry with one line per category (`items` in `transaction-create` and `transaction-update`).
 
+## Account template
+`apply_account_template(group_id)` (`20261008040000_account_template.sql`) is the single source of the starting chart. Onboarding calls it for a new group; the migration ran it for existing groups. It is idempotent.
+
+| Part | Content |
+|---|---|
+| Categories | 2-level expense and income tree. `is_placeholder` is set per node; after that it is a manual setting. |
+| `template_key` | Stable id of a template category. The user can rename, move or archive it. |
+| Brands | Common brands (`contacts.kind='brand'`) with a default category. An existing brand keeps its own category. |
+| Member accounts | Each member gets "Nakit" (`subtype='cash'`) and "Açılış Bakiyesi" (`opening_balance`) in the base currency. |
+
+- Code that posts to a fixed category finds it with `findTemplateCategory(key)`: `loan_fee`, `loan_cost`, `cash_advance_fee`, `deposit_return`, `deposit_break_fee`. Never find it by name.
+- A category name is unique within its type (`findOrCreateCategory` finds by name). Do not add a second "Diğer" under a parent.
+- Balance-sheet accounts have no template tree: a parent must have the same owner and currency. The UI groups them by `subtype`. The start wizard (`/baslangic`) asks for bank accounts, cards and loans.
+
 ## Multi-currency
 - Categories have no currency. A balance-sheet account has one currency.
 - Each line: original amount + currency + base-currency amount (`base_amount`) + rate.

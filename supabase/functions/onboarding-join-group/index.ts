@@ -1,7 +1,7 @@
 import { HttpError, readBody, requireDate, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
-import { createOpeningBalanceAccount } from '../_shared/accounts.ts'
+import { createMemberAccounts } from '../_shared/accounts.ts'
 
 // Yanlış kod denemesi sınırı: kullanıcı başına 15 dakikada 5.
 const MAX_FAILS = 5
@@ -40,7 +40,7 @@ serve(async (req, user) => {
     if (updated.length === 0) throw new Error('profile row missing for user ' + user.id)
 
     await tx`insert into members (id, group_id, user_id, role) values (${memberId}, ${invite.group_id}, ${user.id}, 'member')`
-    await createOpeningBalanceAccount(tx, invite.group_id, memberId, invite.base_currency)
+    await createMemberAccounts(tx, invite.group_id, memberId, invite.base_currency)
     await tx`update group_invites set use_count = use_count + 1 where id = ${invite.id}`
     return invite.group_id as string
   }).catch(async (err) => {

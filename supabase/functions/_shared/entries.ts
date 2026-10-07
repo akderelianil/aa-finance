@@ -45,6 +45,16 @@ export async function findOrCreateCategory(tx: Tx, groupId: string, type: string
   return id
 }
 
+// Kodun kayıt attığı şablon kategorisi (kredi masrafı, vadeli getiri ...): ad değişse de template_key ile bulunur.
+// Kullanıcı silmişse aynı adla bulunur ya da açılır ve anahtarı geri alır.
+export async function findTemplateCategory(tx: Tx, groupId: string, key: string, type: string, name: string) {
+  const [found] = await tx`select id from accounts where group_id = ${groupId} and template_key = ${key}`
+  if (found) return found.id as string
+  const id = await findOrCreateCategory(tx, groupId, type, name)
+  await tx`update accounts set template_key = ${key} where id = ${id} and template_key is null`
+  return id
+}
+
 // Rehber kaydı isimle bulunur; yoksa bağlama göre türle açılır (gider/gelir: marka, borç/paylaşım: kişi).
 export async function findOrCreateContact(
   tx: Tx, groupId: string, name: string, kind: 'individual' | 'brand' = 'individual',

@@ -54,3 +54,4 @@ Use these terms only. The Turkish column is the term for UI text and for `docs/u
 | Line | One side of a journal entry (`journal_lines`). |
 | `base_amount` | Line amount in the group base currency. |
 | Minor unit | Money as int64 (kuruş, cent). Never float. |
+| Template category | A category from the account template; code finds it by `template_key`, not by name. |

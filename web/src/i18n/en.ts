@@ -106,6 +106,14 @@ export const en: Translation = {
     submitCreate: 'Create group',
     submitJoin: 'Join group',
   },
+  setup: {
+    title: 'Add your accounts',
+    intro: 'Your cash wallet and categories are ready. Add your bank money, cards and loans. You can skip and add them later in Accounts.',
+    bank: { title: 'Bank accounts', hint: 'Enter today’s balance.', add: 'Add bank account' },
+    credit_card: { title: 'Credit cards', hint: 'Enter today’s debt and the statement / due day.', add: 'Add credit card' },
+    loan: { title: 'Loans', hint: 'Enter the remaining debt.', add: 'Add loan' },
+    done: 'Done, start',
+  },
   home: {
     greeting: 'Hello, {{name}}',
     group: 'Group',
