@@ -70,3 +70,32 @@ export async function fxGainLossAccount(tx: Tx, groupId: string): Promise<string
   if (!a) throw new Error('fx_gain_loss account missing for group ' + groupId)
   return a.id as string
 }
+
+// qty × price (numeric string'ler) → minor unit; en yakın yuvarlama.
+export async function minorOf(tx: Tx, qty: string, price: string, exp: number): Promise<bigint> {
+  const [r] = await tx`select round(${qty}::numeric * ${price}::numeric * power(10::numeric, ${exp}))::text as v`
+  return BigInt(r.v as string)
+}
+
+// round(value × num / den) — oransal düşüm (satışta defter değeri) için.
+export async function ratio(tx: Tx, value: bigint, num: bigint, den: bigint): Promise<bigint> {
+  const [r] = await tx`select round(${value.toString()}::numeric * ${num.toString()}::numeric / ${den.toString()}::numeric)::text as v`
+  return BigInt(r.v as string)
+}
+
+// Hesabın net (borç − alacak) bakiyesi: hesap para biriminde ve ana para biriminde.
+export async function accountNet(tx: Tx, accountId: string): Promise<{ net: bigint; netBase: bigint }> {
+  const [b] = await tx`
+    select coalesce(sum(case when l.direction = 'debit' then l.amount else -l.amount end), 0)::text as net,
+           coalesce(sum(case when l.direction = 'debit' then l.base_amount else -l.base_amount end), 0)::text as net_base
+    from journal_lines l join journal_entries e on e.id = l.entry_id
+    where l.account_id = ${accountId} and e.deleted_at is null`
+  return { net: BigInt(b.net as string), netBase: BigInt(b.net_base as string) }
+}
+
+// Adet/fiyat: pozitif ondalık string (numeric(28,10) sınırı içinde).
+export function parsePositiveDecimal(v: unknown, field: string): string {
+  const s = typeof v === 'string' ? v.trim().replace(',', '.') : typeof v === 'number' ? String(v) : ''
+  if (!/^\d{1,15}(\.\d{1,10})?$/.test(s) || Number(s) <= 0) throw new HttpError(422, `${field} geçersiz`, `invalid_${field}`)
+  return s
+}

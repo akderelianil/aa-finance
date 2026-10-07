@@ -64,6 +64,8 @@ export function RecentEntries({
           const from = e.journal_lines.find((l) => l.direction === 'credit')?.account.name
           const to = e.journal_lines.find((l) => l.direction === 'debit')?.account.name
           category = `${t('entry.transfer')}: ${from} → ${to}`
+        } else if (!cat && (e.source_type === 'investment' || e.source_type === 'valuation')) {
+          category = t(e.source_type === 'valuation' ? 'investments.valuation' : 'investments.title')
         } else if (!cat && e.source_type === 'debt') {
           category = contact || t('people.debt')
         }

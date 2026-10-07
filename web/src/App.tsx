@@ -7,6 +7,7 @@ import Accounts from '@/pages/Accounts'
 import Home from '@/pages/Home'
 import Login from '@/pages/Login'
 import Installments from '@/pages/Installments'
+import Investments from '@/pages/Investments'
 import People from '@/pages/People'
 import OnboardingChoice from '@/pages/OnboardingChoice'
 import OnboardingCreate from '@/pages/OnboardingCreate'
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/" element={<Home membership={membership.data} />} />
       <Route path="/accounts" element={<Accounts membership={membership.data} />} />
       <Route path="/installments" element={<Installments membership={membership.data} />} />
+      <Route path="/investments" element={<Investments membership={membership.data} />} />
       <Route path="/people" element={<People membership={membership.data} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
