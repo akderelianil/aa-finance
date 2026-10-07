@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
+import { TrendingUpIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
+import { PageHeader } from '@/components/PageHeader'
 import { PageShell, FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -121,6 +123,7 @@ export default function Investments({ membership }: { membership: Membership }) 
   return (
     <PageShell>
       <Button variant="ghost" className="self-start" nativeButton={false} render={<Link to="/ayarlar" />}>{t('common.back')}</Button>
+      <PageHeader title={t('investments.title')} icon={TrendingUpIcon} />
       <Card>
         <CardHeader><CardTitle>{t('investments.holdings')}</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-3">

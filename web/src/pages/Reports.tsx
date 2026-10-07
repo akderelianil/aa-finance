@@ -1,10 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import {
+  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BanknoteIcon, ChartPieIcon, CreditCardIcon, LandmarkIcon, ListIcon,
+  PiggyBankIcon, ScaleIcon, ShoppingBagIcon, TrendingDownIcon, TrendingUpIcon, UserIcon, UsersIcon, WalletIcon, type LucideIcon,
+} from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
 import { PageShell, FormError } from '@/components/PageShell'
-import { Button } from '@/components/ui/button'
+import { CategoryPie } from '@/components/CategoryPie'
+import { PageHeader } from '@/components/PageHeader'
+import { StatCard } from '@/components/StatCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { topSlices } from '@/lib/chart'
+import { cn } from '@/lib/utils'
 import { errorMessage } from '@/lib/errors'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
@@ -102,124 +115,171 @@ export default function Reports({ membership }: { membership: Membership }) {
   const inflow = cash.reduce((s, f) => s + Number(f.inflow), 0)
   const outflow = cash.reduce((s, f) => s + Number(f.outflow), 0)
 
-  const list = (rows: { id: string; name: string; net: number }[]) =>
-    rows.sort((a, b) => b.net - a.net).map((r) => (
-      <div key={r.id} className="flex justify-between gap-2 text-sm">
-        <span className="truncate">{r.name}</span><span>{money(r.net)}</span>
-      </div>
-    ))
-  const total = (label: string, v: number) => (
-    <div className="flex justify-between border-t pt-2 font-medium"><span>{label}</span><span>{money(v)}</span></div>
+  const slicesOf = (rows: { name: string; net: number }[]) =>
+    topSlices(rows.map((r) => ({ name: r.name, value: r.net })), 6, t('dashboard.other'))
+
+  // Hesap listesi: ada göre büyükten küçüğe, toplam satırı altta.
+  const table = (rows: { id: string; name: string; net: number }[], totalLabel: string, tone: string) => (
+    <Table>
+      <TableBody>
+        {[...rows].sort((a, b) => b.net - a.net).map((r) => (
+          <TableRow key={r.id}>
+            <TableCell className="max-w-0 truncate">{r.name}</TableCell>
+            <TableCell className="text-right tabular-nums">{money(r.net)}</TableCell>
+          </TableRow>
+        ))}
+        {rows.length === 0 && (
+          <TableRow className="hover:bg-transparent"><TableCell colSpan={2} className="text-muted-foreground">{t('reports.none')}</TableCell></TableRow>
+        )}
+      </TableBody>
+      <TableFooter>
+        <TableRow>
+          <TableCell className="font-semibold">{totalLabel}</TableCell>
+          <TableCell className={cn('text-right font-semibold tabular-nums', tone)}>{money(sum(rows))}</TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
   )
 
   const error = accounts.error ?? periodTotals.error ?? asOfTotals.error ?? flow.error
+  const loading = accounts.isLoading || periodTotals.isLoading || asOfTotals.isLoading || flow.isLoading
+  const netIncome = sum(income) - sum(expense)
+  const netWorth = sum(assets) - sum(liabilities)
+  const flowConfig: ChartConfig = {
+    inflow: { label: t('reports.inflow'), color: 'var(--chart-2)' },
+    outflow: { label: t('reports.outflow'), color: 'var(--chart-4)' },
+  }
+
+  const listCard = (title: string, icon: LucideIcon, children: ReactNode) => {
+    const Icon = icon
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Icon className="size-4 text-muted-foreground" aria-hidden />{title}</CardTitle>
+        </CardHeader>
+        <CardContent>{children}</CardContent>
+      </Card>
+    )
+  }
 
   return (
     <PageShell>
-      <div className="grid grid-cols-4 gap-1">
-        {(['summary', 'worth', 'cash', 'detail'] as const).map((k) => (
-          <Button key={k} size="sm" variant={tab === k ? 'default' : 'outline'} onClick={() => setTab(k)}>{t(`reports.tab.${k}`)}</Button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-1">
-        {([false, true] as const).map((v) => (
-          <Button key={String(v)} size="sm" variant={mine === v ? 'secondary' : 'ghost'} onClick={() => setMine(v)}>
-            {t(v ? 'reports.me' : 'reports.family')}
-          </Button>
-        ))}
-      </div>
-      {tab !== 'worth' && (
-        <div className="grid grid-cols-4 gap-1">
-          {(['month', 'lastMonth', 'year', 'all'] as const).map((p) => (
-            <Button key={p} size="sm" variant={period === p ? 'secondary' : 'ghost'} onClick={() => setPeriod(p)}>
-              {t(`reports.period.${p}`)}
-            </Button>
+      <PageHeader title={t('reports.title')} icon={ChartPieIcon} />
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+        <TabsList className="w-full">
+          {([['summary', ScaleIcon], ['worth', LandmarkIcon], ['cash', ArrowLeftRightIcon], ['detail', ListIcon]] as const).map(([k, Icon]) => (
+            <TabsTrigger key={k} value={k}><Icon />{t(`reports.tab.${k}`)}</TabsTrigger>
           ))}
-        </div>
-      )}
+        </TabsList>
+      </Tabs>
+      <div className="flex flex-wrap items-center gap-2">
+        <ToggleGroup value={[mine ? 'me' : 'family']} spacing={2} aria-label={t('reports.family')}
+          onValueChange={(v) => { if (v[0]) setMine(v[0] === 'me') }}>
+          <ToggleGroupItem value="family" variant="outline" size="sm"><UsersIcon />{t('reports.family')}</ToggleGroupItem>
+          <ToggleGroupItem value="me" variant="outline" size="sm"><UserIcon />{t('reports.me')}</ToggleGroupItem>
+        </ToggleGroup>
+        {tab !== 'worth' && (
+          <ToggleGroup value={[period]} spacing={2} aria-label={t('reports.tab.summary')}
+            onValueChange={(v) => { if (v[0]) setPeriod(v[0] as Period) }}>
+            {(['month', 'lastMonth', 'year', 'all'] as const).map((p) => (
+              <ToggleGroupItem key={p} value={p} variant="outline" size="sm">{t(`reports.period.${p}`)}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+      </div>
       <FormError message={error ? errorMessage(t, error) : null} />
 
       {tab === 'summary' && (
         <>
-          <Card>
-            <CardHeader><CardTitle>{t('reports.income')}</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {income.length === 0 && <p className="text-sm text-muted-foreground">{t('reports.none')}</p>}
-              {list(income)}
-              {total(t('reports.totalIncome'), sum(income))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>{t('reports.expense')}</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {expense.length === 0 && <p className="text-sm text-muted-foreground">{t('reports.none')}</p>}
-              {list(expense)}
-              {total(t('reports.totalExpense'), sum(expense))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">{total(t('reports.net'), sum(income) - sum(expense))}</CardContent>
-          </Card>
+          <section className="grid gap-4 sm:grid-cols-3">
+            <StatCard label={t('reports.totalIncome')} value={money(sum(income))} icon={TrendingUpIcon} tone="success" loading={loading} />
+            <StatCard label={t('reports.totalExpense')} value={money(sum(expense))} icon={TrendingDownIcon} tone="danger" loading={loading} />
+            <StatCard label={t('reports.net')} value={money(netIncome)} icon={PiggyBankIcon} tone={netIncome < 0 ? 'danger' : 'success'} loading={loading} />
+          </section>
+          <section className="grid gap-4 lg:grid-cols-2">
+            <CategoryPie title={t('reports.income')} description={t(`reports.period.${period}`)} icon={BanknoteIcon}
+              slices={slicesOf(income)} empty={t('reports.none')} loading={loading} money={money} />
+            <CategoryPie title={t('reports.expense')} description={t(`reports.period.${period}`)} icon={ShoppingBagIcon}
+              slices={slicesOf(expense)} empty={t('reports.none')} loading={loading} money={money} />
+          </section>
+          <section className="grid gap-4 lg:grid-cols-2">
+            {listCard(t('reports.income'), TrendingUpIcon, table(income, t('reports.totalIncome'), 'text-success'))}
+            {listCard(t('reports.expense'), TrendingDownIcon, table(expense, t('reports.totalExpense'), 'text-destructive'))}
+          </section>
         </>
       )}
 
       {tab === 'worth' && (
         <>
-          <Card>
-            <CardHeader><CardTitle>{t('reports.assets')}</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {list(assets)}
-              {total(t('reports.totalAssets'), sum(assets))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle>{t('reports.liabilities')}</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {liabilities.length === 0 && <p className="text-sm text-muted-foreground">{t('reports.none')}</p>}
-              {list(liabilities)}
-              {total(t('reports.totalLiabilities'), sum(liabilities))}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4">{total(t('reports.netWorth'), sum(assets) - sum(liabilities))}</CardContent>
-          </Card>
+          <section className="grid gap-4 sm:grid-cols-3">
+            <StatCard label={t('reports.totalAssets')} value={money(sum(assets))} icon={WalletIcon} tone="info" loading={loading} />
+            <StatCard label={t('reports.totalLiabilities')} value={money(sum(liabilities))} icon={CreditCardIcon} tone="warning" loading={loading} />
+            <StatCard label={t('reports.netWorth')} value={money(netWorth)} icon={LandmarkIcon} tone={netWorth < 0 ? 'danger' : 'success'} loading={loading} />
+          </section>
+          <section className="grid gap-4 lg:grid-cols-2">
+            <CategoryPie title={t('reports.assets')} description={t('dashboard.asOfToday')} icon={WalletIcon}
+              slices={slicesOf(assets)} empty={t('reports.none')} loading={loading} money={money} />
+            <CategoryPie title={t('reports.liabilities')} description={t('dashboard.asOfToday')} icon={CreditCardIcon}
+              slices={slicesOf(liabilities)} empty={t('reports.none')} loading={loading} money={money} />
+          </section>
+          <section className="grid gap-4 lg:grid-cols-2">
+            {listCard(t('reports.assets'), WalletIcon, table(assets, t('reports.totalAssets'), 'text-info'))}
+            {listCard(t('reports.liabilities'), CreditCardIcon, table(liabilities, t('reports.totalLiabilities'), 'text-warning'))}
+          </section>
         </>
       )}
 
       {tab === 'cash' && (
-        <Card>
-          <CardHeader><CardTitle>{t('reports.tab.cash')}</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="flex justify-between text-sm"><span>{t('reports.inflow')}</span><span className="text-green-600">{money(inflow)}</span></div>
-            <div className="flex justify-between text-sm"><span>{t('reports.outflow')}</span><span>{money(outflow)}</span></div>
-            {total(t('reports.net'), inflow - outflow)}
-            <p className="text-xs text-muted-foreground">{t('reports.cashNote')}</p>
-          </CardContent>
-        </Card>
+        <>
+          <section className="grid gap-4 sm:grid-cols-3">
+            <StatCard label={t('reports.inflow')} value={money(inflow)} icon={ArrowDownLeftIcon} tone="success" loading={loading} />
+            <StatCard label={t('reports.outflow')} value={money(outflow)} icon={ArrowUpRightIcon} tone="danger" loading={loading} />
+            <StatCard label={t('reports.net')} value={money(inflow - outflow)} icon={ScaleIcon} tone={inflow - outflow < 0 ? 'danger' : 'success'} loading={loading} />
+          </section>
+          {listCard(t('reports.tab.cash'), ArrowLeftRightIcon, (
+            <div className="flex flex-col gap-3">
+              <ChartContainer config={flowConfig} className="h-48 w-full">
+                <BarChart data={[{ name: t('reports.tab.cash'), inflow: inflow / 100, outflow: outflow / 100 }]} barGap={8}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v) * 100)} />} />
+                  <Bar dataKey="inflow" fill="var(--color-inflow)" radius={8} />
+                  <Bar dataKey="outflow" fill="var(--color-outflow)" radius={8} />
+                </BarChart>
+              </ChartContainer>
+              <p className="text-xs text-muted-foreground">{t('reports.cashNote')}</p>
+            </div>
+          ))}
+        </>
       )}
 
-      {tab === 'detail' && (
-        <Card>
-          <CardHeader><CardTitle>{t('reports.detail')}</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-xs text-muted-foreground">
-              <span>{t('reports.account')}</span><span className="text-right">{t('reports.debit')}</span><span className="text-right">{t('reports.credit')}</span>
-            </div>
-            {period_.sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
-              <div key={a.id} className="grid grid-cols-[1fr_auto_auto] gap-x-3 text-sm">
-                <span className="truncate">{a.name}</span>
-                <span className="text-right">{money(a.debit)}</span>
-                <span className="text-right">{money(a.credit)}</span>
-              </div>
+      {tab === 'detail' && listCard(t('reports.detail'), ListIcon, (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('reports.account')}</TableHead>
+              <TableHead className="text-right">{t('reports.debit')}</TableHead>
+              <TableHead className="text-right">{t('reports.credit')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...period_].sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="max-w-0 truncate">{a.name}</TableCell>
+                <TableCell className="text-right tabular-nums">{money(a.debit)}</TableCell>
+                <TableCell className="text-right tabular-nums">{money(a.credit)}</TableCell>
+              </TableRow>
             ))}
-            <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-t pt-2 font-medium">
-              <span>{t('reports.total')}</span>
-              <span className="text-right">{money(period_.reduce((s, a) => s + a.debit, 0))}</span>
-              <span className="text-right">{money(period_.reduce((s, a) => s + a.credit, 0))}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell className="font-semibold">{t('reports.total')}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">{money(period_.reduce((s, a) => s + a.debit, 0))}</TableCell>
+              <TableCell className="text-right font-semibold tabular-nums">{money(period_.reduce((s, a) => s + a.credit, 0))}</TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      ))}
     </PageShell>
   )
 }

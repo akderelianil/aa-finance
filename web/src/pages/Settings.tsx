@@ -1,9 +1,11 @@
+import { SettingsIcon } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { AvatarPicker } from '@/components/AvatarPicker'
 import type { Membership } from '@/auth/useMembership'
+import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,7 +50,7 @@ export default function Settings({ membership }: { membership: Membership }) {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
+      <PageHeader title={t('settings.title')} icon={SettingsIcon} />
       <Card>
         <CardHeader><CardTitle>{t('profile.title')}</CardTitle></CardHeader>
         <CardContent>

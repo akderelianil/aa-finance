@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { PlusIcon } from 'lucide-react'
+import { ArrowLeftRightIcon, NetworkIcon, PlusIcon, WalletIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AccountFormDialog, type FormTarget } from '@/components/accounts/AccountFormDialog'
-import { AccountTree, type AccountNode, type AccountRow } from '@/components/accounts/AccountTree'
+import { AccountTree, type AccountGroup, type AccountNode, type AccountRow, type GroupType } from '@/components/accounts/AccountTree'
 import { TransferCards } from '@/components/accounts/TransferCards'
+import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -28,7 +29,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const queryClient = useQueryClient()
   const groupId = membership.group.id
   const base = membership.group.base_currency
-  const [tab, setTab] = useState<Section | 'transfer'>('accounts')
+  const [tab, setTab] = useState<'tree' | 'transfer'>('tree')
   const [form, setForm] = useState<FormTarget | null>(null)
   const [deleting, setDeleting] = useState<AccountNode | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -38,7 +39,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
     queryFn: async () => {
       const { data: rows, error } = await supabase
         .from('accounts')
-        .select('id, parent_id, name, type, subtype, currency, owner_member_id')
+        .select('id, parent_id, name, type, subtype, currency, owner_member_id, is_placeholder')
         .eq('group_id', groupId).is('system_key', null).is('archived_at', null)
       if (error) throw error
       const { data: bal, error: be } = await supabase
@@ -61,11 +62,16 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const trees = useMemo(() => {
     const rows = data.data?.rows ?? []
     const mine = rows.filter((a) => a.owner_member_id === membership.id)
+    const of = (src: AccountRow[], type: GroupType) => buildTree(src.filter((a) => a.type === type), i18n.language) as AccountNode[]
     return {
       mine,
-      accounts: buildTree(mine, i18n.language) as AccountNode[],
-      expense: buildTree(rows.filter((a) => a.type === 'expense'), i18n.language) as AccountNode[],
-      income: buildTree(rows.filter((a) => a.type === 'income'), i18n.language) as AccountNode[],
+      accounts: buildTree(mine.filter((a) => a.type === 'asset' || a.type === 'liability'), i18n.language) as AccountNode[],
+      expense: of(rows, 'expense'),
+      income: of(rows, 'income'),
+      byGroup: {
+        asset: of(mine, 'asset'), liability: of(mine, 'liability'), equity: of(mine, 'equity'),
+        expense: of(rows, 'expense'), income: of(rows, 'income'),
+      } satisfies Record<GroupType, AccountNode[]>,
     }
   }, [data.data, membership.id, i18n.language])
 
@@ -92,47 +98,61 @@ export default function Accounts({ membership }: { membership: Membership }) {
     return formatMinor(n.type === 'liability' ? -v.own : v.own, n.currency ?? base, i18n.language)
   }
 
-  const tree = (section: Section) => (
-    <AccountTree
-      nodes={trees[section]}
-      balance={balance}
-      canEdit={(n) => section !== 'accounts' || n.owner_member_id === membership.id}
-      onAdd={(parent) => setForm({ mode: 'create', section, parent })}
-      onEdit={(node) => setForm({ mode: 'edit', section, node })}
-      onDelete={(n) => { setNotice(null); remove.reset(); setDeleting(n) }}
-    />
-  )
+  // Grup toplamı ana para biriminde; bilanço hesabı kendi biriminde gösterildiği için burada ana birime çevrilmiş net kullanılır.
+  function groupTotal(type: GroupType) {
+    let sum = 0
+    for (const n of trees.byGroup[type]) sum += data.data?.net.get(n.id)?.base ?? 0
+    return formatMinor(type === 'asset' || type === 'expense' ? sum : -sum, base, i18n.language)
+  }
+  const groups: AccountGroup[] = (['asset', 'liability', 'equity', 'expense', 'income'] as const).map((type) => ({
+    type, nodes: trees.byGroup[type], total: groupTotal(type), canAdd: type !== 'equity',
+  }))
 
-  const section: Section | null = tab === 'transfer' ? null : tab
+  const addRoot = (type: GroupType) => {
+    if (type === 'expense' || type === 'income') setForm({ mode: 'create', section: type, parent: null })
+    else setForm({ mode: 'create', section: 'accounts', parent: null, subtype: type === 'liability' ? 'credit_card' : 'bank' })
+  }
+  const sectionOf = (n: AccountNode): Section => (n.type === 'expense' || n.type === 'income' ? n.type : 'accounts')
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">{t('nav.accounts')}</h1>
-        {section && (
-          <Button onClick={() => setForm({ mode: 'create', section, parent: null })}>
+      <PageHeader
+        title={t('nav.accounts')}
+        description={t('accounts.subtitle')}
+        icon={WalletIcon}
+        actions={tab === 'tree' && (
+          <Button onClick={() => addRoot('asset')}>
             <PlusIcon data-icon="inline-start" />
-            {t(section === 'accounts' ? 'accounts.addAccount' : 'accounts.addCategory')}
+            {t('accounts.addAccount')}
           </Button>
         )}
-      </div>
-      <Tabs value={tab} onValueChange={(v) => { setTab(v as Section | 'transfer'); setNotice(null) }}>
+      />
+      <Tabs value={tab} onValueChange={(v) => { setTab(v as 'tree' | 'transfer'); setNotice(null) }}>
         <TabsList>
-          {(['accounts', 'expense', 'income', 'transfer'] as const).map((k) => (
-            <TabsTrigger key={k} value={k}>{t(`accounts.tabs.${k}`)}</TabsTrigger>
-          ))}
+          <TabsTrigger value="tree"><NetworkIcon />{t('accounts.tabs.accounts')}</TabsTrigger>
+          <TabsTrigger value="transfer"><ArrowLeftRightIcon />{t('accounts.tabs.transfer')}</TabsTrigger>
         </TabsList>
         {data.isLoading ? (
           <div className="mt-4 flex flex-col gap-2">
-            <Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" />
+            <Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" />
           </div>
         ) : (
           <>
-            {(['accounts', 'expense', 'income'] as const).map((k) => (
-              <TabsContent key={k} value={k}>
-                <Card><CardContent>{tree(k)}</CardContent></Card>
-              </TabsContent>
-            ))}
+            <TabsContent value="tree">
+              <Card>
+                <CardContent>
+                  <AccountTree
+                    groups={groups}
+                    balance={balance}
+                    canEdit={(n) => n.type === 'expense' || n.type === 'income' || n.owner_member_id === membership.id}
+                    onAddRoot={addRoot}
+                    onAdd={(parent) => setForm({ mode: 'create', section: sectionOf(parent), parent })}
+                    onEdit={(node) => setForm({ mode: 'edit', section: sectionOf(node), node })}
+                    onDelete={(n) => { setNotice(null); remove.reset(); setDeleting(n) }}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="transfer">
               <TransferCards mine={trees.mine} groupId={groupId} currency={base} />
             </TabsContent>

@@ -1,15 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
-import { Cell, Pie, PieChart } from 'recharts'
+import {
+  BanknoteIcon, CreditCardIcon, LandmarkIcon, LayoutDashboardIcon, PiggyBankIcon, ShoppingBagIcon, TrendingDownIcon, TrendingUpIcon, WalletIcon,
+} from 'lucide-react'
 import type { Membership } from '@/auth/useMembership'
 import { Upcoming } from '@/components/Upcoming'
 import { RecentEntries } from '@/components/RecentEntries'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { Skeleton } from '@/components/ui/skeleton'
+import { CategoryPie } from '@/components/CategoryPie'
+import { PageHeader } from '@/components/PageHeader'
+import { StatCard } from '@/components/StatCard'
+import { topSlices } from '@/lib/chart'
 import { errorMessage } from '@/lib/errors'
 import { exponentOf, formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
@@ -19,7 +20,6 @@ type Acc = { id: string; name: string; type: string; parent_id: string | null }
 type Total = { account_id: string; debit: number; credit: number }
 
 const iso = (d: Date) => d.toLocaleDateString('sv-SE')
-const SLICE_OPACITY = [1, 0.75, 0.55, 0.4, 0.28, 0.18]
 
 function sumByAccount(rows: Total[] | undefined) {
   const m = new Map<string, { debit: number; credit: number }>()
@@ -79,97 +79,69 @@ export default function Home({ membership }: { membership: Membership }) {
       if (a?.type === 'liability') liabilities += v.credit - v.debit
     }
     let income = 0, expense = 0
-    const byRoot = new Map<string, { name: string; value: number }>()
+    const expRoots = new Map<string, { name: string; value: number }>()
+    const incRoots = new Map<string, { name: string; value: number }>()
     for (const [id, v] of sumByAccount(month.data)) {
       const a = accs.get(id)
-      if (a?.type === 'income') income += v.credit - v.debit
-      if (a?.type === 'expense') {
-        const net = v.debit - v.credit
-        expense += net
-        const r = root(id)
-        if (r && net > 0) byRoot.set(r.id, { name: r.name, value: (byRoot.get(r.id)?.value ?? 0) + net })
-      }
+      if (a?.type !== 'income' && a?.type !== 'expense') continue
+      const isInc = a.type === 'income'
+      const net = isInc ? v.credit - v.debit : v.debit - v.credit
+      if (isInc) income += net
+      else expense += net
+      const r = root(id)
+      const bucket = isInc ? incRoots : expRoots
+      if (r && net > 0) bucket.set(r.id, { name: r.name, value: (bucket.get(r.id)?.value ?? 0) + net })
     }
-    const sorted = [...byRoot.values()].sort((a, b) => b.value - a.value)
-    // İlk 5 kategori + kalanı "Diğer".
-    const top = sorted.slice(0, 5)
-    const rest = sorted.slice(5).reduce((s, x) => s + x.value, 0)
-    if (rest > 0) top.push({ name: t('dashboard.other'), value: rest })
-    return { netWorth: assets - liabilities, income, expense, slices: top }
+    return {
+      assets, liabilities, netAsset: assets - liabilities, income, expense, netIncome: income - expense,
+      expenseSlices: topSlices([...expRoots.values()], 6, t('dashboard.other')),
+      incomeSlices: topSlices([...incRoots.values()], 6, t('dashboard.other')),
+    }
   }, [accounts.data, asOf.data, month.data, t])
 
   const loading = accounts.isLoading || asOf.isLoading || month.isLoading
   const error = accounts.error ?? asOf.error ?? month.error
-  const net = stats.income - stats.expense
-  const config: ChartConfig = Object.fromEntries(stats.slices.map((s) => [s.name, { label: s.name }]))
+  const monthName = new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(now)
+  const rate = stats.income > 0 ? Math.round((stats.netIncome / stats.income) * 100) : null
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">{t('home.greeting', { name: membership.displayName ?? '' })}</h1>
+      <PageHeader
+        title={t('home.greeting', { name: membership.displayName ?? '' })}
+        description={monthName}
+        icon={LayoutDashboardIcon}
+      />
       <FormError message={error ? errorMessage(t, error) : null} />
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>{t('dashboard.netWorth')}</CardDescription>
-            <CardTitle className="text-3xl tabular-nums">
-              {loading ? <Skeleton className="h-9 w-48" /> : money(stats.netWorth)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card size="sm">
-          <CardContent className="grid gap-3 sm:grid-cols-3">
-            {([
-              ['income', stats.income],
-              ['expense', stats.expense],
-              ['net', net],
-            ] as const).map(([k, v]) => (
-              <div key={k} className="flex items-baseline justify-between gap-2 sm:flex-col sm:items-start sm:gap-1">
-                <span className="text-sm text-muted-foreground">{t(`dashboard.${k}`)}</span>
-                <span className="text-lg font-medium tabular-nums">{loading ? <Skeleton className="h-6 w-28" /> : money(v)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <section className="grid gap-4 sm:grid-cols-3" aria-label={t('dashboard.balanceSheet')}>
+        <StatCard label={t('dashboard.totalAsset')} value={money(stats.assets)} icon={WalletIcon} tone="info" loading={loading} hint={t('dashboard.asOfToday')} />
+        <StatCard label={t('dashboard.totalLiability')} value={money(stats.liabilities)} icon={CreditCardIcon} tone="warning" loading={loading} hint={t('dashboard.asOfToday')} />
+        <StatCard
+          label={t('dashboard.netAsset')} value={money(stats.netAsset)} icon={LandmarkIcon}
+          tone={stats.netAsset < 0 ? 'danger' : 'success'} loading={loading} hint={t('dashboard.asOfToday')}
+        />
+      </section>
+      <section className="grid gap-4 sm:grid-cols-3" aria-label={t('dashboard.thisMonthTitle')}>
+        <StatCard label={t('dashboard.totalExpense')} value={money(stats.expense)} icon={TrendingDownIcon} tone="danger" loading={loading} hint={t('dashboard.thisMonthShort')} />
+        <StatCard label={t('dashboard.totalIncome')} value={money(stats.income)} icon={TrendingUpIcon} tone="success" loading={loading} hint={t('dashboard.thisMonthShort')} />
+        <StatCard
+          label={t('dashboard.netIncome')} value={money(stats.netIncome)} icon={PiggyBankIcon}
+          tone={stats.netIncome < 0 ? 'danger' : 'success'} loading={loading}
+          badge={rate === null ? undefined : { text: t('dashboard.savingRate', { pct: rate }), variant: rate < 0 ? 'destructive' : 'success' }}
+        />
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <CategoryPie
+          title={t('dashboard.spending')} description={t('dashboard.thisMonth')} icon={ShoppingBagIcon}
+          slices={stats.expenseSlices} empty={t('dashboard.noSpending')} loading={loading} money={money}
+        />
+        <CategoryPie
+          title={t('dashboard.earnings')} description={t('dashboard.thisMonthIncome')} icon={BanknoteIcon}
+          slices={stats.incomeSlices} empty={t('dashboard.noEarnings')} loading={loading} money={money}
+        />
+      </section>
       {/* Yaklaşanlar: uygulamanın üç ana yerinden biri; özetin hemen altında. */}
       <Upcoming membership={membership} />
-      <div className="flex flex-col gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('dashboard.spending')}</CardTitle>
-            <CardDescription>{t('dashboard.thisMonth')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {stats.slices.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{loading ? '' : t('dashboard.noSpending')}</p>
-            ) : (
-              <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <ChartContainer config={config} className="size-44 shrink-0">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="name" formatter={(v) => money(Number(v))} />} />
-                    <Pie data={stats.slices} dataKey="value" nameKey="name" innerRadius={48} strokeWidth={2}>
-                      {stats.slices.map((s, i) => (
-                        <Cell key={s.name} fill="var(--primary)" fillOpacity={SLICE_OPACITY[i] ?? 0.18} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-                <ul className="flex w-full flex-col gap-1.5 text-sm">
-                  {stats.slices.map((s, i) => (
-                    <li key={s.name} className="flex items-center gap-2">
-                      <span className="size-3 shrink-0 rounded-full bg-primary" style={{ opacity: SLICE_OPACITY[i] ?? 0.18 }} aria-hidden />
-                      <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                      <span className="tabular-nums">{money(s.value)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <RecentEntries membership={membership} exponent={exponentOf(base)} limit={5} />
-      <Button variant="outline" nativeButton={false} render={<Link to="/islemler" />}>{t('dashboard.allEntries')}</Button>
+      <RecentEntries membership={membership} exponent={exponentOf(base)} limit={8} />
     </>
   )
 }

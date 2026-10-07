@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { CalendarRangeIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
+import { PageHeader } from '@/components/PageHeader'
 import { FormError, PageShell } from '@/components/PageShell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -48,10 +50,10 @@ export default function Installments({ membership }: { membership: Membership })
   return (
     <PageShell>
       <Button variant="ghost" className="self-start" nativeButton={false} render={<Link to="/ayarlar" />}>{t('common.back')}</Button>
+      <PageHeader title={t('installments.upcoming')} description={t('installments.hint')} icon={CalendarRangeIcon} />
       <Card>
-        <CardHeader><CardTitle>{t('installments.upcoming')}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="sr-only">{t('installments.upcoming')}</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">{t('installments.hint')}</p>
           {upcoming.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('installments.empty')}</p>}
           {months.map((m) => (
             <section key={m.key} className="flex flex-col gap-1">

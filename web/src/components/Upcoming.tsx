@@ -134,7 +134,11 @@ export function Upcoming({ membership }: { membership: Membership }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('upcoming.title')}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarClockIcon className="size-4 text-muted-foreground" aria-hidden />
+          {t('upcoming.title')}
+          {items.length > 0 && <Badge variant="secondary">{items.length}</Badge>}
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {data.isLoading && <Skeleton className="h-12" />}
@@ -146,7 +150,12 @@ export function Upcoming({ membership }: { membership: Membership }) {
             return (
               <li key={it.key} className="flex flex-col gap-2 py-2">
                 <div className="flex items-center gap-3">
-                  <Icon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                  <span
+                    className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground')}
+                    aria-hidden
+                  >
+                    <Icon className="size-4" />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 truncate font-medium">
                       {it.title}

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { Switch } from '@/components/ui/switch'
 import { callFunction } from '@/lib/api'
 import { descendantIds, flatten } from '@/lib/accountTree'
 import { errorMessage } from '@/lib/errors'
@@ -15,7 +16,7 @@ import { supabase } from '@/lib/supabase'
 import type { AccountNode } from './AccountTree'
 
 export type FormTarget =
-  | { mode: 'create'; section: 'accounts' | 'expense' | 'income'; parent: AccountNode | null }
+  | { mode: 'create'; section: 'accounts' | 'expense' | 'income'; parent: AccountNode | null; subtype?: string }
   | { mode: 'edit'; section: 'accounts' | 'expense' | 'income'; node: AccountNode }
 
 const SUBTYPES = ['cash', 'bank', 'credit_card', 'loan'] as const
@@ -42,7 +43,7 @@ export function AccountFormDialog({ target, ...rest }: Props) {
   return (
     <ResponsiveDialog open={!!target} onOpenChange={(o) => { if (!o) rest.onClose() }} title={title}>
       {/* key: hedef değişince form durumu sıfırlansın */}
-      {target && <Form key={target.mode === 'edit' ? target.node.id : (target.parent?.id ?? target.section)} target={target} {...rest} />}
+      {target && <Form key={target.mode === 'edit' ? target.node.id : (target.parent?.id ?? `${target.section}-${target.subtype ?? ''}`)} target={target} {...rest} />}
     </ResponsiveDialog>
   )
 }
@@ -52,10 +53,12 @@ function Form({ target, tree, currencies, baseCurrency, onClose, onSaved }: Prop
   const edit = target.mode === 'edit' ? target.node : null
   const [name, setName] = useState(edit?.name ?? '')
   const [parentId, setParentId] = useState(edit ? (edit.parent_id ?? '') : (target.mode === 'create' ? (target.parent?.id ?? '') : ''))
-  const [subtype, setSubtype] = useState<string>('bank')
+  const [subtype, setSubtype] = useState<string>((target.mode === 'create' && target.subtype) || 'bank')
   const [currency, setCurrency] = useState(baseCurrency)
   const [opening, setOpening] = useState('')
   const [rate, setRate] = useState('')
+  // Gruplayıcı: yalnız alt hesapları toplar, kendisine kayıt girilmez.
+  const [placeholder, setPlaceholder] = useState(edit?.is_placeholder ?? false)
   // Kredi kartı: kesim ve son ödeme günü (Yaklaşanlar buradan türer). undefined = dokunulmadı.
   const [statementDay, setStatementDay] = useState<string | undefined>(undefined)
   const [dueDay, setDueDay] = useState<string | undefined>(undefined)
@@ -99,6 +102,7 @@ function Form({ target, tree, currencies, baseCurrency, onClose, onSaved }: Prop
           account_id: edit.id,
           ...(name !== edit.name ? { name } : {}),
           ...(parentId !== (edit.parent_id ?? '') ? { parent_id: parentId || null } : {}),
+          ...(placeholder !== edit.is_placeholder ? { is_placeholder: placeholder } : {}),
           ...cardDays,
         })
       }
@@ -106,7 +110,8 @@ function Form({ target, tree, currencies, baseCurrency, onClose, onSaved }: Prop
         name,
         parent_id: parentId || undefined,
         ...(isCategory ? { type: target.section } : { subtype: effSubtype, currency: effCurrency }),
-        opening_balance: !isCategory ? opening.replace(',', '.') || undefined : undefined,
+        is_placeholder: placeholder || undefined,
+        opening_balance: !isCategory && !placeholder ? opening.replace(',', '.') || undefined : undefined,
         rate: !isCategory ? rate.replace(',', '.') || undefined : undefined,
         ...cardDays,
       })
@@ -150,7 +155,14 @@ function Form({ target, tree, currencies, baseCurrency, onClose, onSaved }: Prop
             </Field>
           </>
         )}
-        {!edit && !isCategory && (
+        <Field>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={placeholder} onCheckedChange={setPlaceholder} />
+            {t('accounts.placeholder')}
+          </label>
+          <FieldDescription>{t('accounts.placeholderHint')}</FieldDescription>
+        </Field>
+        {!edit && !isCategory && !placeholder && (
           <>
             <Field>
               <FieldLabel htmlFor="acc-opening">{t(isDebt ? 'accounts.openingDebt' : 'accounts.opening')}</FieldLabel>

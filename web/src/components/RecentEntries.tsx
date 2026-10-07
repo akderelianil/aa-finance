@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, PaperclipIcon, PencilIcon, SearchIcon, Trash2Icon,
+  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowRightIcon, ArrowUpRightIcon, PaperclipIcon, PencilIcon, ReceiptTextIcon, SearchIcon,
+  Trash2Icon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { EntryAttachments } from '@/components/EntryAttachments'
 import { useEntryDialog } from '@/components/EntryDialog'
@@ -12,11 +14,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
@@ -33,7 +37,8 @@ export type EntryRow = {
   contact: string
   original: string // yabancı para satırı ise orijinal tutar (biçimli), değilse ''
   amount: string // ondalık string, para birimi üyenin grup ana para birimi
-  editable: boolean // 2 satırlı gider/gelir; diğerleri şimdilik sadece görüntülenir
+  parts: { category: string; amount: string }[] // kategori satırları (ilki ana kategori, diğerleri kalemler)
+  editable: boolean // tek hesaplı, ana para birimli gider/gelir; diğerleri şimdilik sadece görüntülenir
 }
 
 type RawEntry = {
@@ -47,9 +52,9 @@ type RawEntry = {
 const PAGE = 30
 
 const DIRECTION = {
-  income: { icon: ArrowDownLeftIcon, sign: '+', className: 'text-emerald-700 dark:text-emerald-400' },
-  expense: { icon: ArrowUpRightIcon, sign: '−', className: 'text-rose-700 dark:text-rose-400' },
-  other: { icon: ArrowLeftRightIcon, sign: '', className: 'text-muted-foreground' },
+  income: { icon: ArrowDownLeftIcon, sign: '+', className: 'text-success', chip: 'bg-success/10 text-success', badge: 'success' },
+  expense: { icon: ArrowUpRightIcon, sign: '−', className: 'text-destructive', chip: 'bg-destructive/10 text-destructive', badge: 'destructive' },
+  other: { icon: ArrowLeftRightIcon, sign: '', className: 'text-muted-foreground', chip: 'bg-muted text-muted-foreground', badge: 'secondary' },
 } as const
 
 // Minor unit (number, < 2^53 pratikte) → ondalık string. Gösterim için; hesap için kullanılmaz.
@@ -87,18 +92,21 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
+        .order('position', { referencedTable: 'journal_lines' })
         .limit(fetchCount)
         .overrideTypes<RawEntry[]>()
       if (error) throw error
       return data.map((e) => {
         // Sistem kategorileri (kur farkı, yatırım kâr/zarar) ve özel kayıt türleri başlık sayılmaz.
-        const cat = e.source_type && e.source_type !== 'installment' ? undefined
-          : e.journal_lines.find((l) => !l.account.system_key && (l.account.type === 'expense' || l.account.type === 'income'))
+        // Çok kalemli kayıtta (market: gıda + alkol) her kategori ayrı satırdır; başlık ve tutar hepsini kapsar.
+        const cats = e.source_type && e.source_type !== 'installment' ? []
+          : e.journal_lines.filter((l) => !l.account.system_key && (l.account.type === 'expense' || l.account.type === 'income'))
+        const cat = cats[0]
         // Paylaşılan giderde birden çok kişi olabilir.
         const contact = [...new Set(e.journal_lines.flatMap((l) => (l.contact ? [l.contact.name] : [])))].join(', ')
         const first = e.journal_lines[0]
         let kind: EntryRow['kind'] = cat ? (cat.account.type === 'income' ? 'income' : 'expense') : 'other'
-        let category = cat?.account.name ?? '—'
+        let category = cat ? [...new Set(cats.map((l) => l.account.name))].join(', ') : '—'
         if (!cat && e.source_type === 'transfer') {
           const from = e.journal_lines.find((l) => l.direction === 'credit')?.account
           const to = e.journal_lines.find((l) => l.direction === 'debit')?.account
@@ -131,8 +139,10 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
           category,
           contact: cat ? contact : '',
           original: cat && cat.currency !== membership.group.base_currency ? formatMinor(cat.amount, cat.currency, i18n.language) : '',
-          amount: fromMinor((cat ?? first)?.base_amount ?? 0, exponent),
-          editable: !e.source_type && e.journal_lines.length === 2 && !!cat && cat.currency === membership.group.base_currency && first.currency === membership.group.base_currency,
+          amount: fromMinor(cat ? cats.reduce((s, l) => s + Number(l.base_amount), 0) : (first?.base_amount ?? 0), exponent),
+          parts: cats.map((l) => ({ category: l.account.name, amount: fromMinor(l.base_amount, exponent) })),
+          editable: !e.source_type && !!cat && e.journal_lines.length === cats.length + 1
+            && e.journal_lines.every((l) => l.currency === membership.group.base_currency),
         }
       })
     },
@@ -144,54 +154,65 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
   })
 
   const fmt = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: membership.group.base_currency })
-  const dayFmt = new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+  const dayFmt = new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short', year: full ? 'numeric' : undefined })
 
   const q = search.trim().toLocaleLowerCase(i18n.language)
   const rows = (entries.data ?? []).filter((e) =>
     (kinds.length === 0 || kinds.includes(e.kind))
     && (!q || `${e.category} ${e.contact}`.toLocaleLowerCase(i18n.language).includes(q)))
 
-  // Tarihe göre grupla (liste zaten tarih sırasında).
-  const groups: { date: string; items: EntryRow[] }[] = []
-  for (const e of rows) {
-    const g = groups[groups.length - 1]
-    if (g && g.date === e.entry_date) g.items.push(e)
-    else groups.push({ date: e.entry_date, items: [e] })
-  }
-
   function row(e: EntryRow) {
     const mine = e.memberId === membership.id
+    const dir = DIRECTION[e.kind]
+    const Icon = dir.icon
     return (
-      <li key={e.id} className="flex flex-col">
-        <div className="flex items-center gap-2 py-2">
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{e.category}</p>
-            {(e.contact || e.original) && (
-              <p className="truncate text-xs text-muted-foreground">{[e.contact, e.original].filter(Boolean).join(' · ')}</p>
-            )}
-          </div>
-          {/* Yön üç işaretle: renk + ikon + (+/−). */}
-          <span className={cn('flex shrink-0 items-center gap-1 text-sm font-medium tabular-nums', DIRECTION[e.kind].className)}>
-            {(() => { const Icon = DIRECTION[e.kind].icon; return <Icon className="size-4" aria-hidden /> })()}
-            {DIRECTION[e.kind].sign}{fmt.format(Number(e.amount))}
-          </span>
-          <Button
-            size="icon-sm" variant="ghost" aria-label={t('attachments.show')} aria-expanded={openId === e.id}
-            onClick={() => setOpenId(openId === e.id ? null : e.id)}
-          >
-            <PaperclipIcon />
-          </Button>
-          {mine && e.editable && (
-            <Button size="icon-sm" variant="ghost" aria-label={t('entry.edit')} onClick={() => openEntry(e)}><PencilIcon /></Button>
-          )}
-          {mine && (
-            <Button size="icon-sm" variant="ghost" aria-label={t('entry.delete')} onClick={() => { remove.reset(); setDeleting(e) }}>
-              <Trash2Icon />
-            </Button>
-          )}
-        </div>
-        {openId === e.id && <EntryAttachments entryId={e.id} canEdit={mine} />}
-      </li>
+      <Fragment key={e.id}>
+        <TableRow>
+          <TableCell className="w-px whitespace-nowrap text-muted-foreground">{dayFmt.format(new Date(`${e.entry_date}T00:00:00`))}</TableCell>
+          <TableCell>
+            <div className="flex items-center gap-3">
+              <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-xl', dir.chip)} aria-hidden>
+                <Icon className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-medium">{e.category}</p>
+                {(e.contact || e.original) && (
+                  <p className="truncate text-xs text-muted-foreground">{[e.contact, e.original].filter(Boolean).join(' · ')}</p>
+                )}
+              </div>
+            </div>
+          </TableCell>
+          <TableCell className="hidden sm:table-cell">
+            <Badge variant={dir.badge}>{t(`journal.kind.${e.kind}`)}</Badge>
+          </TableCell>
+          <TableCell className={cn('text-right font-medium whitespace-nowrap tabular-nums', dir.className)}>
+            {dir.sign}{fmt.format(Number(e.amount))}
+          </TableCell>
+          <TableCell className="w-px">
+            <div className="flex justify-end">
+              <Button
+                size="icon-sm" variant="ghost" aria-label={t('attachments.show')} aria-expanded={openId === e.id}
+                onClick={() => setOpenId(openId === e.id ? null : e.id)}
+              >
+                <PaperclipIcon />
+              </Button>
+              {mine && e.editable && (
+                <Button size="icon-sm" variant="ghost" aria-label={t('entry.edit')} onClick={() => openEntry(e)}><PencilIcon /></Button>
+              )}
+              {mine && (
+                <Button size="icon-sm" variant="ghost" aria-label={t('entry.delete')} onClick={() => { remove.reset(); setDeleting(e) }}>
+                  <Trash2Icon />
+                </Button>
+              )}
+            </div>
+          </TableCell>
+        </TableRow>
+        {openId === e.id && (
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={5}><EntryAttachments entryId={e.id} canEdit={mine} /></TableCell>
+          </TableRow>
+        )}
+      </Fragment>
     )
   }
 
@@ -199,11 +220,19 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
 
   return (
     <Card>
-      {!full && (
-        <CardHeader>
-          <CardTitle>{t('entry.recent')}</CardTitle>
-        </CardHeader>
-      )}
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ReceiptTextIcon className="size-4 text-muted-foreground" aria-hidden />
+          {t(full ? 'journal.title' : 'entry.recent')}
+        </CardTitle>
+        {!full && (
+          <CardAction>
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/islemler" />}>
+              {t('dashboard.allEntries')}<ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          </CardAction>
+        )}
+      </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {full && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -229,12 +258,20 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
             {full && (search || kinds.length > 0) && <EmptyDescription>{t('journal.noMatch')}</EmptyDescription>}
           </EmptyHeader></Empty>
         )}
-        {groups.map((g) => (
-          <section key={g.date} className="flex flex-col">
-            <h3 className="pt-1 text-xs font-medium text-muted-foreground">{dayFmt.format(new Date(`${g.date}T00:00:00`))}</h3>
-            <ul className="flex flex-col divide-y">{g.items.map(row)}</ul>
-          </section>
-        ))}
+        {rows.length > 0 && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('journal.col.date')}</TableHead>
+                <TableHead>{t('journal.col.entry')}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t('journal.col.kind')}</TableHead>
+                <TableHead className="text-right">{t('journal.col.amount')}</TableHead>
+                <TableHead><span className="sr-only">{t('accounts.actions')}</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>{rows.map(row)}</TableBody>
+          </Table>
+        )}
         {canLoadMore && (
           <Button variant="outline" disabled={entries.isFetching} onClick={() => setCount(count + PAGE)}>{t('journal.more')}</Button>
         )}

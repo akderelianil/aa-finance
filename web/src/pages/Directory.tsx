@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CopyIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ContactIcon, CopyIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { OptionSelect } from '@/components/OptionSelect'
+import { PageHeader } from '@/components/PageHeader'
 import { FormError, PageShell } from '@/components/PageShell'
 import { ResponsiveDialog } from '@/components/ResponsiveDialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -104,10 +105,10 @@ export default function Directory({ membership }: { membership: Membership }) {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">{t('directory.title')}</h1>
-        <Button onClick={() => setEditing('new')}><PlusIcon data-icon="inline-start" />{t('directory.add')}</Button>
-      </div>
+      <PageHeader
+        title={t('directory.title')} description={t('directory.subtitle')} icon={ContactIcon}
+        actions={<Button onClick={() => setEditing('new')}><PlusIcon data-icon="inline-start" />{t('directory.add')}</Button>}
+      />
       <Card>
         <CardContent className="flex flex-col gap-3">
           <InputGroup>
@@ -146,7 +147,7 @@ export default function Directory({ membership }: { membership: Membership }) {
                       <span className="block truncate text-xs text-muted-foreground">{subtitle(c)}</span>
                     </span>
                     {net !== 0 && (
-                      <span className={cn('shrink-0 text-right text-xs', net > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400')}>
+                      <span className={cn('shrink-0 text-right text-xs', net > 0 ? 'text-success' : 'text-destructive')}>
                         {t(net > 0 ? 'entry.debt.theyOwe' : 'entry.debt.iOwe', { amount: formatMinor(Math.abs(net), currency, i18n.language) })}
                       </span>
                     )}
