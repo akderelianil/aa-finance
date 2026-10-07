@@ -6,3 +6,9 @@ dist/
 *.local
 .DS_Store
 .playwright-mcp/
+# Obsidian: keep only shared settings
+docs/.obsidian/*
+!docs/.obsidian/app.json
+# Claude Code: personal settings and local agent memory
+.claude/settings.local.json
+.claude/agent-memory-local/

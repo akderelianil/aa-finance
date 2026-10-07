@@ -1,19 +1,25 @@
 # aa-finance
 
-Aile odaklı kişisel finans uygulaması (çift taraflı muhasebe). Mimari kararlar: `docs/ARCHITECTURE.md`.
+Family personal-finance app with double-entry bookkeeping. Docs index: [docs/README.md](docs/README.md). Terms: [docs/GLOSSARY.md](docs/GLOSSARY.md).
 
-## Yığın
-- Supabase (PostgreSQL + Auth + RLS + Storage), proje ref `ckwigjohcdsfqglmmzdq` (eu-central-1). Sadece geliştirme projesi.
-- İş mantığı: TypeScript Supabase Edge Functions. Yazma işlemleri direkt Postgres bağlantısıyla tek transaction'da, ilgili hesap satırları `SELECT ... FOR UPDATE` ile kilitlenerek yapılır (ortalama maliyet yarış durumu).
-- Frontend: React + Vite + TypeScript + shadcn/ui + Tailwind, mobil öncelikli PWA, Cloudflare'de yayınlanır.
-- Paket yöneticisi: npm (pnpm.exe makinede Application Control ile engelli). Supabase CLI: `npx supabase`. Windows/PowerShell.
+## Stack
+- Supabase (PostgreSQL + Auth + RLS + Storage), project ref `ckwigjohcdsfqglmmzdq` (eu-central-1). Dev project only.
+- Business logic: TypeScript Supabase Edge Functions. Writes use a direct Postgres connection in one transaction and lock the affected account rows with `SELECT ... FOR UPDATE` (average-cost race).
+- Frontend: React + Vite + TypeScript + shadcn/ui + Tailwind, mobile-first PWA, hosted on Cloudflare.
+- Package manager: npm (pnpm.exe is blocked by Application Control). Supabase CLI: `npx supabase`. Windows/PowerShell.
 
-## Kurallar
-- Her kayıt çift taraflı: ≥2 satır, toplam borç = toplam alacak (`base_amount`). DB trigger zaten zorlar; Edge Function da doğrular.
-- Para: int64 minor unit (TS'te `bigint`/string; asla float). Kur/adet `numeric` → string.
-- Uygulanmış migration dosyası ASLA düzenlenmez; yeni migration eklenir (`supabase/migrations`).
-- Türetilebilen her değer (kur, TRY karşılığı, kâr/zarar, hesap açma) sunucuda otomatik hesaplanır; istekte opsiyoneldir, kullanıcı verirse o kullanılır.
-- Yetki: grupta herkes görür; sadece `journal_entries.member_id` sahibi düzenler/siler (RLS + fonksiyon).
-- Supabase MCP salt okunurdur; şema değişikliği migration + CLI ile yapılır. Secret/service_role anahtarı frontend'e ve repoya girmez; token/secret'lar kök `.env`'den okunur (şablon `.env.example`, yükleme: `docs/DEVELOPMENT.md`), değerleri asla yazdırma.
-- Arayüz: üşengeç, teknolojiye uzak kullanıcılar için; minimum alan, muhasebe terimi yok.
-- Kapsam dışı: AI/otomatik doldurma, banka içe aktarma, kredi modülü, fatura/abonelik (sonra).
+## Rules
+- Every record is double-entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
+- Money: int64 minor units (`bigint`/string in TS; never float). Rates and quantities: `numeric` → string.
+- Never edit an applied migration. Add a new one in `supabase/migrations`.
+- The server derives every derivable value (rate, TRY amount, gain/loss, account creation). It is optional in the request; a user-given value wins.
+- Access: everyone in a group reads; only the `journal_entries.member_id` owner edits or deletes (RLS + function).
+- Supabase MCP is read-only. Change the schema with a migration + CLI.
+- Secrets and the service_role key never go to the frontend or the repo. Read tokens from the root `.env` (template `.env.example`, loading: [DEVELOPMENT](docs/DEVELOPMENT.md#secrets-env)). Never print values.
+- UI: for lazy, non-technical users. Minimum fields, no accounting terms.
+- A record is a completed event only. Future or estimated events are not records (an installment purchase records the full amount as expense + card debt). Plans and reminders are display only. All entry is manual first; integrations come later.
+- Scope: cash advance and loan are in v1 (decided 2026-10-07). Out of scope: AI/auto-fill, bank import/integration, native/phone notifications (in-app list only), bills/subscriptions (later).
+
+## Docs and agents
+- Language: user-facing docs (`docs/ux/**`) in Turkish; everything else in English.
+- Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`.

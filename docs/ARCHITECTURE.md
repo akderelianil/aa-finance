@@ -1,36 +1,41 @@
-# aa-finance Mimari (v0.2)
+---
+owner: main
+status: active
+---
 
-## Kararlar
-- **Stack (güncel):** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (iş mantığı, direkt Postgres bağlantısıyla tek transaction) + React/Vite/shadcn PWA (Cloudflare'de yayın). Migration: Supabase CLI (`supabase/migrations`). Go/GORM/goose kararı iptal. UUID v7 uygulama/fonksiyon üretir. Giriş: e-posta+şifre (Google sonra). Depolama: Supabase Storage (R2 sonra, yedekler için).
-- **API sözleşmesi:** Edge Function'lar (`supabase/functions/*`) ve veritabanı view/fonksiyonları (`account_balances`, `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`) sözleşmedir; eski `api/openapi.yaml` kaldırıldı.
-- **Çift taraflı kayıt zorunlu:** her kayıt ≥2 satır, toplam borç = toplam alacak (ana para biriminde). DB'de deferred constraint trigger + uygulamada doğrulama.
-- **Yazma = Edge Function, okuma = RLS ile doğrudan** (istemci tablolara yazamaz).
-- **Kayıtlar düzenlenebilir**, tüm değişiklikler `audit_log`'a (DB trigger, actor = `app.member_id`). Silme = soft delete. Opsiyonel `groups.lock_date` ile dönem kilidi.
-- **Yetki:** Grup içinde herkes her şeyi görür. Kaydı yalnızca kaydın sahibi üye (`journal_entries.member_id`) düzenler/siler.
-- **Her kayıt tek üyeye aittir.** Kimin kartı/parasıyla harcandıysa onun gideri/geliridir. Ortak hesap yok. Aile raporu = üyelerin toplamı (eve giren/çıkan para); kategoriler grup seviyesinde.
-- **UX ilkesi — minimum giriş, sıfır zorunluluk:** Sunucu türetilebilen her şeyi (kur, TRY karşılığı, ortalama maliyet, kur/yatırım kâr-zararı, hesap açma, taksit takvimi) otomatik hesaplar. İstekte bu alanlar **opsiyoneldir**; kullanıcı isterse kendisi verir ve sunucu onları kullanır. Kullanıcı muhasebe terimi görmez.
-- Ek yükler (AI, otomatik doldurma, banka içe aktarma) kapsam dışı.
+# Architecture (v0.2)
 
-## Çoklu para birimi
-- Kategoriler para biriminden bağımsız; bilanço hesaplarının tek para birimi var.
-- Her satır: orijinal tutar + para birimi + ana para birimi karşılığı (`base_amount`) + kur.
-- **Döviz alımı:** kullanıcı "100 USD aldım, 4.000 TRY ödedim" girer; kur = 40 otomatik.
-- **Yurt dışı kart harcaması:** USD/EUR tutarı girilir; TRY tahmini son kurdan gelir (`is_estimated=true`), kullanıcı isterse bankanın TRY tutarıyla kesinleştirir.
-- **Döviz hesabından harcama/satış:** hesabın ortalama maliyetiyle düşülür (hesaptaki toplam base / toplam tutar); piyasa değeri farkı otomatik `fx_gain_loss` kategorisine yazılır.
-- **Dönem sonu değerleme:** gerçekleşmemiş kur farkı için tek tuşluk değerleme kaydı (`source_type='fx_revaluation'`).
+## Decisions
+- **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite/shadcn PWA on Cloudflare. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
+- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
+- **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
+- **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
+- **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
+- **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
+- **Each record belongs to one member.** The member whose card or money paid owns the expense or income. No joint accounts. The family report = the sum of members (money in and out of the home). Categories are group-level.
+- **UX principle: minimum input, zero mandatory fields.** The server derives every derivable value: rate, TRY amount, average cost, FX and investment gain/loss, account creation, installment schedule. These request fields are optional; a user-given value wins. The user never sees accounting terms.
+- AI, auto-fill and bank import are out of scope.
 
-## Yatırımlar
-- Tür: kripto, emtia (altın/gümüş/petrol), hisse, fon, tahvil/bono. Yurt içi/dışı farkı yok; enstrümanın kendi para birimi var.
-- Döviz enstrüman değildir; çok para birimli normal hesaptır.
-- Üye başına enstrüman başına tek yatırım hesabı, ilk alımda otomatik açılır (`accounts.instrument_id`).
-- Defter değeri = piyasa değeri (elle girilen fiyatla değerleme kaydı). Satışta defter değeri adetle orantılı düşülür, fark `investment_gain_loss`'a yazılır. Lot/vergi maliyeti takibi yok.
-- Çapraz para: USD hisse TRY'yle veya USD hesabıyla alınabilir; fark otomatik hesaplanır.
+## Multi-currency
+- Categories have no currency. A balance-sheet account has one currency.
+- Each line: original amount + currency + base-currency amount (`base_amount`) + rate.
+- **Buying FX:** the user enters "bought 100 USD, paid 4,000 TRY". Rate = 40, derived.
+- **Card spend abroad:** the user enters the USD/EUR amount. The TRY estimate uses the last rate (`is_estimated=true`). The user can confirm it with the bank's TRY amount.
+- **Spending or selling from an FX account:** use the account's average cost (total base / total amount). The market-value gap goes to the `fx_gain_loss` category automatically.
+- **Period-end revaluation:** one-tap revaluation record for unrealized FX gain/loss (`source_type='fx_revaluation'`).
 
-## Kapsam
-- **İlk sürüm:** defter, hesaplar/kategoriler, grup/üyeler, hızlı giriş, kişiler + borç/alacak, taksit, yatırım (elle fiyat), ekler, mizan/bilanço/gelir tablosu, nakit akışı.
-- **Sonra:** fatura, abonelik, kredi (şimdilik `loan` alt türünde elle borç hesabı), bütçe, dönem kapanışı, otomatik kur/fiyat.
+## Investments
+- Types: crypto, commodity (gold/silver/oil), stock, fund, bond/bill. No domestic/foreign split; each instrument has its own currency.
+- FX is not an instrument. It is a normal multi-currency account.
+- One investment account per member per instrument. The first buy opens it (`accounts.instrument_id`).
+- Book value = market value (revaluation record with a manually entered price). A sale reduces book value pro rata by quantity; the gap goes to `investment_gain_loss`. No lot or tax-cost tracking.
+- Cross-currency: a USD stock can be bought with TRY or from a USD account. The gap is derived.
 
-## Uygulamada zorlanan kurallar (DB zorlamaz)
-- Kayıt sahibi dışında düzenleme/silme yok; `lock_date` öncesi değişiklik yok.
-- Satırdaki bilanço hesabı kaydın üyesine ait olmalı; satır para birimi bilanço hesabının para birimine eşit olmalı.
-- Ortalama maliyet geçmiş kayıt düzenlenince yeniden hesaplanır (hesabın satırları tarih sırasıyla).
+## Scope
+- **v1:** ledger, accounts/categories, group/members, quick entry, Directory + debts, installments, **cash advance and loan** (decided 2026-10-07), investments (manual price), attachments, trial balance/balance sheet/income statement, cash flow.
+- **Later:** bills, subscriptions, budget, period close, automatic rates/prices.
+
+## Rules the app enforces (the DB does not)
+- Only the record owner edits or deletes. No change before `lock_date`.
+- A balance-sheet account on a line must belong to the record's member. The line currency must equal that account's currency.
+- Editing a past record recalculates the average cost (the account's lines in date order).

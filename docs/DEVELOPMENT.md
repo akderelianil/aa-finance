@@ -1,61 +1,71 @@
-# Geliştirme Notları
+---
+owner: main
+status: active
+---
 
-Hızlı başlangıç ve tekrar eden hataları önleyen pratik bilgiler. Mimari kararlar: `ARCHITECTURE.md`.
+# Development notes
 
-## Komutlar
-| İş | Komut |
+Quick start and fixes for repeated mistakes. Decisions: [ARCHITECTURE](ARCHITECTURE.md).
+
+## Commands
+| Task | Command |
 |---|---|
 | Frontend dev | `cd web && npm run dev` |
-| Derleme (tip kontrolü + build) | `cd web && npm run build` |
+| Build (type check + build) | `cd web && npm run build` |
 | Lint (oxlint) | `cd web && npm run lint` |
-| Supabase CLI | `npx supabase ...` (pnpm engelli) |
+| Supabase CLI | `npx supabase ...` (pnpm is blocked) |
 
-Değişiklik sonrası asgari doğrulama: `npm run lint && npm run build` (şu an lint: 1 uyarı, build: temiz).
+Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warning, build clean).
 
-## Makine tuzakları (Windows)
-- **pnpm yok:** Application Control engelliyor; npm kullan.
-- **PowerShell 5.1 UTF-8'i bozar** (BOM, mojibake). Dosyaları Write/Edit araçlarıyla yaz; `Set-Content`/`Get-Content` ile Türkçe içerik dokunma.
-- **`setx` ile verilen `SUPABASE_ACCESS_TOKEN` Claude oturumunda görünmez.** Oku: `[Environment]::GetEnvironmentVariable('SUPABASE_ACCESS_TOKEN','User')`. Token'ı dosyaya/repoya yazma.
-- **Supabase MCP "Unauthorized" dönebilir** (`.mcp.json` token'ı görmüyor). Çözüm: token'ı User ortam değişkenine koyup Claude Code'u yeniden başlat; olmazsa CLI kullan. MCP zaten salt okunur; şema değişikliği her zaman migration + CLI.
-- Dev DB şifresi bilerek değiştirilmedi (geliştirme aşaması); hiçbir dosyaya yazılmaz.
+## Machine pitfalls (Windows)
+- **No pnpm:** Application Control blocks it. Use npm.
+- **PowerShell 5.1 breaks UTF-8** (BOM, mojibake). Write files with the Write/Edit tools. Do not touch Turkish content with `Set-Content`/`Get-Content`.
+- **A `SUPABASE_ACCESS_TOKEN` set with `setx` is not visible in the Claude session.** Read it with `[Environment]::GetEnvironmentVariable('SUPABASE_ACCESS_TOKEN','User')`. Do not write the token to a file or the repo.
+- **Supabase MCP can return "Unauthorized"** (`.mcp.json` does not see the token). Fix: put the token in the User env var and restart Claude Code. Else use the CLI. MCP is read-only anyway; schema changes always go through migration + CLI.
+- The dev DB password is unchanged on purpose (dev stage). Never write it to a file.
 
-## Gizli bilgiler (.env)
-- Kök `.env` (gitignore'da) token ve gizli anahtarları tutar; şablon `.env.example` commit edilir, değer içermez. Frontend değişkenleri ayrı: `web/.env.local` (yalnız `VITE_*`, gizli değil).
-- Claude/CLI için `.env` otomatik yüklenmez; komuttan önce oku, **değeri asla ekrana basma/loglama**:
+## Secrets (.env)
+- The root `.env` (gitignored) holds tokens and secret keys. The template `.env.example` is committed and has no values. Frontend vars are separate: `web/.env.local` (only `VITE_*`, not secret).
+- `.env` does not load automatically for Claude/CLI. Load it per command. **Never print or log a value.**
   - bash: `set -a; . ./.env; set +a; npx supabase ...`
   - PowerShell: `Get-Content .env | ? { $_ -match '^\s*[^#]\S*=' } | % { $k,$v = $_ -split '=',2; Set-Item "env:$($k.Trim())" $v.Trim() }`
-- `SUPABASE_DB_URL` direct bağlantısı (`db.<ref>.supabase.co`) yalnız IPv6; bu makinede çalışmaz. CLI'ye gerek yok: `.env` yükleyip `npx supabase migration list --linked` / `db push --linked` yalnız `SUPABASE_ACCESS_TOKEN` ile çalışır (2026-10-07 doğrulandı). Doğrudan SQL gerekirse shared pooler URL'si kullan.
-- Değer okumak yerine yalnız varlık kontrolü: `[ -n "$SUPABASE_ACCESS_TOKEN" ] && echo set`.
-- `.mcp.json` `${SUPABASE_ACCESS_TOKEN}` ile süreç ortamından okur, `.env`'den değil; MCP için token User ortam değişkeninde de olmalı ve Claude Code yeniden başlatılmalı.
-- `.env` içeriğini Read/cat ile görüntüleme; anahtar adı görmek için `sed -E 's/=.*/=<hidden>/' .env`.
+- The direct `SUPABASE_DB_URL` (`db.<ref>.supabase.co`) is IPv6 only and fails on this machine. The CLI does not need it: with `.env` loaded, `npx supabase migration list --linked` and `db push --linked` work with `SUPABASE_ACCESS_TOKEN` only (verified 2026-10-07). For direct SQL, use the shared pooler URL.
+- Check presence, not value: `[ -n "$SUPABASE_ACCESS_TOKEN" ] && echo set`.
+- `.mcp.json` reads `${SUPABASE_ACCESS_TOKEN}` from the process env, not from `.env`. For MCP, the token must also be in the User env var, and Claude Code must restart.
+- Do not show `.env` with Read/cat. To see key names: `sed -E 's/=.*/=<hidden>/' .env`.
 
-## Çalışma kuralları (tekrarlanan hataları önlemek için)
-1. Uygulanmış migration düzenlenmez; yeni dosya ekle (`supabase/migrations/YYYYMMDDHHMMSS_ad.sql`).
-2. Şema değiştikten sonra Supabase advisor'larını (security + performance) çalıştır; eksik RLS'yi yakalar.
-3. Para her yerde `bigint`/string; kur/adet `numeric` → string. Float yok.
-4. Yeni Edge Function: `_shared/` (db, http, accounts, uuid) yardımcılarını kullan; yazma = tek transaction + ilgili hesap satırlarında `FOR UPDATE`.
-5. Kütüphane sözdizimi emin değilse context7 ile güncel dokümana bak (react-router 8, tailwind 4, vite 8, i18next 26 gibi yeni sürümler eğitim verisinden farklı olabilir).
-6. UI değişikliğini playwright MCP ile gerçekten aç ve ekran görüntüsü al; ekran görüntüleri `.playwright-mcp/` altında (gitignore'da).
+## Working rules
+1. Never edit an applied migration. Add a new file (`supabase/migrations/YYYYMMDDHHMMSS_name.sql`).
+2. After a schema change, run the Supabase advisors (security + performance). They catch missing RLS.
+3. Money is `bigint`/string everywhere. Rate/quantity is `numeric` → string. No float.
+4. New Edge Function: use the `_shared/` helpers (db, http, accounts, uuid). Write = one transaction + `FOR UPDATE` on the affected account rows.
+5. If unsure of library syntax, check current docs with context7. Versions are new (react-router 8, tailwind 4, vite 8, i18next 26) and can differ from training data.
+6. Open every UI change with the playwright MCP and take a screenshot. Screenshots go to `.playwright-mcp/` (gitignored).
 
-## Durum (2026-10-07)
-Tüm aşamalar dev projede çalışıyor ve uçtan uca denendi: hızlı gider/gelir, düzenle/sil, hesaplar/kategoriler, transfer, borç/alacak, çoklu para birimi (ortalama maliyet, kur farkı), taksit, yatırım, raporlar, ekler, dönem kilidi.
+## Status (2026-10-07)
+All phases run on the dev project and passed end-to-end tests: quick expense/income, edit/delete, accounts/categories, transfer, debts, multi-currency (average cost, FX gain/loss), installments, investments, reports, attachments, period lock.
 
-Edge Function'lar: onboarding-create-group, onboarding-join-group, invite-create, group-update, transaction-create/update/delete, account-create/update, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
+Edge Functions: onboarding-create-group, onboarding-join-group, invite-create, group-update, profile-update, avatar-upload, transaction-create/update/delete, account-create/update/delete, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
 
-Uçtan uca test: `.env` (service_role dolu) + `@supabase/supabase-js` ile onaylı test kullanıcısı oluşturup fonksiyonları çağıran node betikleri (geçici, repoda yok). Dev projede test kullanıcıları var: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`.
+End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (with service_role) + `@supabase/supabase-js`, create a confirmed test user and call the functions. Dev test users: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`. Their password is changed temporarily through the admin API during tests.
 
-## Yayın öncesi yapılacaklar (kullanıcı)
-- Cloudflare Pages: build `cd web && npm run build`, çıktı `web/dist`, değişkenler `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. `public/_redirects` SPA yönlendirmesini içerir.
-- Edge Function CORS: yayın adresini ekle: `npx supabase secrets set ALLOWED_ORIGINS=https://<adres>,http://localhost:5173` (tanımsızsa yalnız yerel geliştirme izinli).
-- Özel SMTP (yerleşik e-posta saatte 2), Auth ayarlarında sızdırılmış şifre koruması (dashboard; advisor uyarısı), Site URL/redirect URL.
-- Test kullanıcılarını ve test verisini temizle (ya da yeni proje).
+## Before release (user tasks)
+- Cloudflare Pages: build `cd web && npm run build`, output `web/dist`, vars `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. `public/_redirects` holds the SPA redirect.
+- Edge Function CORS: add the release origin: `npx supabase secrets set ALLOWED_ORIGINS=https://<origin>,http://localhost:5173` (if unset, only local dev is allowed).
+- Custom SMTP (built-in email: 2 per hour), leaked-password protection in Auth settings (dashboard; advisor warning), Site URL / redirect URLs.
+- Delete test users and test data (or use a new project).
 
-## Bilinen borçlar / sınırlar
-- Düzenleme yalnız basit (2 satırlı, ana para birimli) gider/gelir kayıtlarında; transfer, borç, döviz, yatırım, taksit kayıtları silinebilir ama düzenlenemez.
-- Gerçekleşmemiş kur farkı değerlemesi yok (satır `amount > 0` kısıtı yüzünden yalnız tutar değişimi yazılabilir); kur farkı harcama/satışta gerçekleşir.
-- Çapraz döviz (USD→EUR) ve döviz hesapları arası transfer yok; yatırımda ödeme hesabı enstrümanla aynı ya da ana para birimi olmalı.
-- Kayıt listesi son 30 kayıt (sayfalama/filtre yok); raporlar istemcide hesaplanır (kuruş tutarları JS number, güvenli aralıkta).
-- Ek yükleme yarım kalırsa (satır var, dosya yok) yetim satır kalır.
-- Taksit: yalnız ana para birimi + kredi kartı; ödenmiş taksit geri alınmaz (ödeme kaydı silinerek açılır).
-- Fiyat/kur otomatik çekilmiyor (elle).
-- Lint uyarısı: `src/components/ui/button.tsx:57` (shadcn, zararsız).
+## Known debt and limits
+- Edit works only for simple records (2 lines, base currency) of expense/income. Transfer, debt, FX, investment and installment records can be deleted but not edited.
+- No unrealized FX revaluation (the line constraint `amount > 0` allows only amount changes). FX gain/loss is realized on spend or sale.
+- No cross-currency (USD→EUR) and no transfer between FX accounts. For an investment, the payment account must match the instrument currency or the base currency.
+- The transactions page loads 30 records at a time (client-side search/type filter covers loaded records only). Reports compute on the client (minor-unit amounts as JS number, in the safe range).
+- If an attachment upload stops halfway (row exists, file does not), an orphan row stays.
+- Installments: base currency + credit card only. A paid installment cannot be undone (delete the payment record to reopen it).
+- Prices and rates are manual, not fetched.
+- Lint warnings: `only-export-components` in shadcn components and `set-state-in-effect` in `use-mobile.ts` (harmless).
+
+## UI (shadcn) and account tree
+- shadcn: `web/components.json` (base `base` = base-ui, preset `bKsFTYsS`: luma/cyan/stone/Inter). Change preset: `npx shadcn@latest apply <code>` (in `web/`). Add a component: `npx shadcn@latest add <name>`. Project skill: `web/.agents/skills/shadcn`; MCP `shadcn` in `.mcp.json`.
+- Shell: mobile has 5 bottom tabs + an "Add" button; desktop has a left sidebar (`AppShell`). Routes: `/`, `/islemler`, `/hesaplar`, `/raporlar`, `/ayarlar` (+ `/ayarlar/kisiler|taksitler|yatirimlar`).
+- Account tree: `accounts.parent_id` (any depth). DB trigger `accounts_parent_chk`: same group/type; for a balance-sheet account, same owner + currency; no cycles. View `account_tree_balances` gives balances including the subtree. `account-create` (`parent_id`, `type` for categories), `account-update` (move with `parent_id`), `account-delete` (hard delete if the subtree has no movements/installments/investments, else archive).
