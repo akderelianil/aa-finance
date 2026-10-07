@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { useMembership } from '@/auth/useMembership'
 import { PageShell } from '@/components/PageShell'
+import Accounts from '@/pages/Accounts'
 import Home from '@/pages/Home'
 import Login from '@/pages/Login'
 import OnboardingChoice from '@/pages/OnboardingChoice'
@@ -46,6 +47,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home membership={membership.data} />} />
+      <Route path="/accounts" element={<Accounts membership={membership.data} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

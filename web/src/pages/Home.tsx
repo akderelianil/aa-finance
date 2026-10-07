@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { PageShell, FormError } from '@/components/PageShell'
 import { QuickEntry } from '@/components/QuickEntry'
@@ -62,6 +63,7 @@ export default function Home({ membership }: { membership: Membership }) {
         key={editing?.id ?? 'new'} membership={membership} editing={editing} onDone={() => setEditing(null)}
       />
       <RecentEntries membership={membership} exponent={exponent} onEdit={setEditing} />
+      <Button variant="outline" nativeButton={false} render={<Link to="/accounts" />}>{t('accounts.title')}</Button>
       <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>{t('common.logout')}</Button>
     </PageShell>
   )

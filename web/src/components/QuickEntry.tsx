@@ -28,6 +28,7 @@ export function QuickEntry({
   const [date, setDate] = useState(editing?.entry_date ?? today())
   const [contact, setContact] = useState(editing?.contact ?? '')
   const [category, setCategory] = useState(editing?.category ?? '')
+  const [accountId, setAccountId] = useState('')
   const [saved, setSaved] = useState(false)
 
   const categories = useQuery({
@@ -39,6 +40,18 @@ export function QuickEntry({
         .order('name')
       if (error) throw error
       return data.map((r) => r.name)
+    },
+  })
+
+  const accounts = useQuery({
+    queryKey: ['accounts', groupId, 'mine'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts').select('id, name')
+        .eq('owner_member_id', membership.id).in('type', ['asset', 'liability']).is('system_key', null)
+        .is('archived_at', null).order('created_at')
+      if (error) throw error
+      return data
     },
   })
 
@@ -62,7 +75,9 @@ export function QuickEntry({
       }
       return editing
         ? callFunction('transaction-update', { entry_id: editing.id, ...payload })
-        : callFunction('transaction-create', { kind, ...payload, contact_name: contact || undefined })
+        : callFunction('transaction-create', {
+            kind, ...payload, contact_name: contact || undefined, account_id: accountId || undefined,
+          })
     },
     onSuccess: () => {
       if (!editing) {
@@ -132,6 +147,19 @@ export function QuickEntry({
               {contacts.data?.map((n) => <option key={n} value={n} />)}
             </datalist>
           </div>
+          {!editing && (accounts.data?.length ?? 0) > 1 && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="account">{t('accounts.account')}</Label>
+              <select
+                id="account" value={accountId} onChange={(e) => setAccountId(e.target.value)}
+                className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              >
+                {/* Boş = otomatik (nakit hesap) */}
+                <option value="">—</option>
+                {accounts.data!.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
             <Label htmlFor="date">{t('entry.date')}</Label>
             <Input id="date" type="date" required max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
