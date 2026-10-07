@@ -161,6 +161,11 @@ export const en: Translation = {
     credit: 'Credit',
     total: 'Total',
   },
+  attachments: {
+    add: 'Add receipt / invoice',
+    show: 'Files',
+    none: 'No files.',
+  },
   errors: {
     invalid_subtype: 'Account type is invalid.',
     rate_required: 'Enter an exchange rate for this currency.',
@@ -176,6 +181,9 @@ export const en: Translation = {
     invalid_quantity: 'Quantity is invalid.',
     invalid_price: 'Price is invalid.',
     insufficient_quantity: 'Not enough quantity held.',
+    invalid_file_type: 'Unsupported file type (JPG, PNG, WEBP, HEIC, PDF).',
+    file_too_large: 'File must be 10 MB or smaller.',
+    invalid_attachment: 'Attachment is invalid.',
     invalid_action: 'Action is invalid.',
     invalid_account: 'Account is invalid.',
     same_account: 'Source and target accounts must differ.',

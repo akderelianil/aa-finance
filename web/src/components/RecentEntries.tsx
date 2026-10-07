@@ -8,6 +8,8 @@ import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
+import { EntryAttachments } from '@/components/EntryAttachments'
+import { useState } from 'react'
 
 export type EntryRow = {
   id: string
@@ -26,7 +28,7 @@ type RawEntry = {
   member_id: string
   entry_date: string
   source_type: string | null
-  journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string }; contact: { name: string } | null }[]
+  journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string; system_key: string | null }; contact: { name: string } | null }[]
 }
 
 // Minor unit (number, < 2^53 pratikte) → ondalık string. Gösterim için; hesap için kullanılmaz.
@@ -41,13 +43,14 @@ export function RecentEntries({
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const groupId = membership.group.id
+  const [openId, setOpenId] = useState<string | null>(null)
 
   const entries = useQuery({
     queryKey: ['entries', groupId],
     queryFn: async (): Promise<EntryRow[]> => {
       const { data, error } = await supabase
         .from('journal_entries')
-        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type), contact:contacts(name))')
+        .select('id, member_id, entry_date, source_type, journal_lines(amount, base_amount, currency, direction, account:accounts(name, type, system_key), contact:contacts(name))')
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
@@ -55,7 +58,9 @@ export function RecentEntries({
         .overrideTypes<RawEntry[]>()
       if (error) throw error
       return data.map((e) => {
-        const cat = e.journal_lines.find((l) => l.account.type === 'expense' || l.account.type === 'income')
+        // Sistem kategorileri (kur farkı, yatırım kâr/zarar) ve özel kayıt türleri başlık sayılmaz.
+        const cat = e.source_type && e.source_type !== 'installment' ? undefined
+          : e.journal_lines.find((l) => !l.account.system_key && (l.account.type === 'expense' || l.account.type === 'income'))
         const contact = e.journal_lines.find((l) => l.contact)?.contact?.name ?? ''
         const first = e.journal_lines[0]
         let kind: EntryRow['kind'] = cat ? (cat.account.type === 'income' ? 'income' : 'expense') : 'other'
@@ -66,6 +71,10 @@ export function RecentEntries({
           category = `${t('entry.transfer')}: ${from} → ${to}`
         } else if (!cat && (e.source_type === 'investment' || e.source_type === 'valuation')) {
           category = t(e.source_type === 'valuation' ? 'investments.valuation' : 'investments.title')
+        } else if (!cat && e.source_type === 'fx_exchange') {
+          category = t('accounts.exchange')
+        } else if (!cat && e.source_type === 'installment_payment') {
+          category = t('installments.pay')
         } else if (!cat && e.source_type === 'debt') {
           category = contact || t('people.debt')
         }
@@ -100,7 +109,8 @@ export function RecentEntries({
       <CardContent className="flex flex-col gap-3">
         {entries.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('entry.empty')}</p>}
         {entries.data?.map((e) => (
-          <div key={e.id} className="flex items-center justify-between gap-2 border-b pb-2 last:border-b-0">
+          <div key={e.id} className="border-b last:border-b-0">
+          <div className="flex items-center justify-between gap-2 pb-2">
             <div className="min-w-0">
               <p className="truncate font-medium">{e.category}</p>
               <p className="truncate text-xs text-muted-foreground">
@@ -108,6 +118,9 @@ export function RecentEntries({
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <Button size="sm" variant="ghost" aria-label={t('attachments.show')} onClick={() => setOpenId(openId === e.id ? null : e.id)}>
+                {'\u{1F4CE}'}
+              </Button>
               <span className={e.kind === 'income' ? 'text-green-600' : ''}>
                 {e.kind === 'income' ? '+' : e.kind === 'expense' ? '−' : ''}{fmt.format(Number(e.amount))}
               </span>
@@ -123,6 +136,8 @@ export function RecentEntries({
                 </>
               )}
             </div>
+          </div>
+          {openId === e.id && <EntryAttachments entryId={e.id} canEdit={e.memberId === membership.id} />}
           </div>
         ))}
         <FormError message={remove.error ? errorMessage(t, remove.error) : entries.error ? errorMessage(t, entries.error) : null} />

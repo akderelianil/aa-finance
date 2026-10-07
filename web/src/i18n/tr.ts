@@ -159,6 +159,11 @@ export const tr = {
     credit: 'Alacak',
     total: 'Toplam',
   },
+  attachments: {
+    add: 'Fiş / fatura ekle',
+    show: 'Ekler',
+    none: 'Ek yok.',
+  },
   errors: {
     invalid_subtype: 'Hesap türü geçersiz.',
     rate_required: 'Bu para birimi için kur gir.',
@@ -174,6 +179,9 @@ export const tr = {
     invalid_quantity: 'Adet geçersiz.',
     invalid_price: 'Fiyat geçersiz.',
     insufficient_quantity: 'Elindeki adet yetmiyor.',
+    invalid_file_type: 'Dosya türü desteklenmiyor (JPG, PNG, WEBP, HEIC, PDF).',
+    file_too_large: 'Dosya en fazla 10 MB olabilir.',
+    invalid_attachment: 'Ek geçersiz.',
     invalid_action: 'İşlem türü geçersiz.',
     invalid_account: 'Hesap geçersiz.',
     same_account: 'Kaynak ve hedef hesap aynı olamaz.',
