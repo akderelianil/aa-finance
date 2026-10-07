@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: aa-finance API
+  version: 0.1.0
+  description: |
+    API-first: bu sözleşme tek doğruluk kaynağıdır; backend ve PWA buradan üretilir/doğrulanır.
+    Tutarlar minor unit (kuruş) cinsinden integer'dır.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      security: []
+      summary: Kullanıcı kaydı
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RegisterRequest' } } } }
+      responses: { '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } } }
+  /auth/login:
+    post:
+      security: []
+      summary: Giriş
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } } }
+  /groups:
+    get:
+      summary: Üyesi olduğum gruplar
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Group' } } } } } }
+    post:
+      summary: Grup oluştur (oluşturan admin üye olur)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/GroupCreate' } } } }
+      responses: { '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/Group' } } } } }
+  /groups/{groupId}/members:
+    parameters: [ { $ref: '#/components/parameters/groupId' } ]
+    get:
+      summary: Grup üyeleri
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Member' } } } } } }
+    post:
+      summary: Üye ekle (admin)
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string, format: email }, role: { type: string, enum: [admin, member] } } } } } }
+      responses: { '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/Member' } } } } }
+  /groups/{groupId}/accounts:
+    parameters: [ { $ref: '#/components/parameters/groupId' } ]
+    get:
+      summary: Hesap planı (kategoriler dahil)
+      parameters:
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/AccountType' } }
+        - { name: owner_member_id, in: query, schema: { type: string, format: uuid } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Account' } } } } } }
+    post:
+      summary: Hesap/kategori oluştur (sahibi veya ortak)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AccountCreate' } } } }
+      responses: { '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/Account' } } } } }
+  /groups/{groupId}/journal-entries:
+    parameters: [ { $ref: '#/components/parameters/groupId' } ]
+    get:
+      summary: Yevmiye kayıtları (gruptaki herkes tüm kayıtları görür)
+      parameters:
+        - { name: member_id, in: query, schema: { type: string, format: uuid } }
+        - { name: account_id, in: query, schema: { type: string, format: uuid } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/JournalEntry' } } } } } }
+    post:
+      summary: Ham yevmiye kaydı (ileri mod). Borç = alacak değilse 422.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntryCreate' } } } }
+      responses:
+        '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } }
+        '422': { description: Kayıt dengesiz veya geçersiz }
+  /groups/{groupId}/journal-entries/{entryId}/reverse:
+    parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/entryId' } ]
+    post:
+      summary: Ters kayıt at (yalnızca kaydı oluşturan üye; 403 aksi halde)
+      responses: { '201': { description: Ters kayıt, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } } }
+  /groups/{groupId}/journal-entries/{entryId}/replace:
+    parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/entryId' } ]
+    post:
+      summary: Düzenleme = ters kayıt + yeni kayıt (tek transaction; yalnızca kaydı oluşturan üye)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntryCreate' } } } }
+      responses: { '201': { description: Yeni kayıt, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } } }
+  /groups/{groupId}/transactions:
+    parameters: [ { $ref: '#/components/parameters/groupId' } ]
+    post:
+      summary: Mobil hızlı giriş. Gider/gelir/transfer'i doğru yevmiye kaydına çevirir.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/QuickTransaction' } } } }
+      responses: { '201': { description: Oluşturuldu, content: { application/json: { schema: { $ref: '#/components/schemas/JournalEntry' } } } } }
+  /groups/{groupId}/reports/trial-balance:
+    parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/asOf' }, { $ref: '#/components/parameters/memberId' } ]
+    get:
+      summary: Mizan
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } } }
+  /groups/{groupId}/reports/balance-sheet:
+    parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/asOf' }, { $ref: '#/components/parameters/memberId' } ]
+    get:
+      summary: Bilanço (varlık = borç + özkaynak). member_id yoksa grup geneli.
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } } }
+  /groups/{groupId}/reports/income-statement:
+    parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/from' }, { $ref: '#/components/parameters/to' }, { $ref: '#/components/parameters/memberId' } ]
+    get:
+      summary: Gelir tablosu
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Report' } } } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    groupId:  { name: groupId, in: path, required: true, schema: { type: string, format: uuid } }
+    entryId:  { name: entryId, in: path, required: true, schema: { type: string, format: uuid } }
+    memberId: { name: member_id, in: query, description: Boş ise grup geneli, schema: { type: string, format: uuid } }
+    asOf:     { name: as_of, in: query, schema: { type: string, format: date } }
+    from:     { name: from, in: query, required: true, schema: { type: string, format: date } }
+    to:       { name: to, in: query, required: true, schema: { type: string, format: date } }
+  schemas:
+    AccountType: { type: string, enum: [asset, liability, equity, income, expense] }
+    Direction:   { type: string, enum: [debit, credit] }
+    RegisterRequest: { type: object, required: [email, password, display_name], properties: { email: { type: string, format: email }, password: { type: string, minLength: 8 }, display_name: { type: string } } }
+    LoginRequest:    { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string } } }
+    AuthToken:       { type: object, required: [token], properties: { token: { type: string } } }
+    GroupCreate:     { type: object, required: [name, base_currency], properties: { name: { type: string }, base_currency: { type: string, minLength: 3, maxLength: 3 } } }
+    Group:           { type: object, required: [id, name, base_currency], properties: { id: { type: string, format: uuid }, name: { type: string }, base_currency: { type: string } } }
+    Member:          { type: object, required: [id, user_id, display_name, role], properties: { id: { type: string, format: uuid }, user_id: { type: string, format: uuid }, display_name: { type: string }, role: { type: string, enum: [admin, member] } } }
+    AccountCreate:
+      type: object
+      required: [type, name, currency]
+      properties:
+        type: { $ref: '#/components/schemas/AccountType' }
+        name: { type: string }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        parent_id: { type: string, format: uuid, nullable: true }
+        owner_member_id: { type: string, format: uuid, nullable: true, description: null = ortak hesap }
+    Account:
+      allOf:
+        - $ref: '#/components/schemas/AccountCreate'
+        - type: object
+          required: [id]
+          properties: { id: { type: string, format: uuid }, is_active: { type: boolean } }
+    Line:
+      type: object
+      required: [account_id, member_id, direction, amount, currency]
+      properties:
+        account_id: { type: string, format: uuid }
+        member_id: { type: string, format: uuid, description: Kayıt hangi üyeye ait }
+        direction: { $ref: '#/components/schemas/Direction' }
+        amount: { type: integer, format: int64, minimum: 1, description: Hesabın para biriminde minor unit }
+        currency: { type: string }
+        base_amount: { type: integer, format: int64, description: Verilmezse kurdan hesaplanır; farklı para birimi için gerekli }
+        memo: { type: string }
+    JournalEntryCreate:
+      type: object
+      required: [entry_date, description, lines]
+      properties:
+        entry_date: { type: string, format: date }
+        description: { type: string }
+        lines: { type: array, minItems: 2, items: { $ref: '#/components/schemas/Line' } }
+    JournalEntry:
+      allOf:
+        - $ref: '#/components/schemas/JournalEntryCreate'
+        - type: object
+          required: [id, created_by]
+          properties:
+            id: { type: string, format: uuid }
+            created_by: { type: string, format: uuid }
+            reverses_entry_id: { type: string, format: uuid, nullable: true }
+            replaces_entry_id: { type: string, format: uuid, nullable: true }
+            voided: { type: boolean }
+    QuickTransaction:
+      type: object
+      required: [kind, date, amount, currency, from_account_id, to_account_id]
+      properties:
+        kind: { type: string, enum: [expense, income, transfer] }
+        date: { type: string, format: date }
+        amount: { type: integer, format: int64, minimum: 1 }
+        currency: { type: string }
+        from_account_id: { type: string, format: uuid, description: "expense: ödeme hesabı, income: gelir kategorisi, transfer: kaynak" }
+        to_account_id: { type: string, format: uuid, description: "expense: gider kategorisi, income: para giren hesap, transfer: hedef" }
+        member_id: { type: string, format: uuid, description: Boşsa isteği yapan üye }
+        description: { type: string }
+    Report:
+      type: object
+      required: [currency, rows]
+      properties:
+        currency: { type: string, description: Grup ana para birimi }
+        as_of: { type: string, format: date }
+        rows:
+          type: array
+          items:
+            type: object
+            required: [account_id, name, type, balance]
+            properties:
+              account_id: { type: string, format: uuid }
+              name: { type: string }
+              type: { $ref: '#/components/schemas/AccountType' }
+              balance: { type: integer, format: int64, description: Ana para biriminde, hesabın normal bakiye yönünde }
