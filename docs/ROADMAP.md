@@ -19,7 +19,7 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 | F2 Expense options | Installment and split inside Expense (equal split, 3+ people, the extra cent stays with me), note/receipt | Done 2026-10-07 |
 | F3 Directory (Rehber) | person · brand · business; brand ↔ business many-to-many; brand default category; People page → Directory | Done 2026-10-07 |
 | F4 Plan + Upcoming | `plans` table (debt due, card due, installment); one list on Home, overdue first; a real record closes the plan | Done 2026-10-07 |
-| F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Needs the interest/profit-share decision for loans |
+| F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Cash advance done 2026-10-07. Loan waits for the profit-share decision |
 | F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | |
 | Later | Deposit-for-father, FX and stock flows redesign | |
 

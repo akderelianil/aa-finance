@@ -5,13 +5,15 @@ import type { Membership } from '@/auth/useMembership'
 import { AmountField, DateField, EntryFooter } from '@/components/entry/Fields'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
-import { decimal, today, useAfterSave, useMyAccounts } from '@/lib/entry'
+import { AMOUNT, decimal, today, useAfterSave, useMyAccounts } from '@/lib/entry'
 
 type Dir = 'withdraw' | 'deposit'
 
 // ATM: banka hesabı ↔ cüzdan. Cüzdan (nakit hesabı) sorulmaz; sunucu boş tarafı nakit sayar.
+// Çekimde kredi kartı seçilirse nakit avanstır: komisyon (isteğe bağlı) gider olur, kart borcuna eklenir.
 export function AtmForm({ membership, onDone }: { membership: Membership; onDone?: () => void }) {
   const { t } = useTranslation()
   const afterSave = useAfterSave()
@@ -21,15 +23,18 @@ export function AtmForm({ membership, onDone }: { membership: Membership; onDone
   const [bank, setBank] = useState('')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(today)
+  const [fee, setFee] = useState('')
 
-  const banks = (accounts.data ?? []).filter((a) => a.subtype === 'bank' && a.currency === currency)
-  // Tek banka hesabı varsa seçili gelir.
-  const bankId = bank || (banks.length === 1 ? banks[0].id : '')
+  const banks = (accounts.data ?? []).filter((a) => a.currency === currency
+    && (a.subtype === 'bank' || (dir === 'withdraw' && a.subtype === 'credit_card')))
+  // Tek seçenek varsa seçili gelir.
+  const bankId = banks.some((b) => b.id === bank) ? bank : banks.length === 1 ? banks[0].id : ''
+  const advance = dir === 'withdraw' && banks.find((b) => b.id === bankId)?.subtype === 'credit_card'
 
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('transfer-create', {
       ...(dir === 'withdraw' ? { from_account_id: bankId } : { to_account_id: bankId }),
-      amount: decimal(amount), date,
+      amount: decimal(amount), date, fee: advance && fee ? decimal(fee) : undefined,
     }),
     onSuccess: (r) => { afterSave(r.entry_id); onDone?.() },
   })
@@ -53,7 +58,17 @@ export function AtmForm({ membership, onDone }: { membership: Membership; onDone
             placeholder={t('entry.atm.bank')} label={t('entry.atm.bank')} disabled={banks.length === 0}
           />
           {accounts.data && banks.length === 0 && <FieldDescription>{t('entry.atm.noBank')}</FieldDescription>}
+          {advance && <FieldDescription>{t('entry.atm.advanceHint')}</FieldDescription>}
         </Field>
+        {advance && (
+          <Field>
+            <FieldLabel htmlFor="atm-fee">{t('entry.atm.fee')}</FieldLabel>
+            <Input
+              id="atm-fee" inputMode="decimal" autoComplete="off" placeholder="0,00" pattern={AMOUNT}
+              value={fee} onChange={(e) => setFee(e.target.value)}
+            />
+          </Field>
+        )}
         <DateField value={date} onChange={setDate} />
         <EntryFooter error={save.error} pending={save.isPending} disabled={!bankId} onCancel={onDone} />
       </FieldGroup>
