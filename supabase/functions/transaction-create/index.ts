@@ -2,7 +2,7 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
   assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount,
-  parseAmount, postRawEntry, resolveAccount, type RawLine,
+  parseAmount, parseItems, postRawEntry, resolveAccount, withRest, type RawLine,
 } from '../_shared/entries.ts'
 import {
   averageCost, exponentOf, fxGainLossAccount, parseRate, resolveRate, saveRate, toBase,
@@ -17,17 +17,7 @@ import { parseSplit, splitDebitLines } from '../_shared/split.ts'
 // piyasa farkı fx_gain_loss'a yazılır. (B) `currency` farklı + TRY hesap (yurt dışı kart): TRY karşılığı
 // kurdan tahmin edilir (is_estimated), `base_amount` verilirse kesin tutar olur.
 // Paylaştır (`split`, yalnız ana para biriminde gider): benim payım gider, diğerleri bana borçlu.
-// Kalemler (`items`, yalnız ana para biriminde): fişteki diğer kategoriler [{category_name, amount}];
-// her biri ayrı satır olur, kalan tutar ana kategoriye yazılır (GnuCash split).
-
-function parseItems(v: unknown) {
-  if (v === undefined || v === null) return []
-  if (!Array.isArray(v) || v.length === 0 || v.length > 20) throw new HttpError(422, 'items geçersiz', 'invalid_items')
-  return v.map((r) => {
-    const o = typeof r === 'object' && r !== null ? r as Record<string, unknown> : {}
-    return { category: requireString(o.category_name, 'items.category_name', 60), amount: o.amount }
-  })
-}
+// Kalemler (`items`, yalnız ana para biriminde): fişteki diğer kategoriler; kalan tutar ana kategoriye yazılır.
 
 serve(async (req, user) => {
   const body = await readBody(req)
@@ -41,8 +31,8 @@ serve(async (req, user) => {
   const reqCurrency = body.currency ? requireString(body.currency, 'currency', 3).toUpperCase() : null
   const split = parseSplit(body.split)
   if (split && kind !== 'expense') throw new HttpError(422, 'split geçersiz', 'invalid_split')
-  const items = parseItems(body.items)
-  if (items.length && split) throw new HttpError(422, 'items geçersiz', 'invalid_items')
+  const hasItems = Array.isArray(body.items) && body.items.length > 0
+  if (hasItems && split) throw new HttpError(422, 'items geçersiz', 'invalid_items')
 
   const entryId = await sql.begin(async (tx) => {
     const m = await loadMember(tx, user.id)
@@ -71,17 +61,13 @@ serve(async (req, user) => {
       lines.push({ account, dir, amount: amt, currency: cur, base, rate, contactId })
 
     if (split && currency !== m.base_currency) throw new HttpError(422, 'split geçersiz', 'invalid_split')
-    if (items.length && currency !== m.base_currency) throw new HttpError(422, 'items geçersiz', 'invalid_items')
+    if (hasItems && currency !== m.base_currency) throw new HttpError(422, 'items geçersiz', 'invalid_items')
     if (split) {
       lines.push(...await splitDebitLines(tx, m, catId, amount, split, contactId))
       push(acct.id, 'credit', amount, currency, amount)
     } else if (currency === m.base_currency) {
-      const dir = kind === 'expense' ? 'debit' : 'credit'
-      const parts = items.map((it) => ({ category: it.category, amount: parseAmount(it.amount, exp) }))
-      const rest = parts.reduce((r, p) => r - p.amount, amount)
-      if (rest <= 0n) throw new HttpError(422, 'Kalemler toplamı tutarı aşıyor', 'items_exceed_total')
-      push(catId, dir, rest, currency, rest)
-      for (const p of parts) push(await findOrCreateCategory(tx, m.group_id, kind, p.category), dir, p.amount, currency, p.amount)
+      const parts = await parseItems(tx, m.group_id, kind, body.items, exp)
+      for (const p of withRest(catId, amount, parts)) push(p.account, kind === 'expense' ? 'debit' : 'credit', p.amount, currency, p.amount)
       push(acct.id, kind === 'expense' ? 'credit' : 'debit', amount, currency, amount)
     } else if (acct.currency !== m.base_currency) {
       // (A) Döviz hesabı.

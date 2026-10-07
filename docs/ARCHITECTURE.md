@@ -35,7 +35,7 @@ The DB enforces these rules for every writer (`20261008030000_ledger_integrity.s
 - A line on a balance-sheet account is in that account's currency. A base-currency line has `amount` = `base_amount`.
 - An account with lines keeps its type and currency, and cannot become a placeholder.
 
-A receipt with more than one category is one entry with one line per category (`transaction-create` `items`).
+A receipt with more than one category is one entry with one line per category (`items` in `transaction-create` and `transaction-update`).
 
 ## Multi-currency
 - Categories have no currency. A balance-sheet account has one currency.

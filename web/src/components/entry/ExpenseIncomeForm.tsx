@@ -31,7 +31,8 @@ export function ExpenseIncomeForm({
   const [amount, setAmount] = useState(editing?.amount ?? '')
   const [date, setDate] = useState(editing?.entry_date ?? today())
   const [contact, setContact] = useState(editing?.contact ?? '')
-  const [category, setCategory] = useState(editing?.category ?? '')
+  // Düzenlemede ilk kategori satırı ana kategori, diğerleri kalemler.
+  const [category, setCategory] = useState(editing?.parts[0]?.category ?? '')
   const [accountId, setAccountId] = useState('')
   const [otherCurrency, setOtherCurrency] = useState('')
   const [rate, setRate] = useState('')
@@ -40,7 +41,7 @@ export function ExpenseIncomeForm({
   const [installment, setInstallment] = useState(false)
   const [count, setCount] = useState('3')
   const [split, setSplit] = useState<SplitRow[] | null>(null)
-  const [items, setItems] = useState<ItemRow[] | null>(null)
+  const [items, setItems] = useState<ItemRow[] | null>(editing && editing.parts.length > 1 ? editing.parts.slice(1) : null)
   const [noteOpen, setNoteOpen] = useState(false)
   const [note, setNote] = useState('')
 
@@ -118,7 +119,7 @@ export function ExpenseIncomeForm({
         })
       }
       return editing
-        ? callFunction<{ entry_id?: string }>('transaction-update', { entry_id: editing.id, ...payload })
+        ? callFunction<{ entry_id?: string }>('transaction-update', { entry_id: editing.id, ...payload, items: items ? itemsPayload(items) : [] })
         : callFunction<{ entry_id?: string }>('transaction-create', {
             kind, ...payload, ...extras, items: lineItems, contact_name: contact || undefined, account_id: accountId || undefined,
             currency: !foreignAccount && otherCurrency ? otherCurrency : undefined,
@@ -204,20 +205,24 @@ export function ExpenseIncomeForm({
             )}
           </>
         )}
-        {!editing && kind === 'expense' && (
+        {kind === 'expense' && (
           <div className="flex flex-wrap gap-2" role="group" aria-label={t('entry.options')}>
-            {/* Kalemler, taksit ve paylaştır ile birlikte kullanılmaz. */}
-            <Toggle variant="outline" size="sm" pressed={installment} disabled={!!items} onPressedChange={setInstallment}>{t('entry.installment.toggle')}</Toggle>
-            <Toggle variant="outline" size="sm" pressed={!!split} disabled={!!items} onPressedChange={(p) => setSplit(p ? [{ name: '', share: '' }] : null)}>
-              {t('entry.split.toggle')}
-            </Toggle>
+            {/* Kalemler, taksit ve paylaştır ile birlikte kullanılmaz. Düzenlemede yalnız kalemler değişir. */}
+            {!editing && (
+              <>
+                <Toggle variant="outline" size="sm" pressed={installment} disabled={!!items} onPressedChange={setInstallment}>{t('entry.installment.toggle')}</Toggle>
+                <Toggle variant="outline" size="sm" pressed={!!split} disabled={!!items} onPressedChange={(p) => setSplit(p ? [{ name: '', share: '' }] : null)}>
+                  {t('entry.split.toggle')}
+                </Toggle>
+              </>
+            )}
             <Toggle
               variant="outline" size="sm" pressed={!!items} disabled={installment || !!split || foreignAccount || !!otherCurrency}
               onPressedChange={(p) => setItems(p ? [{ category: '', amount: '' }] : null)}
             >
               {t('entry.items.toggle')}
             </Toggle>
-            <Toggle variant="outline" size="sm" pressed={noteOpen} onPressedChange={setNoteOpen}>{t('entry.note')}</Toggle>
+            {!editing && <Toggle variant="outline" size="sm" pressed={noteOpen} onPressedChange={setNoteOpen}>{t('entry.note')}</Toggle>}
           </div>
         )}
         {!editing && kind === 'income' && !noteOpen && (

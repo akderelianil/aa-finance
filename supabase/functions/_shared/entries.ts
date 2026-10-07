@@ -165,13 +165,44 @@ export async function postRawEntry(
     insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type, is_estimated)
     values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''},
             ${e.sourceType ?? null}, ${e.isEstimated ?? false})`
-  for (const [i, l] of e.lines.entries()) {
+  await insertLines(tx, entryId, e.lines)
+  return entryId
+}
+
+export async function insertLines(tx: Tx, entryId: string, lines: RawLine[]) {
+  for (const [i, l] of lines.entries()) {
     await tx`
       insert into journal_lines (id, entry_id, account_id, contact_id, direction, amount, currency, base_amount, fx_rate, position)
       values (${uuidv7()}, ${entryId}, ${l.account}, ${l.contactId ?? null}, ${l.dir}, ${l.amount.toString()}, ${l.currency},
               ${l.base.toString()}, ${l.rate ?? '1'}, ${i})`
   }
-  return entryId
+}
+
+// Kalemler (GnuCash split): fişteki diğer kategoriler [{category_name, amount}]. Boş dizi = kalem yok.
+export type Part = { account: string; amount: bigint }
+
+export async function parseItems(tx: Tx, groupId: string, kind: string, v: unknown, exponent: number): Promise<Part[]> {
+  if (v === undefined || v === null) return []
+  if (!Array.isArray(v) || v.length > 20) throw new HttpError(422, 'items geçersiz', 'invalid_items')
+  const parts: Part[] = []
+  for (const r of v) {
+    const o = typeof r === 'object' && r !== null ? r as Record<string, unknown> : {}
+    if (typeof o.category_name !== 'string' || !o.category_name.trim() || o.category_name.length > 60) {
+      throw new HttpError(422, 'items geçersiz', 'invalid_items')
+    }
+    parts.push({
+      account: await findOrCreateCategory(tx, groupId, kind, o.category_name.trim()),
+      amount: parseAmount(o.amount, exponent),
+    })
+  }
+  return parts
+}
+
+// Ana kategori + kalemler; toplamdan kalan ana kategoriye yazılır.
+export function withRest(mainAccount: string, total: bigint, parts: Part[]): Part[] {
+  const rest = parts.reduce((r, p) => r - p.amount, total)
+  if (rest <= 0n) throw new HttpError(422, 'Kalemler toplamı tutarı aşıyor', 'items_exceed_total')
+  return [{ account: mainAccount, amount: rest }, ...parts]
 }
 
 // Ana para biriminde, tek tutarlı kayıt (kısayol).
