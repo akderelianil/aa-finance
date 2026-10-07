@@ -81,3 +81,71 @@ export async function loadOwnedEntry(
   assertNotLocked(member.lock_date, e.entry_date)
   return e as { id: string; member_id: string; entry_date: string }
 }
+
+// Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Nakit" açılır.
+export async function resolveAccount(tx: Tx, groupId: string, memberId: string, currency: string, accountId?: string) {
+  if (accountId) {
+    const [acc] = await tx`
+      select id, currency from accounts
+      where id = ${accountId} and group_id = ${groupId} and owner_member_id = ${memberId}
+        and type in ('asset', 'liability') and not is_placeholder and archived_at is null
+      for update`
+    if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
+    if (acc.currency !== currency) throw new HttpError(422, 'Hesap para birimi uyumsuz', 'currency_mismatch')
+    return acc.id as string
+  }
+  const [cash] = await tx`
+    select id from accounts
+    where group_id = ${groupId} and owner_member_id = ${memberId} and subtype = 'cash'
+      and currency = ${currency} and not is_placeholder and archived_at is null
+    order by created_at limit 1
+    for update`
+  if (cash) return cash.id as string
+  const id = uuidv7()
+  await tx`
+    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
+    values (${id}, ${groupId}, ${memberId}, 'asset', 'cash', 'Nakit', ${currency})`
+  return id
+}
+
+// Üyenin kişi bazlı alacak ("receivable") / borç ("payable") hesabı; yoksa açılır.
+export async function resolveDebtAccount(
+  tx: Tx,
+  m: { group_id: string; member_id: string; base_currency: string },
+  subtype: 'receivable' | 'payable',
+) {
+  const [found] = await tx`
+    select id from accounts
+    where group_id = ${m.group_id} and owner_member_id = ${m.member_id} and subtype = ${subtype}
+      and currency = ${m.base_currency} and archived_at is null
+    order by created_at limit 1 for update`
+  if (found) return found.id as string
+  const id = uuidv7()
+  const [type, name] = subtype === 'receivable' ? ['asset', 'Alacaklar'] : ['liability', 'Borçlar']
+  await tx`
+    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
+    values (${id}, ${m.group_id}, ${m.member_id}, ${type}, ${subtype}, ${name}, ${m.base_currency})`
+  return id
+}
+
+export type NewLine = { account: string; dir: 'debit' | 'credit'; contactId?: string | null }
+
+// Ana para biriminde, tek tutarlı, çift taraflı kayıt yazar (denge DB trigger'ında da zorlanır).
+export async function postEntry(
+  tx: Tx,
+  m: { group_id: string; member_id: string; base_currency: string },
+  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[] },
+) {
+  const entryId = uuidv7()
+  const amount = e.amount.toString()
+  await tx`
+    insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type)
+    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''}, ${e.sourceType ?? null})`
+  for (const [i, l] of e.lines.entries()) {
+    await tx`
+      insert into journal_lines (id, entry_id, account_id, contact_id, direction, amount, currency, base_amount, fx_rate, position)
+      values (${uuidv7()}, ${entryId}, ${l.account}, ${l.contactId ?? null}, ${l.dir}, ${amount}, ${m.base_currency},
+              ${amount}, 1, ${i})`
+  }
+  return entryId
+}

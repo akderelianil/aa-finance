@@ -24,6 +24,9 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const [name, setName] = useState('')
   const [subtype, setSubtype] = useState<(typeof SUBTYPES)[number]>('bank')
   const [opening, setOpening] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const [tAmount, setTAmount] = useState('')
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null)
 
   const accounts = useQuery({
@@ -54,6 +57,16 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const update = useMutation({
     mutationFn: (b: { account_id: string; name?: string; archived?: boolean }) => callFunction('account-update', b),
     onSuccess: () => { setRenaming(null); refresh() },
+  })
+
+  const transfer = useMutation({
+    mutationFn: () =>
+      callFunction('transfer-create', { from_account_id: from, to_account_id: to, amount: tAmount.replace(',', '.') }),
+    onSuccess: () => {
+      setTAmount('')
+      refresh()
+      void queryClient.invalidateQueries({ queryKey: ['entries', groupId] })
+    },
   })
 
   function onSubmit(e: FormEvent) {
@@ -128,6 +141,30 @@ export default function Accounts({ membership }: { membership: Membership }) {
           </form>
         </CardContent>
       </Card>
+      {mine.length > 1 && (
+        <Card>
+          <form onSubmit={(e) => { e.preventDefault(); transfer.mutate() }}>
+            <CardHeader><CardTitle>{t('accounts.transfer')}</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3 pt-4">
+              {([['from', from, setFrom], ['to', to, setTo]] as const).map(([k, v, set]) => (
+                <select
+                  key={k} required aria-label={t(`accounts.${k}`)} value={v} onChange={(e) => set(e.target.value)}
+                  className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                >
+                  <option value="">{t(`accounts.${k}`)}</option>
+                  {mine.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              ))}
+              <Input
+                required inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                placeholder={`${t('entry.amount')} (${currency})`} value={tAmount} onChange={(e) => setTAmount(e.target.value)}
+              />
+              <FormError message={transfer.error ? errorMessage(t, transfer.error) : null} />
+              <Button type="submit" disabled={transfer.isPending}>{t('accounts.transferButton')}</Button>
+            </CardContent>
+          </form>
+        </Card>
+      )}
       {(['expense', 'income'] as const).map((type) => (
         <Card key={type}>
           <CardHeader><CardTitle>{t(`accounts.categories.${type}`)}</CardTitle></CardHeader>

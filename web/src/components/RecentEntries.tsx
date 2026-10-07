@@ -12,7 +12,7 @@ export type EntryRow = {
   id: string
   memberId: string
   entry_date: string
-  kind: 'expense' | 'income'
+  kind: 'expense' | 'income' | 'other'
   category: string
   contact: string
   amount: string // ondalık string, para birimi üyenin grup ana para birimi
@@ -23,6 +23,7 @@ type RawEntry = {
   id: string
   member_id: string
   entry_date: string
+  source_type: string | null
   journal_lines: { amount: number; direction: string; account: { name: string; type: string }; contact: { name: string } | null }[]
 }
 
@@ -44,7 +45,7 @@ export function RecentEntries({
     queryFn: async (): Promise<EntryRow[]> => {
       const { data, error } = await supabase
         .from('journal_entries')
-        .select('id, member_id, entry_date, journal_lines(amount, direction, account:accounts(name, type), contact:contacts(name))')
+        .select('id, member_id, entry_date, source_type, journal_lines(amount, direction, account:accounts(name, type), contact:contacts(name))')
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
@@ -53,15 +54,26 @@ export function RecentEntries({
       if (error) throw error
       return data.map((e) => {
         const cat = e.journal_lines.find((l) => l.account.type === 'expense' || l.account.type === 'income')
-        const kind = cat?.account.type === 'income' ? 'income' : 'expense'
+        const contact = e.journal_lines.find((l) => l.contact)?.contact?.name ?? ''
+        const first = e.journal_lines[0]
+        let kind: EntryRow['kind'] = cat ? (cat.account.type === 'income' ? 'income' : 'expense') : 'other'
+        let category = cat?.account.name ?? '—'
+        if (!cat && e.source_type === 'transfer') {
+          const from = e.journal_lines.find((l) => l.direction === 'credit')?.account.name
+          const to = e.journal_lines.find((l) => l.direction === 'debit')?.account.name
+          category = `${t('entry.transfer')}: ${from} → ${to}`
+        } else if (!cat && e.source_type === 'debt') {
+          category = contact || t('people.debt')
+        }
+        if (!cat) kind = 'other'
         return {
           id: e.id,
           memberId: e.member_id,
           entry_date: e.entry_date,
           kind,
-          category: cat?.account.name ?? '—',
-          contact: e.journal_lines.find((l) => l.contact)?.contact?.name ?? '',
-          amount: fromMinor(cat?.amount ?? 0, exponent),
+          category,
+          contact: cat ? contact : '',
+          amount: fromMinor((cat ?? first)?.amount ?? 0, exponent),
           editable: e.journal_lines.length === 2 && !!cat,
         }
       })
@@ -92,7 +104,7 @@ export function RecentEntries({
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <span className={e.kind === 'income' ? 'text-green-600' : ''}>
-                {e.kind === 'income' ? '+' : '−'}{fmt.format(Number(e.amount))}
+                {e.kind === 'income' ? '+' : e.kind === 'expense' ? '−' : ''}{fmt.format(Number(e.amount))}
               </span>
               {e.memberId === membership.id && e.editable && (
                 <>

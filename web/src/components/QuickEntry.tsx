@@ -23,7 +23,7 @@ export function QuickEntry({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const groupId = membership.group.id
-  const [kind, setKind] = useState<Kind>(editing?.kind ?? 'expense')
+  const [kind, setKind] = useState<Kind>(editing?.kind === 'income' ? 'income' : 'expense')
   const [amount, setAmount] = useState(editing?.amount ?? '')
   const [date, setDate] = useState(editing?.entry_date ?? today())
   const [contact, setContact] = useState(editing?.contact ?? '')

@@ -6,6 +6,7 @@ import { PageShell } from '@/components/PageShell'
 import Accounts from '@/pages/Accounts'
 import Home from '@/pages/Home'
 import Login from '@/pages/Login'
+import People from '@/pages/People'
 import OnboardingChoice from '@/pages/OnboardingChoice'
 import OnboardingCreate from '@/pages/OnboardingCreate'
 import OnboardingJoin from '@/pages/OnboardingJoin'
@@ -48,6 +49,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home membership={membership.data} />} />
       <Route path="/accounts" element={<Accounts membership={membership.data} />} />
+      <Route path="/people" element={<People membership={membership.data} />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

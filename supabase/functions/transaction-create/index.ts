@@ -1,40 +1,14 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
-import { setActor, sql, type Tx } from '../_shared/db.ts'
+import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, parseAmount,
+  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, parseAmount, resolveAccount,
 } from '../_shared/entries.ts'
 
 // Hızlı gider/gelir kaydı (ana para biriminde). Tek transaction, çift taraflı:
 //   gider: Borç kategori / Alacak hesap     gelir: Borç hesap / Alacak kategori
 // Opsiyonel/otomatik: tarih (bugün), hesap (üyenin nakit hesabı, yoksa açılır),
 // kategori ve kişi (isimle bulunur, yoksa açılır).
-
-// Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Nakit" açılır.
-async function resolveAccount(tx: Tx, groupId: string, memberId: string, currency: string, accountId?: string) {
-  if (accountId) {
-    const [acc] = await tx`
-      select id, currency from accounts
-      where id = ${accountId} and group_id = ${groupId} and owner_member_id = ${memberId}
-        and type in ('asset', 'liability') and not is_placeholder and archived_at is null
-      for update`
-    if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
-    if (acc.currency !== currency) throw new HttpError(422, 'Hesap para birimi uyumsuz', 'currency_mismatch')
-    return acc.id as string
-  }
-  const [cash] = await tx`
-    select id from accounts
-    where group_id = ${groupId} and owner_member_id = ${memberId} and subtype = 'cash'
-      and currency = ${currency} and not is_placeholder and archived_at is null
-    order by created_at limit 1
-    for update`
-  if (cash) return cash.id as string
-  const id = uuidv7()
-  await tx`
-    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
-    values (${id}, ${groupId}, ${memberId}, 'asset', 'cash', 'Nakit', ${currency})`
-  return id
-}
 
 serve(async (req, user) => {
   const body = await readBody(req)
