@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AmountField, DateField, EntryFooter } from '@/components/entry/Fields'
+import { LoanForm } from '@/components/entry/LoanForm'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { decimal, today, useAfterSave, useMyAccounts, type EntryPreset } from '@/lib/entry'
@@ -33,6 +35,7 @@ export function DebtForm({ membership, preset, onDone }: {
   const [amount, setAmount] = useState(preset?.amount ?? '')
   const [date, setDate] = useState(today)
   const [due, setDue] = useState('')
+  const [loan, setLoan] = useState(false) // Aldım → bankadan kredi
 
   const contacts = useQuery({
     queryKey: ['contacts', membership.group.id],
@@ -80,17 +83,38 @@ export function DebtForm({ membership, preset, onDone }: {
       .map((a) => ({ value: a.id, label: a.name })),
   ]
 
+  const modes = (
+    <>
+      <ToggleGroup
+        value={[mode]} spacing={2} className="grid w-full grid-cols-3" aria-label={t('entry.kind.debt')}
+        onValueChange={(v) => { if (v[0]) setMode(v[0] as Mode) }}
+      >
+        {(['borrow', 'lend', 'settle'] as const).map((m) => (
+          <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`entry.debt.${m}`)}</ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      {mode === 'borrow' && (
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={loan} onCheckedChange={setLoan} />
+          {t('entry.loan.toggle')}
+        </label>
+      )}
+    </>
+  )
+
+  if (mode === 'borrow' && loan) {
+    return (
+      <div className="flex flex-col gap-4">
+        {modes}
+        <LoanForm membership={membership} lender={contact} onLenderChange={setContact} onDone={onDone} />
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
       <FieldGroup>
-        <ToggleGroup
-          value={[mode]} spacing={2} className="grid w-full grid-cols-3" aria-label={t('entry.kind.debt')}
-          onValueChange={(v) => { if (v[0]) setMode(v[0] as Mode) }}
-        >
-          {(['borrow', 'lend', 'settle'] as const).map((m) => (
-            <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`entry.debt.${m}`)}</ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        {modes}
         <Field>
           <FieldLabel htmlFor="debt-contact">{t('entry.debt.who')}</FieldLabel>
           <Input

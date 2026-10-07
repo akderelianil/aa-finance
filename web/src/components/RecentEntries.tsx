@@ -109,6 +109,8 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
           category = t(e.source_type === 'valuation' ? 'investments.valuation' : 'investments.title')
         } else if (!cat && e.source_type === 'fx_exchange') {
           category = t('accounts.exchange')
+        } else if (!cat && e.source_type === 'loan') {
+          category = `${t('entry.loan.label')}: ${contact}`
         } else if (!cat && e.source_type === 'cash_advance') {
           const from = e.journal_lines.find((l) => l.direction === 'credit')?.account.name
           category = `${t('entry.atm.advance')}: ${from}`

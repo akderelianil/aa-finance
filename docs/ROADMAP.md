@@ -12,6 +12,9 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 - All "(Öneri: …)" items in [ux/acik-sorular.md](ux/acik-sorular.md) are accepted as decisions.
 - harita §6 is accepted: "Diğer" keeps only FX, investment and deposit-for-father. Cash advance = ATM → withdraw with a credit card. Term deposit = Transfer → term account. Loan = Debt → borrowed, from a bank.
 
+- Loan (2026-10-07): the total repayment is the debt on the loan day; total − agreed amount is a cost expense that day; agreed − deposited amount is a fee expense. Each installment is a transfer to the loan account. An early-payoff discount is a "Fark" that reduces the cost.
+- Term deposit (2026-10-07): the user enters principal + rate + days; the expected net return is derived (withholding rate per account). At maturity the real amount is entered; the difference is income or expense.
+
 ## Phases
 | Phase | Content | Status |
 |---|---|---|
@@ -19,7 +22,7 @@ Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
 | F2 Expense options | Installment and split inside Expense (equal split, 3+ people, the extra cent stays with me), note/receipt | Done 2026-10-07 |
 | F3 Directory (Rehber) | person · brand · business; brand ↔ business many-to-many; brand default category; People page → Directory | Done 2026-10-07 |
 | F4 Plan + Upcoming | `plans` table (debt due, card due, installment); one list on Home, overdue first; a real record closes the plan | Done 2026-10-07 |
-| F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Cash advance done 2026-10-07. Loan waits for the profit-share decision |
+| F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Done 2026-10-07 |
 | F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | |
 | Later | Deposit-for-father, FX and stock flows redesign | |
 

@@ -22,6 +22,16 @@ serve(async (req, user) => {
     await tx`update installments set payment_entry_id = null where payment_entry_id = ${entry.id}`
     // Bu kayıtla doğan plan (borç vadesi) da gider.
     await tx`delete from plans where source_entry_id = ${entry.id}`
+    // Kredi kaydı silinirse kredi hesabı da gider (başka hareketi varsa silinemez).
+    const [loan] = await tx`select account_id from loan_settings where source_entry_id = ${entry.id}`
+    if (loan) {
+      const [other] = await tx`
+        select 1 from journal_lines l join journal_entries e on e.id = l.entry_id
+        where l.account_id = ${loan.account_id} and e.deleted_at is null and e.id <> ${entry.id} limit 1`
+      if (other) throw new HttpError(422, 'Taksit ödemesi olan kredi silinemez', 'loan_has_payments')
+      await tx`delete from loan_settings where account_id = ${loan.account_id}`
+      await tx`update accounts set archived_at = now() where id = ${loan.account_id}`
+    }
     await tx`update journal_entries set deleted_at = now(), deleted_by = ${m.member_id}, updated_at = now()
              where id = ${entry.id}`
   })
