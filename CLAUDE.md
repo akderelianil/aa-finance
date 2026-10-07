@@ -14,6 +14,6 @@ Aile odaklı kişisel finans uygulaması (çift taraflı muhasebe). Mimari karar
 - Uygulanmış migration dosyası ASLA düzenlenmez; yeni migration eklenir (`supabase/migrations`).
 - Türetilebilen her değer (kur, TRY karşılığı, kâr/zarar, hesap açma) sunucuda otomatik hesaplanır; istekte opsiyoneldir, kullanıcı verirse o kullanılır.
 - Yetki: grupta herkes görür; sadece `journal_entries.member_id` sahibi düzenler/siler (RLS + fonksiyon).
-- Supabase MCP salt okunurdur; şema değişikliği migration + CLI ile yapılır. Secret/service_role anahtarı frontend'e ve repoya girmez.
+- Supabase MCP salt okunurdur; şema değişikliği migration + CLI ile yapılır. Secret/service_role anahtarı frontend'e ve repoya girmez; token/secret'lar kök `.env`'den okunur (şablon `.env.example`, yükleme: `docs/DEVELOPMENT.md`), değerleri asla yazdırma.
 - Arayüz: üşengeç, teknolojiye uzak kullanıcılar için; minimum alan, muhasebe terimi yok.
 - Kapsam dışı: AI/otomatik doldurma, banka içe aktarma, kredi modülü, fatura/abonelik (sonra).

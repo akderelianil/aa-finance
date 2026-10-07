@@ -1,32 +1,14 @@
-# React + TypeScript + Vite
+# aa-finance web
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite 8 + TypeScript + Tailwind 4 + shadcn/ui (base-ui), TanStack Query, react-router 8, i18next (TR/EN), PWA (vite-plugin-pwa).
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+npm install
+npm run dev     # geliştirme
+npm run build   # tsc -b + vite build
+npm run lint    # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Ortam değişkenleri `.env.local` içinde (repoya girmez): `VITE_SUPABASE_URL` ve `VITE_SUPABASE_PUBLISHABLE_KEY`. service_role anahtarı asla frontend'e girmez.
+
+Proje geneli: `../CLAUDE.md`, `../docs/ARCHITECTURE.md`, `../docs/DEVELOPMENT.md`.
