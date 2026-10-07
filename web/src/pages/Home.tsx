@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { PageShell, FormError } from '@/components/PageShell'
+import { QuickEntry } from '@/components/QuickEntry'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { callFunction } from '@/lib/api'
@@ -53,7 +54,7 @@ export default function Home({ membership }: { membership: Membership }) {
           </CardContent>
         )}
       </Card>
-      <p className="text-center text-sm text-muted-foreground">{t('home.comingSoon')}</p>
+      <QuickEntry membership={membership} />
       <Button variant="ghost" onClick={() => void supabase.auth.signOut()}>{t('common.logout')}</Button>
     </PageShell>
   )

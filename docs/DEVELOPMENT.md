@@ -41,4 +41,5 @@ Değişiklik sonrası asgari doğrulama: `npm run lint && npm run build` (şu an
 - `api/openapi.yaml` Go dönemi taslağı, güncel değil (bkz. ARCHITECTURE). Edge Function uçları oturunca üretilen tiplerle değiştir ya da sil.
 - `web` JS paketi tek parça ~737 kB (gzip 225 kB); rota bazlı `import()` ile bölünebilir.
 - Lint uyarısı: `src/components/ui/button.tsx:57` (shadcn dosyası, `only-export-components`), zararsız.
-- Sıradaki iş: account-create + transaction-create Edge Function'ları, hızlı gider/gelir ekranı, kategoriler, PWA ikonları, CORS kısıtlaması, davet kodu rate limit, özel SMTP (yerleşik e-posta saatte 2).
+- `transaction-create` (hızlı gider/gelir, ana para birimi) yazıldı ve dev'e deploy edildi, uçtan uca denenmedi (giriş yapılı tarayıcıyla test gerek). Hesap otomatik ("Nakit"), kategori/kişi isimle bulunur/açılır.
+- Sıradaki iş: kayıt listesi/düzenle/sil, hesap yönetimi ekranı, çoklu para birimi, PWA ikonları, CORS kısıtlaması, davet kodu rate limit, özel SMTP (yerleşik e-posta saatte 2).
