@@ -1,4 +1,4 @@
-import { BookOpenIcon, ChartPieIcon, HomeIcon, PlusIcon, WalletIcon } from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ContactIcon, HomeIcon, PlusIcon, WalletIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
@@ -21,6 +21,7 @@ const ITEMS = [
   { to: '/', key: 'home', icon: HomeIcon, end: true },
   { to: '/islemler', key: 'journal', icon: BookOpenIcon, end: false },
   { to: '/hesaplar', key: 'accounts', icon: WalletIcon, end: false },
+  { to: '/rehber', key: 'directory', icon: ContactIcon, end: false },
   { to: '/raporlar', key: 'reports', icon: ChartPieIcon, end: false },
 ] as const
 
@@ -28,7 +29,7 @@ function isActive(pathname: string, to: string, end: boolean) {
   return end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)
 }
 
-// Mobil (<md): altta 4 sekme + profil (ayarlar). Masaüstü (>=md): solda sidebar.
+// Mobil (<md): altta 5 sekme + profil (ayarlar). Masaüstü (>=md): solda sidebar.
 export function AppShell({ membership }: { membership: Membership }) {
   return (
     <EntryDialogProvider membership={membership}>
@@ -96,7 +97,7 @@ function Shell({ membership }: { membership: Membership }) {
         </Button>
         <nav
           aria-label={t('nav.menu')}
-          className="fixed inset-x-0 bottom-0 grid grid-cols-5 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+          className="fixed inset-x-0 bottom-0 grid grid-cols-6 border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
         >
           {ITEMS.map(({ to, key, icon: Icon, end }) => (
             <NavLink

@@ -43,15 +43,25 @@ export async function findOrCreateCategory(tx: Tx, groupId: string, type: string
   return id
 }
 
-export async function findOrCreateContact(tx: Tx, groupId: string, name: string) {
+// Rehber kaydı isimle bulunur; yoksa bağlama göre türle açılır (gider/gelir: marka, borç/paylaşım: kişi).
+export async function findOrCreateContact(
+  tx: Tx, groupId: string, name: string, kind: 'individual' | 'brand' = 'individual',
+) {
   const [found] = await tx`
     select id from contacts
     where group_id = ${groupId} and archived_at is null and lower(name) = lower(${name})
     order by created_at limit 1`
   if (found) return found.id as string
   const id = uuidv7()
-  await tx`insert into contacts (id, group_id, name) values (${id}, ${groupId}, ${name})`
+  await tx`insert into contacts (id, group_id, kind, name) values (${id}, ${groupId}, ${kind}, ${name})`
   return id
+}
+
+// Markanın varsayılan kategorisi yoksa ilk kullanılan kategori olur (sonra Rehber'den değişir).
+export async function learnBrandCategory(tx: Tx, contactId: string | null, categoryId: string) {
+  if (!contactId) return
+  await tx`update contacts set default_category_id = ${categoryId}
+           where id = ${contactId} and kind = 'brand' and default_category_id is null`
 }
 
 // Çağıran kullanıcının üyeliği + grup bilgisi.

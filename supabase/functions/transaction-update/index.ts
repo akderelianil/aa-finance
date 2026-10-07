@@ -46,7 +46,7 @@ serve(async (req, user) => {
     }
     if (body.contact_name !== undefined) {
       const contactId = body.contact_name
-        ? await findOrCreateContact(tx, m.group_id, requireString(body.contact_name, 'contact_name', 100))
+        ? await findOrCreateContact(tx, m.group_id, requireString(body.contact_name, 'contact_name', 100), 'brand')
         : null
       await tx`update journal_lines set contact_id = ${contactId} where entry_id = ${entry.id}`
     }

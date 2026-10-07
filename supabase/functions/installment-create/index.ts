@@ -2,7 +2,7 @@ import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, lockOwnAccount, parseAmount,
+  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount, parseAmount,
   postRawEntry, type RawLine,
 } from '../_shared/entries.ts'
 import { parseSplit, splitDebitLines } from '../_shared/split.ts'
@@ -72,10 +72,11 @@ serve(async (req, user) => {
     const firstDue = givenDue ?? firstDueDate(date, cs.statement_day, cs.due_day)
     const total = parseAmount(body.total_amount, m.exponent)
     const catId = await findOrCreateCategory(tx, m.group_id, 'expense', categoryName)
-    const contactId = contactName ? await findOrCreateContact(tx, m.group_id, contactName) : null
+    const contactId = contactName ? await findOrCreateContact(tx, m.group_id, contactName, 'brand') : null
+    await learnBrandCategory(tx, contactId, catId)
     const cur = m.base_currency
     const lines: RawLine[] = split
-      ? await splitDebitLines(tx, m, catId, total, split)
+      ? await splitDebitLines(tx, m, catId, total, split, contactId)
       : [{ account: catId, dir: 'debit', amount: total, currency: cur, base: total, contactId }]
     lines.push({ account: card.id, dir: 'credit', amount: total, currency: cur, base: total, contactId })
 

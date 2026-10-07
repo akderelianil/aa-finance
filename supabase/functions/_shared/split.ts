@@ -46,12 +46,13 @@ export async function splitDebitLines(
   categoryId: string,
   total: bigint,
   people: SplitPerson[],
+  payeeId: string | null = null, // kime ödendi (marka); kategori satırına yazılır
 ): Promise<RawLine[]> {
   const { mine, others } = splitShares(total, people, m.exponent)
   const receivable = await resolveDebtAccount(tx, m, 'receivable')
   const cur = m.base_currency
   const lines: RawLine[] = []
-  if (mine > 0n) lines.push({ account: categoryId, dir: 'debit', amount: mine, currency: cur, base: mine })
+  if (mine > 0n) lines.push({ account: categoryId, dir: 'debit', amount: mine, currency: cur, base: mine, contactId: payeeId })
   for (const [i, p] of people.entries()) {
     const contactId = await findOrCreateContact(tx, m.group_id, p.name)
     lines.push({ account: receivable, dir: 'debit', amount: others[i], currency: cur, base: others[i], contactId })

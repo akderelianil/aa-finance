@@ -56,15 +56,27 @@ export function ExpenseIncomeForm({
 
   const accounts = useMyAccounts(membership)
 
-  const contacts = useQuery({
-    queryKey: ['contacts', groupId],
+  // Rehber: isim → markanın varsayılan kategorisi (kategori kendiliğinden gelir, kullanıcı değiştirebilir).
+  const directory = useQuery({
+    queryKey: ['contacts', groupId, 'with-category'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('contacts').select('name').eq('group_id', groupId).is('archived_at', null).order('name')
+        .from('contacts').select('name, default_category:accounts(name, type)')
+        .eq('group_id', groupId).is('archived_at', null).order('name')
+        .overrideTypes<{ name: string; default_category: { name: string; type: string } | null }[]>()
       if (error) throw error
-      return data.map((r) => r.name)
+      return data
     },
   })
+  const contacts = { data: directory.data?.map((c) => c.name) }
+  const [autoCategory, setAutoCategory] = useState(false)
+
+  function onContactChange(v: string) {
+    setContact(v)
+    const hit = directory.data?.find((c) => c.name.toLocaleLowerCase() === v.trim().toLocaleLowerCase())
+    const cat = hit?.default_category?.type === kind ? hit.default_category.name : null
+    if (cat && (!category || autoCategory)) { setCategory(cat); setAutoCategory(true) }
+  }
 
   const currencies = useQuery({
     queryKey: ['currencies'],
@@ -136,23 +148,23 @@ export function ExpenseIncomeForm({
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="category">{t('entry.category')}</FieldLabel>
-          <Input
-            id="category" required maxLength={60} autoComplete="off" list="category-list"
-            value={category} onChange={(e) => setCategory(e.target.value)}
-          />
-          <datalist id="category-list">
-            {categories.data?.map((n) => <option key={n} value={n} />)}
-          </datalist>
-        </Field>
-        <Field>
           <FieldLabel htmlFor="contact">{t(`entry.contact.${kind}`)}</FieldLabel>
           <Input
             id="contact" maxLength={100} autoComplete="off" list="contact-list"
-            value={contact} onChange={(e) => setContact(e.target.value)}
+            value={contact} onChange={(e) => onContactChange(e.target.value)}
           />
           <datalist id="contact-list">
             {contacts.data?.map((n) => <option key={n} value={n} />)}
+          </datalist>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="category">{t('entry.category')}</FieldLabel>
+          <Input
+            id="category" required maxLength={60} autoComplete="off" list="category-list"
+            value={category} onChange={(e) => { setCategory(e.target.value); setAutoCategory(false) }}
+          />
+          <datalist id="category-list">
+            {categories.data?.map((n) => <option key={n} value={n} />)}
           </datalist>
         </Field>
         {!editing && simple && !foreignAccount && (currencies.data?.length ?? 0) > 1 && (

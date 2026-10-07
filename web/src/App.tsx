@@ -15,10 +15,10 @@ import OnboardingJoin from '@/pages/OnboardingJoin'
 import Register from '@/pages/Register'
 
 const Accounts = lazy(() => import('@/pages/Accounts'))
+const Directory = lazy(() => import('@/pages/Directory'))
 const Installments = lazy(() => import('@/pages/Installments'))
 const Investments = lazy(() => import('@/pages/Investments'))
 const Reports = lazy(() => import('@/pages/Reports'))
-const People = lazy(() => import('@/pages/People'))
 
 function Loading() {
   const { t } = useTranslation()
@@ -62,13 +62,14 @@ export default function App() {
         <Route path="/hesaplar" element={<Accounts membership={membership.data} />} />
         <Route path="/raporlar" element={<Reports membership={membership.data} />} />
         <Route path="/ayarlar" element={<Settings membership={membership.data} />} />
-        <Route path="/ayarlar/kisiler" element={<People membership={membership.data} />} />
+        <Route path="/rehber" element={<Directory membership={membership.data} />} />
+        <Route path="/ayarlar/kisiler" element={<Navigate to="/rehber" replace />} />
         <Route path="/ayarlar/taksitler" element={<Installments membership={membership.data} />} />
         <Route path="/ayarlar/yatirimlar" element={<Investments membership={membership.data} />} />
       </Route>
       <Route path="/accounts" element={<Navigate to="/hesaplar" replace />} />
       <Route path="/reports" element={<Navigate to="/raporlar" replace />} />
-      <Route path="/people" element={<Navigate to="/ayarlar/kisiler" replace />} />
+      <Route path="/people" element={<Navigate to="/rehber" replace />} />
       <Route path="/installments" element={<Navigate to="/ayarlar/taksitler" replace />} />
       <Route path="/investments" element={<Navigate to="/ayarlar/yatirimlar" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

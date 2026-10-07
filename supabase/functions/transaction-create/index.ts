@@ -1,8 +1,8 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, loadMember, lockOwnAccount, parseAmount,
-  postRawEntry, resolveAccount, type RawLine,
+  assertNotLocked, entryDate, findOrCreateCategory, findOrCreateContact, learnBrandCategory, loadMember, lockOwnAccount,
+  parseAmount, postRawEntry, resolveAccount, type RawLine,
 } from '../_shared/entries.ts'
 import {
   averageCost, exponentOf, fxGainLossAccount, parseRate, resolveRate, saveRate, toBase,
@@ -49,7 +49,8 @@ serve(async (req, user) => {
     const baseExp = m.exponent
 
     const catId = await findOrCreateCategory(tx, m.group_id, kind, categoryName)
-    const contactId = contactName ? await findOrCreateContact(tx, m.group_id, contactName) : null
+    const contactId = contactName ? await findOrCreateContact(tx, m.group_id, contactName, 'brand') : null
+    await learnBrandCategory(tx, contactId, catId)
     const lines: RawLine[] = []
     let estimated = false
 
@@ -58,7 +59,7 @@ serve(async (req, user) => {
 
     if (split && currency !== m.base_currency) throw new HttpError(422, 'split geçersiz', 'invalid_split')
     if (split) {
-      lines.push(...await splitDebitLines(tx, m, catId, amount, split))
+      lines.push(...await splitDebitLines(tx, m, catId, amount, split, contactId))
       push(acct.id, 'credit', amount, currency, amount)
     } else if (currency === m.base_currency) {
       push(catId, kind === 'expense' ? 'debit' : 'credit', amount, currency, amount)
