@@ -6,6 +6,9 @@ import './i18n'
 import './index.css'
 import App from './App'
 import { AuthProvider } from './auth/AuthProvider'
+import { initTheme } from './components/ThemeToggle'
+
+initTheme()
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } })
 

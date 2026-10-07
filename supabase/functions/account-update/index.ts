@@ -24,6 +24,26 @@ serve(async (req, user) => {
     if (body.name !== undefined) {
       await tx`update accounts set name = ${requireString(body.name, 'name', 60)} where id = ${a.id}`
     }
+    if (body.parent_id !== undefined) {
+      if (body.parent_id !== null && typeof body.parent_id !== 'string') {
+        throw new HttpError(422, 'parent_id geçersiz', 'invalid_parent')
+      }
+      if (body.parent_id) {
+        const [p] = await tx`
+          select owner_member_id, archived_at from accounts
+          where id = ${body.parent_id as string} and group_id = ${m.group_id}`
+        if (!p) throw new HttpError(404, 'Üst hesap bulunamadı', 'not_found')
+        if (p.archived_at) throw new HttpError(422, 'Üst hesap arşivde', 'parent_archived')
+        if (!isCategory && p.owner_member_id !== m.member_id) throw new HttpError(403, 'Bu hesabı sadece sahibi değiştirebilir', 'not_owner')
+      }
+      // Tip/grup/sahip/para birimi uyumu ve döngü kontrolü DB trigger'ında (accounts_parent_chk).
+      try {
+        await tx`update accounts set parent_id = ${(body.parent_id as string | null) ?? null} where id = ${a.id}`
+      } catch (e) {
+        if ((e as { code?: string }).code === '23514') throw new HttpError(422, 'Geçersiz üst hesap', 'invalid_parent')
+        throw e
+      }
+    }
     if (body.archived !== undefined) {
       await tx`update accounts set archived_at = ${body.archived ? new Date() : null} where id = ${a.id}`
     }

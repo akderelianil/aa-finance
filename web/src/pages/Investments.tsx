@@ -120,7 +120,7 @@ export default function Investments({ membership }: { membership: Membership }) 
 
   return (
     <PageShell>
-      <Button variant="ghost" className="self-start" nativeButton={false} render={<Link to="/" />}>{t('common.back')}</Button>
+      <Button variant="ghost" className="self-start" nativeButton={false} render={<Link to="/ayarlar" />}>{t('common.back')}</Button>
       <Card>
         <CardHeader><CardTitle>{t('investments.holdings')}</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-3">

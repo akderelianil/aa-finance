@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { PageShell, FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
@@ -117,7 +116,6 @@ export default function Reports({ membership }: { membership: Membership }) {
 
   return (
     <PageShell>
-      <Button variant="ghost" className="self-start" nativeButton={false} render={<Link to="/" />}>{t('common.back')}</Button>
       <div className="grid grid-cols-4 gap-1">
         {(['summary', 'worth', 'cash', 'detail'] as const).map((k) => (
           <Button key={k} size="sm" variant={tab === k ? 'default' : 'outline'} onClick={() => setTab(k)}>{t(`reports.tab.${k}`)}</Button>

@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OptionSelect } from '@/components/OptionSelect'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { supabase } from '@/lib/supabase'
@@ -32,7 +34,6 @@ export function QuickEntry({
   const [otherCurrency, setOtherCurrency] = useState('')
   const [rate, setRate] = useState('')
   const [baseAmount, setBaseAmount] = useState('')
-  const [saved, setSaved] = useState(false)
 
   const categories = useQuery({
     queryKey: ['categories', groupId, kind],
@@ -107,10 +108,9 @@ export function QuickEntry({
         setContact('')
         setCategory('')
         setDate(today())
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2000)
       }
       void queryClient.invalidateQueries({ queryKey: ['categories', groupId] })
+      void queryClient.invalidateQueries({ queryKey: ['accounts', groupId] })
       void queryClient.invalidateQueries({ queryKey: ['contacts', groupId] })
       void queryClient.invalidateQueries({ queryKey: ['entries', groupId] })
       onDone?.()
@@ -119,106 +119,108 @@ export function QuickEntry({
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
-    setSaved(false)
     save.mutate()
   }
 
+  const AMOUNT = '[0-9]+([.,][0-9]+)?'
+
   return (
-    <Card>
-      <form onSubmit={onSubmit}>
-        <CardHeader>
-          <CardTitle>{editing ? t('entry.editTitle') : t('entry.title')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4 pt-4">
-          {!editing && (
-            <div className="grid grid-cols-2 gap-2">
-              {(['expense', 'income'] as const).map((k) => (
-                <Button
-                  key={k} type="button" variant={kind === k ? 'default' : 'outline'}
-                  onClick={() => { setKind(k); setCategory('') }}
-                >
-                  {t(`entry.kind.${k}`)}
-                </Button>
-              ))}
-            </div>
-          )}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="amount">{t('entry.amount')} ({effectiveCurrency})</Label>
-            <Input
-              id="amount" required inputMode="decimal" autoComplete="off" placeholder="0,00"
-              pattern="[0-9]+([.,][0-9]+)?" value={amount} onChange={(e) => setAmount(e.target.value)}
+    <form onSubmit={onSubmit}>
+      <FieldGroup>
+        {!editing && (
+          <ToggleGroup
+            value={[kind]} spacing={2} className="grid w-full grid-cols-2" aria-label={t('entry.title')}
+            onValueChange={(v) => { if (v[0]) { setKind(v[0] as Kind); setCategory('') } }}
+          >
+            {(['expense', 'income'] as const).map((k) => (
+              <ToggleGroupItem key={k} value={k} variant="outline">{t(`entry.kind.${k}`)}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        )}
+        <Field>
+          <FieldLabel htmlFor="amount">{t('entry.amount')} ({effectiveCurrency})</FieldLabel>
+          <Input
+            id="amount" required autoFocus inputMode="decimal" autoComplete="off" placeholder="0,00"
+            pattern={AMOUNT} value={amount} onChange={(e) => setAmount(e.target.value)}
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="category">{t('entry.category')}</FieldLabel>
+          <Input
+            id="category" required maxLength={60} autoComplete="off" list="category-list"
+            value={category} onChange={(e) => setCategory(e.target.value)}
+          />
+          <datalist id="category-list">
+            {categories.data?.map((n) => <option key={n} value={n} />)}
+          </datalist>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="contact">{t(`entry.contact.${kind}`)}</FieldLabel>
+          <Input
+            id="contact" maxLength={100} autoComplete="off" list="contact-list"
+            value={contact} onChange={(e) => setContact(e.target.value)}
+          />
+          <datalist id="contact-list">
+            {contacts.data?.map((n) => <option key={n} value={n} />)}
+          </datalist>
+        </Field>
+        {!editing && !foreignAccount && (currencies.data?.length ?? 0) > 1 && (
+          <Field>
+            <FieldLabel htmlFor="currency">{t('accounts.currency')}</FieldLabel>
+            <OptionSelect
+              id="currency" value={otherCurrency} onChange={setOtherCurrency}
+              options={[
+                { value: '', label: t('entry.sameCurrency', { currency: baseCurrency }) },
+                ...currencies.data!.filter((c) => c !== baseCurrency).map((c) => ({ value: c, label: c })),
+              ]}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="category">{t('entry.category')}</Label>
-            <Input
-              id="category" required maxLength={60} autoComplete="off" list="category-list"
-              value={category} onChange={(e) => setCategory(e.target.value)}
-            />
-            <datalist id="category-list">
-              {categories.data?.map((n) => <option key={n} value={n} />)}
-            </datalist>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="contact">{t(`entry.contact.${kind}`)}</Label>
-            <Input
-              id="contact" maxLength={100} autoComplete="off" list="contact-list"
-              value={contact} onChange={(e) => setContact(e.target.value)}
-            />
-            <datalist id="contact-list">
-              {contacts.data?.map((n) => <option key={n} value={n} />)}
-            </datalist>
-          </div>
-          {!editing && !foreignAccount && (currencies.data?.length ?? 0) > 1 && (
-            <select
-              aria-label={t('accounts.currency')} value={otherCurrency} onChange={(e) => setOtherCurrency(e.target.value)}
-              className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-            >
-              <option value="">{t('entry.sameCurrency', { currency: baseCurrency })}</option>
-              {currencies.data!.filter((c) => c !== baseCurrency).map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          )}
-          {!editing && effectiveCurrency !== baseCurrency && (
-            <>
+          </Field>
+        )}
+        {!editing && effectiveCurrency !== baseCurrency && (
+          <>
+            <Field>
               <Input
-                inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                aria-label={t('accounts.rateHint', { from: effectiveCurrency, to: baseCurrency })}
+                inputMode="decimal" autoComplete="off" pattern={AMOUNT}
                 placeholder={t('accounts.rateHint', { from: effectiveCurrency, to: baseCurrency })}
                 value={rate} onChange={(e) => setRate(e.target.value)}
               />
-              {!foreignAccount && (
+            </Field>
+            {!foreignAccount && (
+              <Field>
                 <Input
-                  inputMode="decimal" autoComplete="off" pattern="[0-9]+([.,][0-9]+)?"
+                  aria-label={t('entry.baseAmountHint', { currency: baseCurrency })}
+                  inputMode="decimal" autoComplete="off" pattern={AMOUNT}
                   placeholder={t('entry.baseAmountHint', { currency: baseCurrency })}
                   value={baseAmount} onChange={(e) => setBaseAmount(e.target.value)}
                 />
-              )}
-            </>
-          )}
-          {!editing && (accounts.data?.length ?? 0) > 1 && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="account">{t('accounts.account')}</Label>
-              <select
-                id="account" value={accountId} onChange={(e) => setAccountId(e.target.value)}
-                className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm"
-              >
-                {/* Boş = otomatik (nakit hesap) */}
-                <option value="">—</option>
-                {accounts.data!.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-          )}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="date">{t('entry.date')}</Label>
-            <Input id="date" type="date" required max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <FormError message={save.error ? errorMessage(t, save.error) : null} />
-          {saved && <p className="text-center text-sm text-green-600">{t('entry.saved')}</p>}
-          <Button type="submit" disabled={save.isPending}>{t('entry.save')}</Button>
-          {editing && (
-            <Button type="button" variant="ghost" onClick={onDone}>{t('entry.cancel')}</Button>
-          )}
-        </CardContent>
-      </form>
-    </Card>
+              </Field>
+            )}
+          </>
+        )}
+        {!editing && (accounts.data?.length ?? 0) > 1 && (
+          <Field>
+            <FieldLabel htmlFor="account">{t('accounts.account')}</FieldLabel>
+            {/* Boş = otomatik (nakit hesap) */}
+            <OptionSelect
+              id="account" value={accountId} onChange={setAccountId}
+              options={[{ value: '', label: '—' }, ...accounts.data!.map((a) => ({ value: a.id, label: a.name }))]}
+            />
+          </Field>
+        )}
+        <Field>
+          <FieldLabel htmlFor="date">{t('entry.date')}</FieldLabel>
+          <Input id="date" type="date" required max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <FormError message={save.error ? errorMessage(t, save.error) : null} />
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onDone}>{t('entry.cancel')}</Button>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending && <Spinner data-icon="inline-start" />}
+            {t('entry.save')}
+          </Button>
+        </div>
+      </FieldGroup>
+    </form>
   )
 }

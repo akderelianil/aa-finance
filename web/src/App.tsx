@@ -3,8 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import { useMembership } from '@/auth/useMembership'
+import { AppShell } from '@/components/AppShell'
 import { PageShell } from '@/components/PageShell'
 import Home from '@/pages/Home'
+import Journal from '@/pages/Journal'
+import Settings from '@/pages/Settings'
 import Login from '@/pages/Login'
 import OnboardingChoice from '@/pages/OnboardingChoice'
 import OnboardingCreate from '@/pages/OnboardingCreate'
@@ -53,12 +56,21 @@ export default function App() {
   return (
     <Suspense fallback={<Loading />}>
     <Routes>
-      <Route path="/" element={<Home membership={membership.data} />} />
-      <Route path="/accounts" element={<Accounts membership={membership.data} />} />
-      <Route path="/installments" element={<Installments membership={membership.data} />} />
-      <Route path="/investments" element={<Investments membership={membership.data} />} />
-      <Route path="/reports" element={<Reports membership={membership.data} />} />
-      <Route path="/people" element={<People membership={membership.data} />} />
+      <Route element={<AppShell membership={membership.data} />}>
+        <Route path="/" element={<Home membership={membership.data} />} />
+        <Route path="/islemler" element={<Journal membership={membership.data} />} />
+        <Route path="/hesaplar" element={<Accounts membership={membership.data} />} />
+        <Route path="/raporlar" element={<Reports membership={membership.data} />} />
+        <Route path="/ayarlar" element={<Settings membership={membership.data} />} />
+        <Route path="/ayarlar/kisiler" element={<People membership={membership.data} />} />
+        <Route path="/ayarlar/taksitler" element={<Installments membership={membership.data} />} />
+        <Route path="/ayarlar/yatirimlar" element={<Investments membership={membership.data} />} />
+      </Route>
+      <Route path="/accounts" element={<Navigate to="/hesaplar" replace />} />
+      <Route path="/reports" element={<Navigate to="/raporlar" replace />} />
+      <Route path="/people" element={<Navigate to="/ayarlar/kisiler" replace />} />
+      <Route path="/installments" element={<Navigate to="/ayarlar/taksitler" replace />} />
+      <Route path="/investments" element={<Navigate to="/ayarlar/yatirimlar" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>

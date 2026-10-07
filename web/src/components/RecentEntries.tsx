@@ -1,15 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { PaperclipIcon, PencilIcon, SearchIcon, Trash2Icon } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
+import { EntryAttachments } from '@/components/EntryAttachments'
+import { useEntryDialog } from '@/components/EntryDialog'
 import { FormError } from '@/components/PageShell'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
-import { EntryAttachments } from '@/components/EntryAttachments'
-import { useState } from 'react'
 
 export type EntryRow = {
   id: string
@@ -31,22 +42,36 @@ type RawEntry = {
   journal_lines: { amount: number; base_amount: number; currency: string; direction: string; account: { name: string; type: string; system_key: string | null }; contact: { name: string } | null }[]
 }
 
+const PAGE = 30
+
 // Minor unit (number, < 2^53 pratikte) → ondalık string. Gösterim için; hesap için kullanılmaz.
 function fromMinor(minor: number, exponent: number): string {
   const s = String(minor).padStart(exponent + 1, '0')
   return exponent ? `${s.slice(0, -exponent)}.${s.slice(-exponent)}` : s
 }
 
-export function RecentEntries({
-  membership, exponent, onEdit,
-}: { membership: Membership; exponent: number; onEdit: (e: EntryRow) => void }) {
+type Props = {
+  membership: Membership
+  exponent: number
+  // Panoda: ilk N kayıt, filtre/sayfalama yok. İşlemler sayfasında: filtreler + "daha fazla".
+  limit?: number
+}
+
+export function RecentEntries({ membership, exponent, limit }: Props) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
+  const { open: openEntry } = useEntryDialog()
   const groupId = membership.group.id
+  const full = limit === undefined
+  const [count, setCount] = useState(PAGE)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [kinds, setKinds] = useState<string[]>([])
+  const [deleting, setDeleting] = useState<EntryRow | null>(null)
+  const fetchCount = full ? count : limit
 
   const entries = useQuery({
-    queryKey: ['entries', groupId],
+    queryKey: ['entries', groupId, fetchCount],
     queryFn: async (): Promise<EntryRow[]> => {
       const { data, error } = await supabase
         .from('journal_entries')
@@ -54,7 +79,7 @@ export function RecentEntries({
         .eq('group_id', groupId).is('deleted_at', null)
         .or('source_type.is.null,source_type.neq.opening_balance')
         .order('entry_date', { ascending: false }).order('created_at', { ascending: false })
-        .limit(30)
+        .limit(fetchCount)
         .overrideTypes<RawEntry[]>()
       if (error) throw error
       return data.map((e) => {
@@ -96,52 +121,123 @@ export function RecentEntries({
 
   const remove = useMutation({
     mutationFn: (id: string) => callFunction('transaction-delete', { entry_id: id }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['entries', groupId] }),
+    onSuccess: () => { setDeleting(null); void queryClient.invalidateQueries({ queryKey: ['entries', groupId] }) },
   })
 
   const fmt = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: membership.group.base_currency })
+  const dayFmt = new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const q = search.trim().toLocaleLowerCase(i18n.language)
+  const rows = (entries.data ?? []).filter((e) =>
+    (kinds.length === 0 || kinds.includes(e.kind))
+    && (!q || `${e.category} ${e.contact}`.toLocaleLowerCase(i18n.language).includes(q)))
+
+  // Tarihe göre grupla (liste zaten tarih sırasında).
+  const groups: { date: string; items: EntryRow[] }[] = []
+  for (const e of rows) {
+    const g = groups[groups.length - 1]
+    if (g && g.date === e.entry_date) g.items.push(e)
+    else groups.push({ date: e.entry_date, items: [e] })
+  }
+
+  function row(e: EntryRow) {
+    const mine = e.memberId === membership.id
+    return (
+      <li key={e.id} className="flex flex-col">
+        <div className="flex items-center gap-2 py-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{e.category}</p>
+            {(e.contact || e.original) && (
+              <p className="truncate text-xs text-muted-foreground">{[e.contact, e.original].filter(Boolean).join(' · ')}</p>
+            )}
+          </div>
+          <span className="shrink-0 text-sm font-medium tabular-nums">
+            {e.kind === 'income' ? <Badge variant="secondary">+{fmt.format(Number(e.amount))}</Badge>
+              : <>{e.kind === 'expense' ? '−' : ''}{fmt.format(Number(e.amount))}</>}
+          </span>
+          <Button
+            size="icon-sm" variant="ghost" aria-label={t('attachments.show')} aria-expanded={openId === e.id}
+            onClick={() => setOpenId(openId === e.id ? null : e.id)}
+          >
+            <PaperclipIcon />
+          </Button>
+          {mine && e.editable && (
+            <>
+              <Button size="icon-sm" variant="ghost" aria-label={t('entry.edit')} onClick={() => openEntry(e)}><PencilIcon /></Button>
+              <Button size="icon-sm" variant="ghost" aria-label={t('entry.delete')} onClick={() => { remove.reset(); setDeleting(e) }}>
+                <Trash2Icon />
+              </Button>
+            </>
+          )}
+        </div>
+        {openId === e.id && <EntryAttachments entryId={e.id} canEdit={mine} />}
+      </li>
+    )
+  }
+
+  const canLoadMore = full && (entries.data?.length ?? 0) >= count
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t('entry.recent')}</CardTitle>
-      </CardHeader>
+      {!full && (
+        <CardHeader>
+          <CardTitle>{t('entry.recent')}</CardTitle>
+        </CardHeader>
+      )}
       <CardContent className="flex flex-col gap-3">
-        {entries.data?.length === 0 && <p className="text-sm text-muted-foreground">{t('entry.empty')}</p>}
-        {entries.data?.map((e) => (
-          <div key={e.id} className="border-b last:border-b-0">
-          <div className="flex items-center justify-between gap-2 pb-2">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{e.category}</p>
-              <p className="truncate text-xs text-muted-foreground">
-                {e.entry_date}{e.contact && ` · ${e.contact}`}{e.original && ` · ${e.original}`}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <Button size="sm" variant="ghost" aria-label={t('attachments.show')} onClick={() => setOpenId(openId === e.id ? null : e.id)}>
-                {'\u{1F4CE}'}
-              </Button>
-              <span className={e.kind === 'income' ? 'text-green-600' : ''}>
-                {e.kind === 'income' ? '+' : e.kind === 'expense' ? '−' : ''}{fmt.format(Number(e.amount))}
-              </span>
-              {e.memberId === membership.id && e.editable && (
-                <>
-                  <Button size="sm" variant="ghost" onClick={() => onEdit(e)}>{t('entry.edit')}</Button>
-                  <Button
-                    size="sm" variant="ghost" disabled={remove.isPending}
-                    onClick={() => { if (window.confirm(t('entry.confirmDelete'))) remove.mutate(e.id) }}
-                  >
-                    {t('entry.delete')}
-                  </Button>
-                </>
-              )}
-            </div>
+        {full && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <InputGroup className="sm:max-w-xs">
+              <InputGroupAddon><SearchIcon /></InputGroupAddon>
+              <InputGroupInput
+                type="search" value={search} placeholder={t('journal.search')} aria-label={t('journal.search')}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </InputGroup>
+            <ToggleGroup multiple value={kinds} onValueChange={setKinds} spacing={2} aria-label={t('journal.filter')}>
+              {(['expense', 'income', 'other'] as const).map((k) => (
+                <ToggleGroupItem key={k} value={k} variant="outline" size="sm">{t(`journal.kind.${k}`)}</ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </div>
-          {openId === e.id && <EntryAttachments entryId={e.id} canEdit={e.memberId === membership.id} />}
-          </div>
+        )}
+        {entries.isLoading && (
+          <div className="flex flex-col gap-2"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>
+        )}
+        {entries.data && rows.length === 0 && (
+          <Empty><EmptyHeader><EmptyTitle>{t('entry.empty')}</EmptyTitle>
+            {full && (search || kinds.length > 0) && <EmptyDescription>{t('journal.noMatch')}</EmptyDescription>}
+          </EmptyHeader></Empty>
+        )}
+        {groups.map((g) => (
+          <section key={g.date} className="flex flex-col">
+            <h3 className="pt-1 text-xs font-medium text-muted-foreground">{dayFmt.format(new Date(`${g.date}T00:00:00`))}</h3>
+            <ul className="flex flex-col divide-y">{g.items.map(row)}</ul>
+          </section>
         ))}
-        <FormError message={remove.error ? errorMessage(t, remove.error) : entries.error ? errorMessage(t, entries.error) : null} />
+        {canLoadMore && (
+          <Button variant="outline" disabled={entries.isFetching} onClick={() => setCount(count + PAGE)}>{t('journal.more')}</Button>
+        )}
+        <FormError message={entries.error ? errorMessage(t, entries.error) : null} />
       </CardContent>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('entry.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogDescription>{deleting?.category}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <FormError message={remove.error ? errorMessage(t, remove.error) : null} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('entry.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive" disabled={remove.isPending}
+              onClick={(e) => { e.preventDefault(); if (deleting) remove.mutate(deleting.id) }}
+            >
+              {t('entry.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }
