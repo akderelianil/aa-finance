@@ -27,3 +27,10 @@ test('transferLines: fee line and source line balance in base', () => {
   const sum = (side: string) => lines.filter((l) => l.side === side).reduce((s, l) => s + Number(l.amount), 0)
   assert.equal(sum('debit'), sum('credit'))
 })
+
+test('debt via transferLines: borrow debits money, credits the payable account', () => {
+  const fx = { base: 'TRY', exp: () => 2, rate: () => undefined }
+  const acc = (id: string) => ({ id, currency: 'TRY' }) as never
+  const lines = transferLines(fx, acc('payable'), acc('bank'), 500000, null, 0, null)!
+  assert.deepEqual(lines.map((l) => [l.account_id, l.side, l.amount]), [['bank', 'debit', '5000.00'], ['payable', 'credit', '5000.00']])
+})

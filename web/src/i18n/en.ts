@@ -222,8 +222,12 @@ export const en: Translation = {
   quick: {
     title: 'Quick Entry',
     subtitle: 'Record income, expense and transfers in one place. The entry goes to the General Journal.',
-    kind: { income: 'Income', expense: 'Expense', transfer: 'Transfer' },
+    kind: { income: 'Income', expense: 'Expense', transfer: 'Transfer', debt: 'Debt' },
     mode: { between: 'Between accounts', atm_withdraw: 'ATM withdrawal', atm_deposit: 'ATM deposit' },
+    debt: {
+      borrow: 'Borrowed', lend: 'Lent', person: 'Person (required)', receivedIn: 'Received in (Debit)', givenFrom: 'Given from (Credit)',
+      debtAmount: 'Amount on the debt account ({{currency}})', needPerson: 'Pick the person you borrowed from or lent to.',
+    },
     paidFrom: 'Paid from (Credit)',
     paidTo: 'Received in (Debit)',
     expenseAccount: 'Expense account (Debit)',

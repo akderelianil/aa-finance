@@ -220,8 +220,12 @@ export const tr = {
   quick: {
     title: 'Hızlı Kayıt',
     subtitle: "Gelir, gider ve transferi tek ekrandan kaydet. Kayıt Yevmiye'ye düşer.",
-    kind: { income: 'Gelir', expense: 'Gider', transfer: 'Transfer' },
+    kind: { income: 'Gelir', expense: 'Gider', transfer: 'Transfer', debt: 'Borç' },
     mode: { between: 'Hesaplar arası', atm_withdraw: 'ATM para çekme', atm_deposit: 'ATM para yatırma' },
+    debt: {
+      borrow: 'Borç aldım', lend: 'Borç verdim', person: 'Kişi (zorunlu)', receivedIn: 'Alındığı hesap (Borç)', givenFrom: 'Verildiği hesap (Alacak)',
+      debtAmount: 'Borç hesabındaki tutar ({{currency}})', needPerson: 'Borç aldığın ya da verdiğin kişiyi seç.',
+    },
     paidFrom: 'Ödeme hesabı (Alacak)',
     paidTo: 'Tahsil hesabı (Borç)',
     expenseAccount: 'Gider hesabı (Borç)',
