@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ContactIcon, CopyIcon, PlusIcon, XIcon } from 'lucide-react'
+import { CopyIcon, PlusIcon, XIcon } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
@@ -76,7 +76,7 @@ export default function Directory({ membership }: { membership: Membership }) {
   return (
     <>
       <PageHeader
-        title={t('directory.title')} description={t('directory.subtitle')} icon={ContactIcon}
+        title={t('directory.title')} description={t('directory.subtitle')}
         actions={<Button onClick={() => setEditing('new')}><PlusIcon data-icon="inline-start" />{t('directory.add')}</Button>}
       />
 

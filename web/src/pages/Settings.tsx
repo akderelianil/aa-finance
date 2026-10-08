@@ -1,4 +1,3 @@
-import { SettingsIcon } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -50,7 +49,7 @@ export default function Settings({ membership }: { membership: Membership }) {
 
   return (
     <>
-      <PageHeader title={t('settings.title')} icon={SettingsIcon} />
+      <PageHeader title={t('settings.title')} />
       <Card>
         <CardHeader><CardTitle>{t('profile.title')}</CardTitle></CardHeader>
         <CardContent>

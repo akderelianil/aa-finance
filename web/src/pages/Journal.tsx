@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { BookOpenIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
@@ -80,7 +80,7 @@ export default function Journal({ membership }: { membership: Membership }) {
   return (
     <>
       <PageHeader
-        title={t('gj.title')} description={t('gj.subtitle')} icon={BookOpenIcon}
+        title={t('gj.title')} description={t('gj.subtitle')}
         actions={!draft && <Button onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
       />
       {draft && accounts.data && (

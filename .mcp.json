@@ -23,7 +23,9 @@
       "command": "npx",
       "args": [
         "shadcn@latest",
-        "mcp"
+        "mcp",
+        "--cwd",
+        "web"
       ]
     }
   }

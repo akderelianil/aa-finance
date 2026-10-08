@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, ListTreeIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
+  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -98,7 +98,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
   return (
     <>
       <PageHeader
-        title={t('coa.title')} description={t('coa.subtitle')} icon={ListTreeIcon}
+        title={t('coa.title')} description={t('coa.subtitle')}
         actions={<Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button>}
       />
       <div className="flex items-center gap-3">

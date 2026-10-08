@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, NotebookTextIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -96,7 +96,6 @@ export default function AccountRegister({ membership }: { membership: Membership
       <PageHeader
         title={account.name}
         description={`${fullName(account, byId)} · ${t(`ledger.type.${account.type}`)} · ${account.currency}`}
-        icon={NotebookTextIcon}
         actions={(
           <>
             <div className="mr-4 text-right">

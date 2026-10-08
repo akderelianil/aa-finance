@@ -1,4 +1,3 @@
-import { ChartPieIcon } from 'lucide-react'
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
@@ -81,7 +80,7 @@ export default function Reports({ membership }: { membership: Membership }) {
 
   return (
     <>
-      <PageHeader title={t('rep.title')} description={t('rep.subtitle', { currency: base })} icon={ChartPieIcon} />
+      <PageHeader title={t('rep.title')} description={t('rep.subtitle', { currency: base })} />
       <div className="flex items-end gap-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <TabsList>

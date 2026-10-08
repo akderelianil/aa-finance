@@ -1,20 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
-import {
-  BanknoteIcon, CreditCardIcon, LandmarkIcon, LayoutDashboardIcon, PiggyBankIcon, ShoppingBagIcon, TrendingDownIcon,
-  TrendingUpIcon, WalletIcon,
-} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
-import { CategoryPie } from '@/components/CategoryPie'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
-import { StatCard } from '@/components/StatCard'
-import { Badge } from '@/components/ui/badge'
+import { Stat, StatStrip } from '@/components/StatStrip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
+import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
+import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { topSlices } from '@/lib/chart'
 import { errorMessage } from '@/lib/errors'
@@ -125,7 +122,7 @@ export default function Dashboard({ membership }: { membership: Membership }) {
   return (
     <>
       <PageHeader
-        title={t('nav.home')} description={`${periodLabel} · ${base}`} icon={LayoutDashboardIcon}
+        title={t('nav.home')} description={`${periodLabel} · ${base}`}
         actions={(
           <>
             <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
@@ -146,72 +143,68 @@ export default function Dashboard({ membership }: { membership: Membership }) {
       {scope === 'me' && <p className="-mt-2 text-xs text-muted-foreground">{t('dash.individualHint')}</p>}
       <FormError message={error ? errorMessage(t, error) : null} />
 
-      <section className="grid grid-cols-3 gap-4" aria-label={t('dash.balanceSheet')}>
-        <StatCard label={t('dash.assets')} value={money(stats.assets)} icon={WalletIcon} tone="info" loading={loading} hint={t('dash.asOfToday')} />
-        <StatCard label={t('dash.liabilities')} value={money(stats.liabilities)} icon={CreditCardIcon} tone="warning" loading={loading} hint={t('dash.asOfToday')} />
-        <StatCard
-          label={t('dash.netWorth')} value={money(stats.netWorth)} icon={LandmarkIcon}
-          tone={stats.netWorth < 0 ? 'danger' : 'success'} loading={loading} hint={t('dash.asOfToday')}
+      <StatStrip title={t('dash.balanceSheet')}>
+        <Stat label={t('dash.assets')} value={money(stats.assets)} loading={loading} hint={t('dash.asOfToday')} />
+        <Stat label={t('dash.liabilities')} value={money(stats.liabilities)} loading={loading} hint={t('dash.asOfToday')} />
+        <Stat
+          label={t('dash.netWorth')} value={money(stats.netWorth)} loading={loading} hint={t('dash.asOfToday')}
+          tone={stats.netWorth < 0 ? 'danger' : 'neutral'}
         />
-      </section>
-      <section className="grid grid-cols-3 gap-4" aria-label={t('dash.periodSummary')}>
-        <StatCard label={t('dash.income')} value={money(stats.income)} icon={TrendingUpIcon} tone="success" loading={loading} hint={periodLabel} />
-        <StatCard label={t('dash.expense')} value={money(stats.expense)} icon={TrendingDownIcon} tone="danger" loading={loading} hint={periodLabel} />
-        <StatCard
-          label={t('dash.netResult')} value={money(stats.net)} icon={PiggyBankIcon}
-          tone={stats.net < 0 ? 'danger' : 'success'} loading={loading}
+      </StatStrip>
+      <StatStrip title={t('dash.periodSummary')}>
+        <Stat label={t('dash.income')} value={money(stats.income)} loading={loading} hint={periodLabel} />
+        <Stat label={t('dash.expense')} value={money(stats.expense)} loading={loading} hint={periodLabel} />
+        <Stat
+          label={t('dash.netResult')} value={money(stats.net)} loading={loading}
+          tone={stats.net < 0 ? 'danger' : 'neutral'}
           badge={rate === null ? undefined : { text: t('dash.savingRate', { pct: rate }), variant: rate < 0 ? 'destructive' : 'success' }}
         />
-      </section>
-
-      <section className="grid grid-cols-2 gap-4">
-        <CategoryPie
-          title={t('dash.spending')} description={periodLabel} icon={ShoppingBagIcon}
-          slices={stats.expenseSlices} empty={t('dash.noExpense')} loading={loading} money={money}
-        />
-        <CategoryPie
-          title={t('dash.earnings')} description={periodLabel} icon={BanknoteIcon}
-          slices={stats.incomeSlices} empty={t('dash.noIncome')} loading={loading} money={money}
-        />
-      </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dash.trend')}</CardTitle>
-          <CardDescription>{t('dash.trendHint')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {monthly.isLoading ? <Skeleton className="h-56 w-full" /> : (
-            <ChartContainer config={trendConfig} className="h-56 w-full">
-              <BarChart data={trend}>
-                <CartesianGrid vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                <YAxis width={72} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(Math.round(Number(v) * 10 ** exp), exp, i18n.language)} />
-                <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Math.round(Number(v) * 10 ** exp))} />} />
-                <ChartLegend content={<ChartLegendContent />} />
-                <Bar dataKey="income" fill="var(--color-income)" radius={4} />
-                <Bar dataKey="expense" fill="var(--color-expense)" radius={4} />
-              </BarChart>
-            </ChartContainer>
-          )}
-        </CardContent>
-      </Card>
+      </StatStrip>
 
       <section className="grid grid-cols-3 gap-4">
-        <BalanceTable title={t('dash.assetGroups')} rows={stats.assetGroups} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} />
-        <BalanceTable title={t('dash.liabilityGroups')} rows={stats.liabilityGroups} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} />
-        <BalanceTable
-          title={t('dash.topExpenses')} total={stats.expense} money={money} empty={t('dash.noExpense')} loading={loading}
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>{t('dash.trend')}</CardTitle>
+            <CardDescription>{t('dash.trendHint')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {monthly.isLoading ? <Skeleton className="h-64 w-full" /> : (
+              <ChartContainer config={trendConfig} className="h-64 w-full">
+                <BarChart data={trend}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                  <YAxis width={72} tickLine={false} axisLine={false} tickFormatter={(v) => formatAmount(Math.round(Number(v) * 10 ** exp), exp, i18n.language)} />
+                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Math.round(Number(v) * 10 ** exp))} />} />
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <Bar dataKey="income" fill="var(--color-income)" radius={2} />
+                  <Bar dataKey="expense" fill="var(--color-expense)" radius={2} />
+                </BarChart>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+        <RankedList
+          title={t('dash.topExpenses')} description={periodLabel} total={stats.expense} money={money} empty={t('dash.noExpense')} loading={loading}
           rows={stats.topExpense.map((c) => ({ id: c.id, name: c.name, value: c.value }))}
+        />
+      </section>
+
+      <section className="grid grid-cols-3 gap-4">
+        <RankedList title={t('dash.assetGroups')} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} rows={stats.assetGroups} />
+        <RankedList title={t('dash.liabilityGroups')} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} rows={stats.liabilityGroups} />
+        <RankedList
+          title={t('dash.earnings')} description={periodLabel} total={stats.income} money={money} empty={t('dash.noIncome')} loading={loading}
+          rows={stats.incomeSlices.map((s) => ({ id: s.name, name: s.name, value: s.value }))}
         />
       </section>
     </>
   )
 }
 
-// Small table card: name, amount and share of the total.
-function BalanceTable({ title, rows, total, money, empty, loading }: {
+// Ranked list: name, amount and a thin bar for the share of the total.
+function RankedList({ title, description, rows, total, money, empty, loading }: {
   title: string
+  description?: string
   rows: { id: string; name: string; value: number }[]
   total: number
   money: (v: number) => string
@@ -220,24 +213,29 @@ function BalanceTable({ title, rows, total, money, empty, loading }: {
 }) {
   return (
     <Card>
-      <CardHeader><CardTitle>{title}</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
       <CardContent>
         {loading ? <Skeleton className="h-32 w-full" /> : rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">{empty}</p>
+          <Empty className="py-6"><EmptyHeader><EmptyDescription>{empty}</EmptyDescription></EmptyHeader></Empty>
         ) : (
-          <table className="w-full text-sm">
-            <tbody>
+          <Table>
+            <TableBody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b last:border-0 [&>td]:py-1.5">
-                  <td className="truncate">{r.name}</td>
-                  <td className="w-14 text-right">
-                    {total > 0 && <Badge variant="secondary">{Math.round((r.value / total) * 100)}%</Badge>}
-                  </td>
-                  <td className={cn('w-32 text-right font-mono tabular-nums', r.value < 0 && 'text-destructive')}>{money(r.value)}</td>
-                </tr>
+                <TableRow key={r.id}>
+                  <TableCell className="max-w-0 min-w-0">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="truncate">{r.name}</span>
+                      <Progress value={total > 0 ? Math.min(100, Math.max(0, (r.value / total) * 100)) : 0} aria-label={r.name} />
+                    </div>
+                  </TableCell>
+                  <TableCell className={cn('w-36 text-right tabular-nums', r.value < 0 && 'text-destructive')}>{money(r.value)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </CardContent>
     </Card>
