@@ -225,8 +225,8 @@ export const en: Translation = {
     kind: { income: 'Income', expense: 'Expense', transfer: 'Transfer', debt: 'Debt' },
     mode: { between: 'Between accounts', atm_withdraw: 'ATM withdrawal', atm_deposit: 'ATM deposit' },
     debt: {
-      borrow: 'Borrowed', lend: 'Lent', person: 'Person (required)', receivedIn: 'Received in (Debit)', givenFrom: 'Given from (Credit)',
-      debtAmount: 'Amount on the debt account ({{currency}})', needPerson: 'Pick the person you borrowed from or lent to.',
+      borrow: 'Borrow', lend: 'Lend', collect: 'Collection', pay: 'Payment', person: 'Person (required)', receivedIn: 'Account in (Debit)', givenFrom: 'Account out (Credit)',
+      debtAmount: 'Amount on the debt account ({{currency}})', needPerson: 'Pick the person.',
     },
     paidFrom: 'Paid from (Credit)',
     paidTo: 'Received in (Debit)',

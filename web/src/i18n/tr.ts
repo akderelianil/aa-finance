@@ -223,8 +223,8 @@ export const tr = {
     kind: { income: 'Gelir', expense: 'Gider', transfer: 'Transfer', debt: 'Borç' },
     mode: { between: 'Hesaplar arası', atm_withdraw: 'ATM para çekme', atm_deposit: 'ATM para yatırma' },
     debt: {
-      borrow: 'Borç aldım', lend: 'Borç verdim', person: 'Kişi (zorunlu)', receivedIn: 'Alındığı hesap (Borç)', givenFrom: 'Verildiği hesap (Alacak)',
-      debtAmount: 'Borç hesabındaki tutar ({{currency}})', needPerson: 'Borç aldığın ya da verdiğin kişiyi seç.',
+      borrow: 'Borç Alma', lend: 'Borç Verme', collect: 'Tahsilat', pay: 'Ödeme', person: 'Kişi (zorunlu)', receivedIn: 'Giren hesap (Borç)', givenFrom: 'Çıkan hesap (Alacak)',
+      debtAmount: 'Borç hesabındaki tutar ({{currency}})', needPerson: 'Kişiyi seç.',
     },
     paidFrom: 'Ödeme hesabı (Alacak)',
     paidTo: 'Tahsil hesabı (Borç)',

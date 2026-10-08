@@ -3,17 +3,19 @@ owner: interaction-designer
 status: active
 ---
 
-# Borç (alma / verme)
+# Borç
 
-Kullanıcı bir kişiden borç aldı ya da bir kişiye borç verdi. Kredi bu akışta yok. Terimler: [GLOSSARY](../GLOSSARY.md). Form mantığı: [transfer](transfer.md).
+Kişilerarası borç: Borç Verme, Borç Alma, Tahsilat, Ödeme. Kredi bu akışta yok. Terimler: [GLOSSARY](../GLOSSARY.md). Form mantığı: [transfer](transfer.md).
 
 ## Senaryolar
-| Senaryo | Para hesabı | Borç hesabı | Etki |
+| İşlem | Para hesabı | Borç hesabı | Etki |
 |---|---|---|---|
-| Borç aldım | Para girer (Varlık) | Kişilere Borçlar (Yabancı Kaynak) | Borcum artar |
-| Borç verdim | Para çıkar (Varlık) | Kişilerden Alacaklar (Varlık) | Alacağım artar |
+| Borç Verme | Para çıkar | Kişilerden Alacaklar | Alacağım artar |
+| Borç Alma | Para girer | Kişilere Borçlar | Borcum artar |
+| Tahsilat | Para girer | Kişilerden Alacaklar | Alacağım azalır |
+| Ödeme | Para çıkar | Kişilere Borçlar | Borcum azalır |
 
-İki senaryo **aynı form**. Üstteki seçim (Borç aldım / Borç verdim) yalnız yönü değiştirir.
+Dört işlem **aynı form**. Üstteki seçim yalnız yönü ve borç hesabını değiştirir. Tahsilat verilen borcun geri gelmesi, Ödeme alınan borcun geri verilmesidir.
 
 ## Form
 | Alan | Zorunlu | Varsayılan |
@@ -27,6 +29,7 @@ Kullanıcı bir kişiden borç aldı ya da bir kişiye borç verdi. Kredi bu ak�
 - Kişi zorunlu: kime borçlu olduğumuz ya da kimin bize borçlu olduğu Rehber bakiyesinden izlenir.
 - Borç hesabı sorulmaz. Tek hesaptır (Kişilere Borçlar ya da Kişilerden Alacaklar), sistem seçer.
 - Para hesabı yalnız Varlık olur (Nakit, Banka). Kart ve alacak hesabı seçilemez.
+- Kısmi tahsilat/ödeme serbesttir; kişinin kalan bakiyesi Rehber'de görünür.
 - Para hesabı ile borç hesabının para birimi farklıysa ikinci tutar sorulur. Boşsa gün kuruyla önerilir.
 
 ## Kayıt
@@ -42,8 +45,17 @@ Kullanıcı bir kişiden borç aldı ya da bir kişiye borç verdi. Kredi bu ak�
 | Kişilerden Alacaklar (Ayşe) | 2.000 | |
 | Nakit | | 2.000 |
 
-## Geri ödeme / tahsilat
-Ayrı ekran yok: [Transfer](transfer.md) kullanılır (Nereden Banka, Nereye Kişilere Borçlar; tahsilatta tersi). Kişi seçilir, böylece Rehber bakiyesi düşer.
+Örnek 3: Ayşe 500 TL geri verdi (Tahsilat), Nakit girdi.
+| Hesap | Borç | Alacak |
+|---|---|---|
+| Nakit | 500 | |
+| Kişilerden Alacaklar (Ayşe) | | 500 |
+
+Örnek 4: Ahmet'e 1.000 TL ödendi (Ödeme), Bankadan çıktı.
+| Hesap | Borç | Alacak |
+|---|---|---|
+| Kişilere Borçlar (Ahmet) | 1.000 | |
+| Banka | | 1.000 |
 
 ## Henüz yok
-Vade, faiz, taksitli geri ödeme, kredi (banka kredisi), borç silme / bağışlama.
+Vade, faiz, taksit planı, bakiyeyi aşan ödeme uyarısı, kredi (banka kredisi), borç silme / bağışlama.

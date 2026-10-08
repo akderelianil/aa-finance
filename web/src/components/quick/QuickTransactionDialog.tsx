@@ -24,12 +24,15 @@ import {
 export type QuickKind = 'income' | 'expense' | 'transfer' | 'debt'
 type Kind = QuickKind
 type TransferMode = 'between' | 'atm_withdraw' | 'atm_deposit'
-type DebtMode = 'borrow' | 'lend'
+type DebtMode = 'borrow' | 'lend' | 'collect' | 'pay'
+const DEBT_MODES = ['lend', 'borrow', 'collect', 'pay'] as const
+const moneyIn = (m: DebtMode) => m === 'borrow' || m === 'collect'
 
 type Props = { kind: QuickKind | null; onClose: () => void; membership: Membership }
 
 // Hızlı İşlem: Gelir · Gider · Transfer · Borç (alma / verme). Each form posts one plain journal entry through journal-post.
-// Borç needs a Rehber contact: Borç Alma = Borç money / Alacak Kişilere Borçlar, Borç Verme = Borç Kişilerden Alacaklar / Alacak money.
+// Borç needs a Rehber contact: Borç Alma = Borç money / Alacak Kişilere Borçlar, Borç Verme = Borç Kişilerden Alacaklar / Alacak money,
+// Tahsilat = Borç money / Alacak Kişilerden Alacaklar, Ödeme = Borç Kişilere Borçlar / Alacak money.
 // A Rehber contact tags every line; for Gelir / Gider its default account fills the first account line.
 export function QuickTransactionDialog({ kind, onClose, membership }: Props) {
   const { t } = useTranslation()
@@ -95,7 +98,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   const toList = mode === 'atm_withdraw' ? balanceSheet.filter(isCash)
     : mode === 'atm_deposit' ? balanceSheet.filter(isBank) : balanceSheet
   const moneyAccounts = balanceSheet.filter((a) => a.type === 'asset' && a.subtype !== 'receivable')
-  const debtAccount = balanceSheet.find((a) => a.subtype === (debtMode === 'borrow' ? 'payable' : 'receivable'))
+  const debtAccount = balanceSheet.find((a) => a.subtype === (debtMode === 'borrow' || debtMode === 'pay' ? 'payable' : 'receivable'))
   const defaultFee = expenses.find((a) => a.template_key === 'bank_fee')
 
   const money = acc(moneyId)
@@ -158,7 +161,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   let lines: QuickLine[] | null = null
   if (kind === 'debt') {
     if (money && debtAccount && contactId) {
-      lines = debtMode === 'borrow'
+      lines = moneyIn(debtMode)
         ? transferLines(fx, debtAccount, money, debtDiffer ? debtCounter ?? 0 : debtMinor, debtDiffer ? debtMinor : null, 0, null)
         : transferLines(fx, money, debtAccount, debtMinor, debtDiffer ? debtCounter : null, 0, null)
     }
@@ -260,10 +263,10 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
 
       {kind === 'debt' && (
         <ToggleGroup
-          value={[debtMode]} spacing={2} className="grid w-full grid-cols-2" aria-label={t('quick.kind.debt')}
+          value={[debtMode]} spacing={2} className="grid w-full grid-cols-4" aria-label={t('quick.kind.debt')}
           onValueChange={(v) => { if (v[0]) { setDebtMode(v[0] as DebtMode); setCounter('') } }}
         >
-          {(['borrow', 'lend'] as const).map((m) => (
+          {DEBT_MODES.map((m) => (
             <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`quick.debt.${m}`)}</ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -287,10 +290,10 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
       {kind === 'debt' ? (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={debtMode === 'borrow' ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}>
+            <Field label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}>
               <Picker
                 accounts={moneyAccounts} value={moneyId} onChange={setMoneyId} autoFocus
-                label={debtMode === 'borrow' ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}
+                label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}
               />
             </Field>
             <Field label={t('quick.amount')}>
