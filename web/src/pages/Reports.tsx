@@ -1,285 +1,211 @@
-import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BanknoteIcon, ChartPieIcon, CreditCardIcon, LandmarkIcon, ListIcon,
-  PiggyBankIcon, ScaleIcon, ShoppingBagIcon, TrendingDownIcon, TrendingUpIcon, UserIcon, UsersIcon, WalletIcon, type LucideIcon,
-} from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { ChartPieIcon } from 'lucide-react'
+import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
-import { PageShell, FormError } from '@/components/PageShell'
-import { CategoryPie } from '@/components/CategoryPie'
+import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
-import { StatCard } from '@/components/StatCard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { topSlices } from '@/lib/chart'
+import { today } from '@/lib/journal'
+import { formatAmount, shown, useCurrencies, useLedgerAccounts, type AccountType } from '@/lib/ledger'
+import { cumulativeNet, isEmpty, periodNet, rollUp, usePeriodTotals, type ReportNode, type Totals } from '@/lib/reports'
 import { cn } from '@/lib/utils'
-import { errorMessage } from '@/lib/errors'
-import { formatMinor } from '@/lib/money'
-import { supabase } from '@/lib/supabase'
 
-type Tab = 'summary' | 'worth' | 'cash' | 'detail'
-type Period = 'month' | 'lastMonth' | 'year' | 'all'
-type Account = { id: string; name: string; type: string; subtype: string | null }
-type Total = { member_id: string; account_id: string; debit: number; credit: number }
-type Flow = { member_id: string; inflow: number; outflow: number }
+type Tab = 'trial' | 'balance' | 'income'
 
-const iso = (d: Date) => d.toLocaleDateString('sv-SE')
-
-// Dönem sınırları (dahil). Tüm zamanlar: from = null.
-function range(p: Period): { from: string | null; to: string | null } {
-  const now = new Date()
-  if (p === 'month') return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) }
-  if (p === 'lastMonth') {
-    return { from: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)), to: iso(new Date(now.getFullYear(), now.getMonth(), 0)) }
-  }
-  if (p === 'year') return { from: iso(new Date(now.getFullYear(), 0, 1)), to: iso(now) }
-  return { from: null, to: iso(now) }
-}
-
+// Reports in the base currency: Trial Balance (Mizan, cumulative to the end date), Balance Sheet (Bilanço, at the
+// end date) and Income Statement (Gelir Tablosu, for the period).
 export default function Reports({ membership }: { membership: Membership }) {
   const { t, i18n } = useTranslation()
-  const currency = membership.group.base_currency
-  const [tab, setTab] = useState<Tab>('summary')
-  const [period, setPeriod] = useState<Period>('month')
-  const [mine, setMine] = useState(false)
-  const { from, to } = range(period)
-  const money = (v: number) => formatMinor(v, currency, i18n.language)
+  const base = membership.group.base_currency
+  const [tab, setTab] = useState<Tab>('trial')
+  const [from, setFrom] = useState(`${today().slice(0, 4)}-01-01`)
+  const [to, setTo] = useState(today())
+  const [depth, setDepth] = useState('9')
+  const [showZero, setShowZero] = useState(false)
 
-  const accounts = useQuery({
-    queryKey: ['report-accounts', membership.group.id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('accounts').select('id, name, type, subtype').eq('group_id', membership.group.id)
-      if (error) throw error
-      return new Map((data as Account[]).map((a) => [a.id, a]))
-    },
-  })
+  const accounts = useLedgerAccounts()
+  const currencies = useCurrencies()
+  const totals = usePeriodTotals(from, to)
+  const exp = (currencies.data ?? []).find((c) => c.code === base)?.exponent ?? 2
+  const fmt = (minor: number) => formatAmount(minor, exp, i18n.language)
 
-  const periodTotals = useQuery({
-    queryKey: ['report-totals', membership.group.id, from, to],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('report_totals', { p_from: from, p_to: to })
-      if (error) throw error
-      return data as Total[]
-    },
-  })
+  const tree = useMemo(
+    () => (accounts.data && totals.data ? rollUp(accounts.data.roots, totals.data) : []),
+    [accounts.data, totals.data],
+  )
+  const ofType = (...types: AccountType[]) => tree.filter((r) => types.includes(r.node.type))
+  const maxDepth = Number(depth)
 
-  const asOfTotals = useQuery({
-    queryKey: ['report-asof', membership.group.id, to],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('report_totals', { p_from: null, p_to: to })
-      if (error) throw error
-      return data as Total[]
-    },
-  })
-
-  const flow = useQuery({
-    queryKey: ['report-flow', membership.group.id, from, to],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('report_cash_flow', { p_from: from, p_to: to })
-      if (error) throw error
-      return data as Flow[]
-    },
-  })
-
-  // Üye filtresi + hesap bazında topla.
-  function byAccount(rows: Total[] | undefined) {
-    const m = new Map<string, { debit: number; credit: number }>()
-    for (const r of rows ?? []) {
-      if (mine && r.member_id !== membership.id) continue
-      const cur = m.get(r.account_id) ?? { debit: 0, credit: 0 }
-      cur.debit += Number(r.debit)
-      cur.credit += Number(r.credit)
-      m.set(r.account_id, cur)
-    }
-    return [...m.entries()].flatMap(([id, v]) => {
-      const a = accounts.data?.get(id)
-      return a ? [{ ...a, ...v }] : []
+  // Rows of a tree down to the chosen depth; zero rows are hidden unless asked.
+  function rows(nodes: ReportNode[], render: (r: ReportNode) => ReactNode): ReactNode {
+    return nodes.map((r) => {
+      if ((!showZero && isEmpty(r.totals)) || r.node.depth >= maxDepth) return null
+      return <Fragment key={r.node.id}>{render(r)}{rows(r.children, render)}</Fragment>
     })
   }
-
-  const period_ = byAccount(periodTotals.data)
-  const income = period_.filter((a) => a.type === 'income').map((a) => ({ ...a, net: a.credit - a.debit })).filter((a) => a.net !== 0)
-  const expense = period_.filter((a) => a.type === 'expense').map((a) => ({ ...a, net: a.debit - a.credit })).filter((a) => a.net !== 0)
-  const sum = (xs: { net: number }[]) => xs.reduce((s, x) => s + x.net, 0)
-
-  const asOf = byAccount(asOfTotals.data)
-  const assets = asOf.filter((a) => a.type === 'asset').map((a) => ({ ...a, net: a.debit - a.credit })).filter((a) => a.net !== 0)
-  const liabilities = asOf.filter((a) => a.type === 'liability').map((a) => ({ ...a, net: a.credit - a.debit })).filter((a) => a.net !== 0)
-
-  const cash = (flow.data ?? []).filter((f) => !mine || f.member_id === membership.id)
-  const inflow = cash.reduce((s, f) => s + Number(f.inflow), 0)
-  const outflow = cash.reduce((s, f) => s + Number(f.outflow), 0)
-
-  const slicesOf = (rows: { name: string; net: number }[]) =>
-    topSlices(rows.map((r) => ({ name: r.name, value: r.net })), 6, t('dashboard.other'))
-
-  // Hesap listesi: ada göre büyükten küçüğe, toplam satırı altta.
-  const table = (rows: { id: string; name: string; net: number }[], totalLabel: string, tone: string) => (
-    <Table>
-      <TableBody>
-        {[...rows].sort((a, b) => b.net - a.net).map((r) => (
-          <TableRow key={r.id}>
-            <TableCell className="max-w-0 truncate">{r.name}</TableCell>
-            <TableCell className="text-right tabular-nums">{money(r.net)}</TableCell>
-          </TableRow>
-        ))}
-        {rows.length === 0 && (
-          <TableRow className="hover:bg-transparent"><TableCell colSpan={2} className="text-muted-foreground">{t('reports.none')}</TableCell></TableRow>
-        )}
-      </TableBody>
-      <TableFooter>
-        <TableRow>
-          <TableCell className="font-semibold">{totalLabel}</TableCell>
-          <TableCell className={cn('text-right font-semibold tabular-nums', tone)}>{money(sum(rows))}</TableCell>
-        </TableRow>
-      </TableFooter>
-    </Table>
+  const nameCell = (r: ReportNode) => (
+    <td style={{ paddingLeft: `${0.75 + r.node.depth * 1.25}rem` }} className={cn(r.children.length > 0 && 'font-medium')}>
+      <span className="mr-2 font-mono tabular-nums text-muted-foreground">{r.node.code}</span>{r.node.name}
+    </td>
   )
+  const num = (v: number, strong = false) => (
+    <td className={cn('text-right font-mono tabular-nums', v < 0 && 'text-destructive', strong && 'font-semibold')}>{fmt(v)}</td>
+  )
+  const sum = (nodes: ReportNode[], f: (x: Totals) => number) => nodes.reduce((s, r) => s + f(r.totals), 0)
 
-  const error = accounts.error ?? periodTotals.error ?? asOfTotals.error ?? flow.error
-  const loading = accounts.isLoading || periodTotals.isLoading || asOfTotals.isLoading || flow.isLoading
-  const netIncome = sum(income) - sum(expense)
-  const netWorth = sum(assets) - sum(liabilities)
-  const flowConfig: ChartConfig = {
-    inflow: { label: t('reports.inflow'), color: 'var(--chart-2)' },
-    outflow: { label: t('reports.outflow'), color: 'var(--chart-4)' },
-  }
+  const loading = accounts.isLoading || totals.isLoading
 
-  const listCard = (title: string, icon: LucideIcon, children: ReactNode) => {
-    const Icon = icon
+  // Balance sheet: net income to date (unclosed income − expense) goes to equity.
+  const income = ofType('income')
+  const expense = ofType('expense')
+  const netIncomeToDate = -sum(income, cumulativeNet) - sum(expense, cumulativeNet)
+  const netIncomePeriod = -sum(income, periodNet) - sum(expense, periodNet)
+
+  function section(title: string, nodes: ReportNode[], value: (r: ReportNode) => number, extra?: ReactNode, total?: number) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Icon className="size-4 text-muted-foreground" aria-hidden />{title}</CardTitle>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
+      <>
+        <tr className="bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2"><td colSpan={2}>{title}</td></tr>
+        {rows(nodes, (r) => (
+          <tr className="[&>td]:px-3 [&>td]:py-1">{nameCell(r)}{num(value(r), r.node.depth === 0)}</tr>
+        ))}
+        {extra}
+        <tr className="border-t font-semibold [&>td]:px-3 [&>td]:py-2">
+          <td>{t('rep.total', { name: title })}</td>
+          {num(total ?? nodes.reduce((s, r) => s + value(r), 0), true)}
+        </tr>
+      </>
     )
   }
 
   return (
-    <PageShell>
-      <PageHeader title={t('reports.title')} icon={ChartPieIcon} />
-      <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
-        <TabsList className="w-full">
-          {([['summary', ScaleIcon], ['worth', LandmarkIcon], ['cash', ArrowLeftRightIcon], ['detail', ListIcon]] as const).map(([k, Icon]) => (
-            <TabsTrigger key={k} value={k}><Icon />{t(`reports.tab.${k}`)}</TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-      <div className="flex flex-wrap items-center gap-2">
-        <ToggleGroup value={[mine ? 'me' : 'family']} spacing={2} aria-label={t('reports.family')}
-          onValueChange={(v) => { if (v[0]) setMine(v[0] === 'me') }}>
-          <ToggleGroupItem value="family" variant="outline" size="sm"><UsersIcon />{t('reports.family')}</ToggleGroupItem>
-          <ToggleGroupItem value="me" variant="outline" size="sm"><UserIcon />{t('reports.me')}</ToggleGroupItem>
-        </ToggleGroup>
-        {tab !== 'worth' && (
-          <ToggleGroup value={[period]} spacing={2} aria-label={t('reports.tab.summary')}
-            onValueChange={(v) => { if (v[0]) setPeriod(v[0] as Period) }}>
-            {(['month', 'lastMonth', 'year', 'all'] as const).map((p) => (
-              <ToggleGroupItem key={p} value={p} variant="outline" size="sm">{t(`reports.period.${p}`)}</ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+    <>
+      <PageHeader title={t('rep.title')} description={t('rep.subtitle', { currency: base })} icon={ChartPieIcon} />
+      <div className="flex items-end gap-3">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+          <TabsList>
+            <TabsTrigger value="trial">{t('rep.trial')}</TabsTrigger>
+            <TabsTrigger value="balance">{t('rep.balance')}</TabsTrigger>
+            <TabsTrigger value="income">{t('rep.income')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {tab !== 'balance' && (
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            {t('gj.from')}
+            <Input type="date" className="h-8 w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </label>
         )}
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {tab === 'balance' ? t('rep.asOf') : t('gj.to')}
+          <Input type="date" className="h-8 w-40" value={to} onChange={(e) => setTo(e.target.value || today())} />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t('rep.depth')}
+          <OptionSelect
+            className="h-8 w-32" value={depth} onChange={setDepth}
+            options={[['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['9', t('rep.allLevels')]].map(([value, label]) => ({ value, label }))}
+          />
+        </label>
+        <label className="ml-auto flex items-center gap-2 pb-2 text-sm text-muted-foreground">
+          <Checkbox checked={showZero} onCheckedChange={(v) => setShowZero(v === true)} />
+          {t('rep.showZero')}
+        </label>
       </div>
-      <FormError message={error ? errorMessage(t, error) : null} />
 
-      {tab === 'summary' && (
-        <>
-          <section className="grid gap-4 sm:grid-cols-3">
-            <StatCard label={t('reports.totalIncome')} value={money(sum(income))} icon={TrendingUpIcon} tone="success" loading={loading} />
-            <StatCard label={t('reports.totalExpense')} value={money(sum(expense))} icon={TrendingDownIcon} tone="danger" loading={loading} />
-            <StatCard label={t('reports.net')} value={money(netIncome)} icon={PiggyBankIcon} tone={netIncome < 0 ? 'danger' : 'success'} loading={loading} />
-          </section>
-          <section className="grid gap-4 lg:grid-cols-2">
-            <CategoryPie title={t('reports.income')} description={t(`reports.period.${period}`)} icon={BanknoteIcon}
-              slices={slicesOf(income)} empty={t('reports.none')} loading={loading} money={money} />
-            <CategoryPie title={t('reports.expense')} description={t(`reports.period.${period}`)} icon={ShoppingBagIcon}
-              slices={slicesOf(expense)} empty={t('reports.none')} loading={loading} money={money} />
-          </section>
-          <section className="grid gap-4 lg:grid-cols-2">
-            {listCard(t('reports.income'), TrendingUpIcon, table(income, t('reports.totalIncome'), 'text-success'))}
-            {listCard(t('reports.expense'), TrendingDownIcon, table(expense, t('reports.totalExpense'), 'text-destructive'))}
-          </section>
-        </>
-      )}
+      <div className="rounded-xl border">
+        {loading && <p className="p-6 text-center text-muted-foreground">{t('ledger.loading')}</p>}
 
-      {tab === 'worth' && (
-        <>
-          <section className="grid gap-4 sm:grid-cols-3">
-            <StatCard label={t('reports.totalAssets')} value={money(sum(assets))} icon={WalletIcon} tone="info" loading={loading} />
-            <StatCard label={t('reports.totalLiabilities')} value={money(sum(liabilities))} icon={CreditCardIcon} tone="warning" loading={loading} />
-            <StatCard label={t('reports.netWorth')} value={money(netWorth)} icon={LandmarkIcon} tone={netWorth < 0 ? 'danger' : 'success'} loading={loading} />
-          </section>
-          <section className="grid gap-4 lg:grid-cols-2">
-            <CategoryPie title={t('reports.assets')} description={t('dashboard.asOfToday')} icon={WalletIcon}
-              slices={slicesOf(assets)} empty={t('reports.none')} loading={loading} money={money} />
-            <CategoryPie title={t('reports.liabilities')} description={t('dashboard.asOfToday')} icon={CreditCardIcon}
-              slices={slicesOf(liabilities)} empty={t('reports.none')} loading={loading} money={money} />
-          </section>
-          <section className="grid gap-4 lg:grid-cols-2">
-            {listCard(t('reports.assets'), WalletIcon, table(assets, t('reports.totalAssets'), 'text-info'))}
-            {listCard(t('reports.liabilities'), CreditCardIcon, table(liabilities, t('reports.totalLiabilities'), 'text-warning'))}
-          </section>
-        </>
-      )}
+        {!loading && tab === 'trial' && (
+          <table className="w-full text-sm">
+            <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
+              <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
+                <th className="text-left">{t('ledger.account')}</th>
+                <th className="w-40 text-right">{t('rep.debitTotal')}</th>
+                <th className="w-40 text-right">{t('rep.creditTotal')}</th>
+                <th className="w-40 text-right">{t('rep.debitBalance')}</th>
+                <th className="w-40 text-right">{t('rep.creditBalance')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows(tree, (r) => {
+                const d = r.totals.beforeDebit + r.totals.debit
+                const c = r.totals.beforeCredit + r.totals.credit
+                const strong = r.node.depth === 0
+                return (
+                  <tr className={cn('[&>td]:px-3 [&>td]:py-1', strong && 'border-t bg-muted/20')}>
+                    {nameCell(r)}{num(d, strong)}{num(c, strong)}{num(Math.max(d - c, 0), strong)}{num(Math.max(c - d, 0), strong)}
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              {(() => {
+                const d = sum(tree, (x) => x.beforeDebit + x.debit)
+                const c = sum(tree, (x) => x.beforeCredit + x.credit)
+                const db = tree.reduce((s, r) => s + Math.max(cumulativeNet(r.totals), 0), 0)
+                const cb = tree.reduce((s, r) => s + Math.max(-cumulativeNet(r.totals), 0), 0)
+                return (
+                  <tr className="border-t bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
+                    <td>{t('rep.grandTotal')}</td>{num(d, true)}{num(c, true)}{num(db, true)}{num(cb, true)}
+                  </tr>
+                )
+              })()}
+            </tfoot>
+          </table>
+        )}
 
-      {tab === 'cash' && (
-        <>
-          <section className="grid gap-4 sm:grid-cols-3">
-            <StatCard label={t('reports.inflow')} value={money(inflow)} icon={ArrowDownLeftIcon} tone="success" loading={loading} />
-            <StatCard label={t('reports.outflow')} value={money(outflow)} icon={ArrowUpRightIcon} tone="danger" loading={loading} />
-            <StatCard label={t('reports.net')} value={money(inflow - outflow)} icon={ScaleIcon} tone={inflow - outflow < 0 ? 'danger' : 'success'} loading={loading} />
-          </section>
-          {listCard(t('reports.tab.cash'), ArrowLeftRightIcon, (
-            <div className="flex flex-col gap-3">
-              <ChartContainer config={flowConfig} className="h-48 w-full">
-                <BarChart data={[{ name: t('reports.tab.cash'), inflow: inflow / 100, outflow: outflow / 100 }]} barGap={8}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent formatter={(v) => money(Number(v) * 100)} />} />
-                  <Bar dataKey="inflow" fill="var(--color-inflow)" radius={8} />
-                  <Bar dataKey="outflow" fill="var(--color-outflow)" radius={8} />
-                </BarChart>
-              </ChartContainer>
-              <p className="text-xs text-muted-foreground">{t('reports.cashNote')}</p>
+        {!loading && tab === 'balance' && (() => {
+          const assets = ofType('asset')
+          const liabilities = ofType('liability')
+          const equity = ofType('equity')
+          const val = (r: ReportNode) => shown(r.node.type, cumulativeNet(r.totals))
+          const totalAssets = assets.reduce((s, r) => s + val(r), 0)
+          const totalLiab = liabilities.reduce((s, r) => s + val(r), 0)
+          const totalEquity = equity.reduce((s, r) => s + val(r), 0) + netIncomeToDate
+          return (
+            <div className="grid grid-cols-2 divide-x">
+              <table className="w-full self-start text-sm">
+                <tbody>{section(t('ledger.typePlural.asset'), assets, val)}</tbody>
+              </table>
+              <table className="w-full self-start text-sm">
+                <tbody>
+                  {section(t('ledger.typePlural.liability'), liabilities, val)}
+                  {section(t('ledger.typePlural.equity'), equity, val, (
+                    <tr className="[&>td]:px-3 [&>td]:py-1">
+                      <td className="pl-3 font-medium">{t(netIncomeToDate >= 0 ? 'rep.netProfit' : 'rep.netLoss')}</td>
+                      {num(netIncomeToDate, true)}
+                    </tr>
+                  ), totalEquity)}
+                  <tr className="border-t-2 bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
+                    <td>{t('rep.totalSources')}</td>{num(totalLiab + totalEquity, true)}
+                  </tr>
+                </tbody>
+              </table>
+              <div className="col-span-2 border-t px-3 py-2 text-sm">
+                {totalAssets === totalLiab + totalEquity
+                  ? <span className="text-muted-foreground">{t('rep.balanced')}</span>
+                  : <span className="font-medium text-destructive">{t('rep.unbalanced', { amount: fmt(totalAssets - totalLiab - totalEquity) })}</span>}
+              </div>
             </div>
-          ))}
-        </>
-      )}
+          )
+        })()}
 
-      {tab === 'detail' && listCard(t('reports.detail'), ListIcon, (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('reports.account')}</TableHead>
-              <TableHead className="text-right">{t('reports.debit')}</TableHead>
-              <TableHead className="text-right">{t('reports.credit')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...period_].sort((a, b) => a.name.localeCompare(b.name)).map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="max-w-0 truncate">{a.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{money(a.debit)}</TableCell>
-                <TableCell className="text-right tabular-nums">{money(a.credit)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell className="font-semibold">{t('reports.total')}</TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">{money(period_.reduce((s, a) => s + a.debit, 0))}</TableCell>
-              <TableCell className="text-right font-semibold tabular-nums">{money(period_.reduce((s, a) => s + a.credit, 0))}</TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      ))}
-    </PageShell>
+        {!loading && tab === 'income' && (() => {
+          const val = (r: ReportNode) => shown(r.node.type, periodNet(r.totals))
+          return (
+            <table className="w-full text-sm">
+              <tbody>
+                {section(t('ledger.typePlural.income'), income, val)}
+                {section(t('ledger.typePlural.expense'), expense, val)}
+                <tr className="border-t-2 bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
+                  <td>{t(netIncomePeriod >= 0 ? 'rep.netProfit' : 'rep.netLoss')}</td>{num(netIncomePeriod, true)}
+                </tr>
+              </tbody>
+            </table>
+          )
+        })()}
+      </div>
+    </>
   )
 }

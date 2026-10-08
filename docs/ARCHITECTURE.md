@@ -7,7 +7,7 @@ status: active
 
 ## Decisions
 - **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite/shadcn desktop web app on Cloudflare. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
-- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
+- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`; hidden flows: `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
 - **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
 - **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`. It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`. Entries of hidden flows with link tables (installment, deposit, loan, investment) are not editable here.
