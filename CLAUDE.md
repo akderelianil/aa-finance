@@ -27,3 +27,13 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Docs and agents
 - Language: English for docs and code. UI text: Turkish and English in `web/src/i18n/`. `docs/ux/**` (Turkish) is the simplified flow set, built one scenario at a time, starting with `gider.md`.
 - Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `scripts/graphify.cmd query "<question>"` when graphify-out/graph.json exists. Use `scripts/graphify.cmd path "<A>" "<B>"` for relationships and `scripts/graphify.cmd explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `scripts/graphify.cmd update .` to keep the graph current (AST-only, no API cost).

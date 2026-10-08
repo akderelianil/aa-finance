@@ -1,0 +1,11 @@
+# graphify: keep secrets, deps and generated output out of the graph
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.playwright*/
+web/public/
+supabase/.temp/
+graphify-out/
+package-lock.json

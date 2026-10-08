@@ -71,3 +71,13 @@ End-to-end tests: temporary node scripts (not in the repo) that use `.env` (with
 
 ## Memory (portable)
 Claude memory lives in the repo: `.claude/memory/` (index `MEMORY.md`). On a new machine, clone the repo and add to `.claude/settings.local.json` (gitignored, per machine): `"autoMemoryDirectory": "<absolute path to repo>\.claude\memory"`. Then restart Claude Code. Secrets never go into memory.
+
+## Code graph (graphify)
+
+A knowledge graph of the code lives in `graphify-out/` (git-ignored, rebuildable). Claude Code queries it before grepping, which saves tokens.
+
+- Install once: `python -m pip install --user uv`, then `python -m uv tool install "graphifyy[sql]"`.
+- `graphify.exe` is blocked by Application Control. Use `scripts/graphify.cmd <args>` (runs `python -m graphify` from the uv tool env).
+- Commands: `scripts/graphify.cmd query "<question>"`, `path "<A>" "<B>"`, `explain "<concept>"`, `update .` (AST only, no API cost).
+- Git hooks (`post-commit`, `post-checkout`) rebuild the graph. Re-install them with `scripts/graphify.cmd hook install`. Exclusions: `.graphifyignore`.
+- Strict mode is on (`.claude/settings.json`): the first raw file read per session is blocked until one query ran. Disable with `GRAPHIFY_HOOK_STRICT=0`.
