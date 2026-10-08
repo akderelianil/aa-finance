@@ -17,7 +17,7 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 |---|---|---|---|
 | Chart of Accounts | Hesap Planı | `hesap ağacı` | The account tree of the group. |
 | Account | Hesap | `kategori` | A node in the Chart of Accounts. |
-| Account code | Hesap kodu | | Tek Düzen style code, unique in the group (100, 102, 770.01). |
+| Account code | Hesap kodu | | Internal sort key, unique in the group (1.02.01). Hidden in the UI. |
 | Account type | Hesap türü | | Varlık · Yabancı Kaynak · Özkaynak · Gelir · Gider. |
 | Asset / Liability / Equity | Varlık / Yabancı Kaynak / Özkaynak | | Balance-sheet account types. |
 | Income / Expense | Gelir / Gider | | Income-statement account types. |

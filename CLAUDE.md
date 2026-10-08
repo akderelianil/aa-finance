@@ -10,7 +10,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 
 ## Product rules
 - Ledger core first: Chart of Accounts, General Journal, Account Register, Reports. Judge every feature against this core.
-- Follow accounting standards. The UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). Account codes follow the Turkish Tek Düzen Hesap Planı style.
+- Follow accounting standards. The UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). The chart is simple: five locked roots (Varlık, Borç, Özkaynak, Gelir, Gider), locked system groups, free accounts below. The UI hides account codes.
 - Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
 - Every account has a currency. Lines on an account are in the account currency. A missing rate is fetched by the server; a user-given rate wins.
 - A journal entry is a completed event only. Plans and reminders are not entries.

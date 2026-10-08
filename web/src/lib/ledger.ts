@@ -26,12 +26,17 @@ export type Account = {
   owner_member_id: string | null
   is_placeholder: boolean
   system_key: string | null
+  template_key: string | null
+  /** System account: roots, groups, receivable, payable. No rename, move, archive or delete. */
+  locked: boolean
   archived_at: string | null
 }
 
 export type AccountNode = Account & {
   children: AccountNode[]
   depth: number
+  /** Names of the ancestors, "Varlık › Banka" (empty for a root). */
+  path: string
   /** Own net (debit − credit), account currency, minor units. */
   net: number
   /** Subtree net (debit − credit), base currency, minor units. */
@@ -42,7 +47,7 @@ export type AccountNode = Account & {
 export const debitNormal = (t: AccountType) => t === 'asset' || t === 'expense'
 export const shown = (t: AccountType, net: number) => (debitNormal(t) ? net : -net)
 
-// TDHP codes sort as numbers per segment: 100 < 100.01 < 100.02 < 102 < 770.02 < 770.10.
+// Codes are hidden in the UI and only order the tree. They sort as numbers per segment: 1.02 < 1.10 < 1.10.01 < 2.
 export function compareCodes(a: string, b: string): number {
   const x = a.split('.').map(Number)
   const y = b.split('.').map(Number)
@@ -55,7 +60,7 @@ export function compareCodes(a: string, b: string): number {
 
 export function buildAccountTree(accounts: Account[], net: Map<string, number>, treeBase: Map<string, number>) {
   const byId = new Map<string, AccountNode>(accounts.map((a) => [a.id, {
-    ...a, children: [], depth: 0, net: net.get(a.id) ?? 0, treeNetBase: treeBase.get(a.id) ?? 0,
+    ...a, children: [], depth: 0, path: '', net: net.get(a.id) ?? 0, treeNetBase: treeBase.get(a.id) ?? 0,
   }]))
   const roots: AccountNode[] = []
   for (const n of byId.values()) {
@@ -63,20 +68,21 @@ export function buildAccountTree(accounts: Account[], net: Map<string, number>, 
     if (p) p.children.push(n)
     else roots.push(n)
   }
-  const sort = (nodes: AccountNode[], depth: number) => {
+  const sort = (nodes: AccountNode[], depth: number, path: string) => {
     nodes.sort((a, b) => ACCOUNT_TYPES.indexOf(a.type) - ACCOUNT_TYPES.indexOf(b.type) || compareCodes(a.code, b.code))
     for (const n of nodes) {
       n.depth = depth
-      sort(n.children, depth + 1)
+      n.path = path
+      sort(n.children, depth + 1, path ? `${path} › ${n.name}` : n.name)
     }
   }
-  sort(roots, 0)
+  sort(roots, 0, '')
   return { roots, byId }
 }
 
 export const flattenTree = (nodes: AccountNode[]): AccountNode[] => nodes.flatMap((n) => [n, ...flattenTree(n.children)])
 
-/** "Dönen Varlıklar:Hazır Değerler:Kasa" style full name (GnuCash). */
+/** "Varlık:Banka:Yapıkredi Vadesiz TL" style full name (GnuCash). */
 export function fullName(a: AccountNode | Account, byId: Map<string, AccountNode>): string {
   const parts = [a.name]
   let p = a.parent_id ? byId.get(a.parent_id) : undefined
@@ -93,7 +99,7 @@ export function useLedgerAccounts() {
     queryFn: async () => {
       const [acc, bal, tree] = await Promise.all([
         supabase.from('accounts')
-          .select('id, parent_id, code, name, type, subtype, currency, owner_member_id, is_placeholder, system_key, archived_at'),
+          .select('id, parent_id, code, name, type, subtype, currency, owner_member_id, is_placeholder, system_key, template_key, locked, archived_at'),
         supabase.from('account_balances').select('account_id, net_amount'),
         supabase.from('account_tree_balances').select('account_id, net_base_amount'),
       ])

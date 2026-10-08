@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, ListTreeIcon, MoreHorizontalIcon, PlusIcon,
+  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, ListTreeIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -29,7 +29,7 @@ import {
 } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
-// Chart of Accounts (GnuCash "Accounts" tab): code-ordered tree with own balance and subtree total.
+// Chart of Accounts (GnuCash "Accounts" tab): tree with own balance and subtree total.
 export default function Accounts({ membership }: { membership: Membership }) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -56,7 +56,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
     const keep = (n: AccountNode): AccountNode | null => {
       if (n.archived_at && !showArchived) return null
       const children = n.children.map(keep).filter((c): c is AccountNode => !!c)
-      const hit = !q || n.code.startsWith(q) || n.name.toLocaleLowerCase(i18n.language).includes(q)
+      const hit = !q || n.name.toLocaleLowerCase(i18n.language).includes(q)
       return hit || children.length ? { ...n, children } : null
     }
     return (accounts.data?.roots ?? []).map(keep).filter((n): n is AccountNode => !!n)
@@ -122,9 +122,8 @@ export default function Accounts({ membership }: { membership: Membership }) {
         <Table className="text-sm [&_td]:py-1.5 [&_th]:h-9">
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">{t('ledger.code')}</TableHead>
               <TableHead>{t('ledger.name')}</TableHead>
-              <TableHead className="w-36">{t('coa.kind')}</TableHead>
+              <TableHead className="w-32">{t('coa.kind')}</TableHead>
               <TableHead className="w-20">{t('ledger.currency')}</TableHead>
               <TableHead className="w-36">{t('ledger.owner')}</TableHead>
               <TableHead className="w-40 text-right">{t('ledger.balance')}</TableHead>
@@ -134,10 +133,10 @@ export default function Accounts({ membership }: { membership: Membership }) {
           </TableHeader>
           <TableBody>
             {accounts.isLoading && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">{t('ledger.loading')}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('ledger.loading')}</TableCell></TableRow>
             )}
             {!accounts.isLoading && rows.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">{t('coa.empty')}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('coa.empty')}</TableCell></TableRow>
             )}
             {rows.map((n) => {
               const top = n.depth === 0
@@ -149,7 +148,6 @@ export default function Accounts({ membership }: { membership: Membership }) {
                   className={cn('cursor-default select-none', top && 'bg-muted/40 font-semibold', n.archived_at && 'text-muted-foreground')}
                   onDoubleClick={() => !n.is_placeholder && navigate(`/hesaplar/${n.id}`)}
                 >
-                  <TableCell className="font-mono tabular-nums">{n.code}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1" style={{ paddingLeft: `${n.depth * 1.25}rem` }}>
                       {n.children.length > 0 ? (
@@ -161,12 +159,13 @@ export default function Accounts({ membership }: { membership: Membership }) {
                         </button>
                       ) : <span className="w-5" />}
                       <span className={cn(n.is_placeholder && 'italic')}>{n.name}</span>
+                      {n.locked && <LockIcon className="ml-1 size-3 text-muted-foreground" aria-label={t('coa.system')} />}
                       {n.system_key && <Badge variant="outline" className="ml-2">{t('coa.system')}</Badge>}
                       {n.archived_at && <Badge variant="secondary" className="ml-2">{t('coa.archived')}</Badge>}
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
+                    {n.depth === 0 || n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
                   </TableCell>
                   <TableCell className="font-mono">{n.currency}</TableCell>
                   <TableCell className="text-muted-foreground">{n.owner_member_id ? memberName.get(n.owner_member_id) : ''}</TableCell>
@@ -189,9 +188,11 @@ export default function Accounts({ membership }: { membership: Membership }) {
                           {!n.system_key && (
                             <DropdownMenuItem onClick={() => setTarget({ mode: 'create', parent: n })}>{t('coa.addChild')}</DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => setTarget({ mode: 'edit', node: n })}>{t('ledger.edit')}</DropdownMenuItem>
+                          {!(n.locked && n.is_placeholder) && (
+                            <DropdownMenuItem onClick={() => setTarget({ mode: 'edit', node: n })}>{t('ledger.edit')}</DropdownMenuItem>
+                          )}
                         </DropdownMenuGroup>
-                        {!n.system_key && (
+                        {!n.system_key && !n.locked && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuGroup>
@@ -224,7 +225,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('coa.deleteTitle', { name: deleting ? `${deleting.code} ${deleting.name}` : '' })}</AlertDialogTitle>
+            <AlertDialogTitle>{t('coa.deleteTitle', { name: deleting?.name ?? '' })}</AlertDialogTitle>
             <AlertDialogDescription>{t('coa.deleteBody')}</AlertDialogDescription>
           </AlertDialogHeader>
           <FormError message={remove.error ? errorMessage(t, remove.error) : null} />

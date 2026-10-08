@@ -12,9 +12,9 @@ type Props = {
   'aria-label'?: string
 }
 
-const label = (a: AccountNode) => `${a.code} ${a.name}`
+const label = (a: AccountNode) => a.name
 
-// Keyboard account picker for the journal grid: type a code prefix or part of a name, arrows move,
+// Keyboard account picker for the journal grid: type part of a name or of its group, arrows move,
 // Enter or Tab picks the highlighted account, Escape restores the value.
 export function AccountPicker({ accounts, value, onChange, autoFocus, className, ...aria }: Props) {
   const { t, i18n } = useTranslation()
@@ -27,8 +27,7 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
     if (query === null) return []
     const q = query.trim().toLocaleLowerCase(i18n.language)
     return accounts
-      .filter((a) => !q || a.code.startsWith(q) || a.name.toLocaleLowerCase(i18n.language).includes(q)
-        || label(a).toLocaleLowerCase(i18n.language).includes(q))
+      .filter((a) => !q || `${a.path} ${a.name}`.toLocaleLowerCase(i18n.language).includes(q))
       .sort((a, b) => compareCodes(a.code, b.code))
       .slice(0, 40)
   }, [accounts, query, i18n.language])
@@ -91,8 +90,8 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
               onMouseDown={(e) => { e.preventDefault(); pick(a) }}
               onMouseEnter={() => setActive(i)}
             >
-              <span className="w-24 shrink-0 font-mono tabular-nums">{a.code}</span>
               <span className="flex-1 truncate">{a.name}</span>
+              <span className="max-w-48 truncate text-muted-foreground">{a.path}</span>
               <span className="font-mono text-muted-foreground">{a.currency}</span>
             </li>
           ))}

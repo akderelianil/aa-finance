@@ -13,7 +13,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 - Convenience flows are hidden, not deleted: quick entry, installment, loan, deposit, FX exchange, investment, plans, start wizard, directory. Rebuild them later on `journal-post`.
 - Every account has a currency (also income and expense). The owner member is optional on every account and is a label only.
 - The group and its members stay. Screens show one shared ledger.
-- Account code on every account. The template uses Tek Düzen Hesap Planı style codes. The user can change them.
+- Account code on every account for sorting. The UI does not show it. The chart is simple: five roots, locked system groups, free accounts below. The system sets the frame; the user fills it.
 - FX line: the server fetches the day rate when the rate is missing. A user-given rate wins.
 - Not now: Num (document number), reconcile state.
 
@@ -29,6 +29,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | F6 Reports | Trial balance, balance sheet, income statement. Date range. Base currency. | Done 2026-10-08 |
 | Q1 Quick transactions | Sidebar button "Hızlı İşlem": Gelir · Gider (split to several accounts) · Transfer (between accounts, ATM withdrawal, ATM deposit; optional fee line). Different currencies: a second amount, day rate suggested. Posts a plain entry through `journal-post`; edit in the General Journal. Refund: later. | Done 2026-10-08 |
 | D1 Rehber | Directory back in the menu on the ledger core: person, brand, business/institution; contact and IBAN data; default income and expense account per contact, filled in Quick Transaction. `journal-post` lines take `contact_id`; Journal and Register show the contact. Open balance from receivable/payable lines. | Done 2026-10-08 |
+| S1 Simple chart | Five locked roots; locked groups Nakit, Banka, Yatırım, Duran Varlıklar, Kredi Kartı, Krediler; single accounts Kişilerden Alacaklar and Kişilere Borçlar. New account = name + group. Codes hidden. About 40 free categories. | Done 2026-10-08 |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

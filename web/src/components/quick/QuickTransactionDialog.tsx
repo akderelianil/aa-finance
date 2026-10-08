@@ -89,7 +89,7 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
     : mode === 'atm_deposit' ? balanceSheet.filter(isCash) : balanceSheet
   const toList = mode === 'atm_withdraw' ? balanceSheet.filter(isCash)
     : mode === 'atm_deposit' ? balanceSheet.filter(isBank) : balanceSheet
-  const defaultFee = expenses.find((a) => a.code === '780.05')
+  const defaultFee = expenses.find((a) => a.template_key === 'bank_fee')
 
   const money = acc(moneyId)
   const from = acc(fromId)
@@ -435,7 +435,7 @@ function Preview({ lines, byId, base, fmt }: {
             return (
               <tr key={i} className="[&>td]:px-1 [&>td]:py-0.5">
                 <td className={l.side === 'credit' ? 'pl-8' : ''}>
-                  <span className="mr-2 font-mono text-muted-foreground tabular-nums">{a?.code}</span>{a?.name}
+                  {a?.name}
                   {l.memo && <span className="ml-2 text-xs text-muted-foreground">{l.memo}</span>}
                 </td>
                 <td className="text-right font-mono tabular-nums">{cell('debit')}</td>

@@ -6,6 +6,7 @@ import { loadMember } from '../_shared/entries.ts'
 // Edit an account of the group Chart of Accounts (GnuCash "Edit Account"). Any member can edit.
 // Request: { account_id, name?, code?, parent_id? (null = root), currency?, subtype?, owner_member_id?,
 //            is_placeholder?, archived?, statement_day?, due_day? }. A missing field stays.
+// A locked system account (roots, groups, receivable, payable) keeps name, parent, kind, group flag and archive state.
 // DB triggers: an account with lines keeps its type and currency and cannot become a placeholder;
 // a parent has the same type and is not a system account; no cycle. A system account cannot be archived.
 serve(async (req, user) => {
@@ -16,10 +17,13 @@ serve(async (req, user) => {
     const m = await loadMember(tx, user.id)
     await setActor(tx, m.member_id)
     const [a] = await tx`
-      select id, type, subtype, system_key from accounts
+      select id, type, subtype, system_key, locked from accounts
       where id = ${body.account_id} and group_id = ${m.group_id} for update`
     if (!a) throw new HttpError(404, 'Hesap bulunamadı', 'not_found')
     const f = await parseAccountFields(tx, m.group_id, a.type as string, body)
+    if (a.locked && ['name', 'parent_id', 'subtype', 'is_placeholder', 'archived'].some((k) => body[k] !== undefined)) {
+      throw new HttpError(422, 'Sistem hesabı değiştirilemez', 'locked_account')
+    }
 
     const guard = async (q: () => Promise<unknown>, code: string, message: string) => {
       try {

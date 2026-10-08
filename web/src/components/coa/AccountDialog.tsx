@@ -11,9 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
-import {
-  ACCOUNT_TYPES, flattenTree, SUBTYPES, type AccountNode, type AccountType, type Member,
-} from '@/lib/ledger'
+import { flattenTree, type AccountNode, type Member } from '@/lib/ledger'
 import { supabase } from '@/lib/supabase'
 
 export type AccountTarget =
@@ -30,7 +28,8 @@ type Props = {
   onSaved: () => void
 }
 
-// GnuCash "New Account" / "Edit Account": name, code, parent, type, kind, currency, owner, placeholder.
+// New / edit account. The system sets the frame: the user picks the group (Nakit, Banka, Kredi Kartı, Gider ...)
+// and the account takes its type and kind. Code and kind are not asked.
 export function AccountDialog({ target, ...rest }: Props) {
   const { t } = useTranslation()
   return (
@@ -54,27 +53,24 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
   const byId = new Map(all.map((n) => [n.id, n]))
 
   const [name, setName] = useState(edit?.name ?? '')
-  const [code, setCode] = useState(edit?.code ?? '')
   const [parentId, setParentId] = useState(initialParent ?? '')
   const parent = parentId ? byId.get(parentId) : undefined
-  const [rootType, setRootType] = useState<AccountType>(edit?.type ?? 'asset')
-  const type: AccountType = edit?.type ?? parent?.type ?? rootType
-  const [subtype, setSubtype] = useState(edit?.subtype ?? parent?.subtype ?? '')
   const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? baseCurrency)
   const [owner, setOwner] = useState(edit?.owner_member_id ?? '')
   const [placeholder, setPlaceholder] = useState(edit?.is_placeholder ?? false)
   const [statementDay, setStatementDay] = useState<string | undefined>(undefined)
   const [dueDay, setDueDay] = useState<string | undefined>(undefined)
   const used = !!edit && edit.net !== 0
+  const subtype = edit?.subtype ?? parent?.subtype ?? null
 
-  // A parent has the same type; an account cannot move under itself or its subtree. System accounts are no parent.
+  // Groups to choose from: the group accounts (placeholders) and the account the user started from.
+  // A parent has the same type; an account cannot move under itself or its subtree.
   const subtree = new Set(edit ? flattenTree([edit]).map((n) => n.id) : [])
-  const parentOptions = [
-    { value: '', label: t('coa.noParent') },
-    ...all
-      .filter((n) => !n.archived_at && !n.system_key && !subtree.has(n.id) && (!edit || n.type === edit.type))
-      .map((n) => ({ value: n.id, label: `${' '.repeat(n.depth)}${n.code}  ${n.name}` })),
-  ]
+  const parentOptions = all
+    .filter((n) => !n.archived_at && !n.system_key && !subtree.has(n.id) && (!edit || n.type === edit.type)
+      && (n.is_placeholder || n.id === initialParent))
+    .map((n) => ({ value: n.id, label: n.path ? `${n.path} › ${n.name}` : n.name }))
+
   const isCard = subtype === 'credit_card'
   const card = useQuery({
     queryKey: ['card-settings', edit?.id],
@@ -92,10 +88,7 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
   function pickParent(id: string) {
     setParentId(id)
     const p = byId.get(id)
-    if (!edit && p) {
-      setCurrency(p.currency)
-      if (p.subtype) setSubtype(p.subtype)
-    }
+    if (!edit && p) setCurrency(p.currency)
   }
 
   const save = useMutation({
@@ -107,9 +100,7 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
         return callFunction('account-update', {
           account_id: edit.id,
           ...changed('name', name.trim(), edit.name),
-          ...changed('code', code.trim(), edit.code),
           ...changed('parent_id', parentId || null, edit.parent_id),
-          ...changed('subtype', subtype || null, edit.subtype),
           ...changed('currency', currency, edit.currency),
           ...changed('owner_member_id', owner || null, edit.owner_member_id),
           ...changed('is_placeholder', placeholder, edit.is_placeholder),
@@ -118,10 +109,7 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
       }
       return callFunction('account-create', {
         name: name.trim(),
-        code: code.trim() || undefined,
-        parent_id: parentId || undefined,
-        type: parentId ? undefined : rootType,
-        subtype: subtype || undefined,
+        parent_id: parentId,
         currency,
         owner_member_id: owner || undefined,
         is_placeholder: placeholder,
@@ -136,44 +124,32 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
     save.mutate()
   }
 
-  const kinds = SUBTYPES[type]
+  const locked = !!edit?.locked
   return (
     <form onSubmit={onSubmit}>
       <FieldGroup>
-        <div className="grid grid-cols-[8rem_1fr] gap-3">
-          <Field>
-            <FieldLabel htmlFor="acc-code">{t('ledger.code')}</FieldLabel>
-            <Input
-              id="acc-code" value={code} onChange={(e) => setCode(e.target.value)} maxLength={30}
-              pattern="[0-9]+(\.[0-9]+)*" className="font-mono" autoComplete="off"
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="acc-name">{t('ledger.name')}</FieldLabel>
-            <Input id="acc-name" required maxLength={80} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-          </Field>
-        </div>
-        {!edit && <FieldDescription className="-mt-4">{t('coa.codeHint')}</FieldDescription>}
+        <Field>
+          <FieldLabel htmlFor="acc-name">{t('ledger.name')}</FieldLabel>
+          <Input
+            id="acc-name" required maxLength={80} autoFocus value={name} disabled={locked}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
+        {locked && <FieldDescription className="-mt-4">{t('coa.locked')}</FieldDescription>}
         <Field>
           <FieldLabel htmlFor="acc-parent">{t('coa.parent')}</FieldLabel>
-          <OptionSelect id="acc-parent" value={parentId} onChange={pickParent} options={parentOptions} />
+          <OptionSelect
+            id="acc-parent" value={parentId} onChange={pickParent} disabled={locked}
+            options={[...(parentId ? [] : [{ value: '', label: t('coa.pickParent') }]), ...parentOptions]}
+          />
+          {!edit && <FieldDescription>{t('coa.parentHint')}</FieldDescription>}
         </Field>
+        {subtype && (
+          <p className="-mt-2 text-sm text-muted-foreground">
+            {t('coa.kind')}: {t(`ledger.subtype.${subtype}`)}
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-3">
-          <Field>
-            <FieldLabel htmlFor="acc-type">{t('coa.type')}</FieldLabel>
-            <OptionSelect
-              id="acc-type" value={type} disabled={!!edit || !!parent}
-              onChange={(v) => { setRootType(v as AccountType); setSubtype('') }}
-              options={ACCOUNT_TYPES.map((x) => ({ value: x, label: t(`ledger.type.${x}`) }))}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="acc-kind">{t('coa.kind')}</FieldLabel>
-            <OptionSelect
-              id="acc-kind" value={subtype} onChange={setSubtype} disabled={kinds.length === 0}
-              options={[{ value: '', label: t('coa.kindNone') }, ...kinds.map((k) => ({ value: k, label: t(`ledger.subtype.${k}`) }))]}
-            />
-          </Field>
           <Field>
             <FieldLabel htmlFor="acc-currency">{t('ledger.currency')}</FieldLabel>
             <OptionSelect
@@ -190,13 +166,15 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
           </Field>
         </div>
         {used && <FieldDescription className="-mt-4">{t('coa.usedHint')}</FieldDescription>}
-        <Field orientation="horizontal">
-          <Checkbox id="acc-placeholder" checked={placeholder} onCheckedChange={(v) => setPlaceholder(v === true)} disabled={used && !placeholder} />
-          <div className="flex flex-col gap-1">
-            <FieldLabel htmlFor="acc-placeholder">{t('coa.placeholder')}</FieldLabel>
-            <FieldDescription>{t('coa.placeholderHint')}</FieldDescription>
-          </div>
-        </Field>
+        {!locked && (
+          <Field orientation="horizontal">
+            <Checkbox id="acc-placeholder" checked={placeholder} onCheckedChange={(v) => setPlaceholder(v === true)} disabled={used && !placeholder} />
+            <div className="flex flex-col gap-1">
+              <FieldLabel htmlFor="acc-placeholder">{t('coa.placeholder')}</FieldLabel>
+              <FieldDescription>{t('coa.placeholderHint')}</FieldDescription>
+            </div>
+          </Field>
+        )}
         {isCard && (
           <div className="grid grid-cols-2 gap-3">
             <Field>
@@ -212,7 +190,7 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
         <FormError message={save.error ? errorMessage(t, save.error) : null} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>{t('ledger.cancel')}</Button>
-          <Button type="submit" disabled={save.isPending || !name.trim()}>
+          <Button type="submit" disabled={save.isPending || !name.trim() || !parentId}>
             {save.isPending && <Spinner data-icon="inline-start" />}
             {t('ledger.save')}
           </Button>

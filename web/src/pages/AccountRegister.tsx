@@ -66,7 +66,7 @@ export default function AccountRegister({ membership }: { membership: Membership
         rows.push({
           entry: e, lineId: l.id, memo: l.memo, balance,
           debit: l.direction === 'debit' ? amount : 0, credit: l.direction === 'credit' ? amount : 0,
-          other: o ? `${o.code} ${o.name}` : others.length ? t('reg.split') : '',
+          other: o ? o.name : others.length ? t('reg.split') : '',
         })
       }
     }
@@ -92,7 +92,7 @@ export default function AccountRegister({ membership }: { membership: Membership
         <ArrowLeftIcon data-icon="inline-start" />{t('coa.title')}
       </Button>
       <PageHeader
-        title={`${account.code} ${account.name}`}
+        title={account.name}
         description={`${fullName(account, byId)} · ${t(`ledger.type.${account.type}`)} · ${account.currency}`}
         icon={NotebookTextIcon}
         actions={(

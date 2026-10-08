@@ -138,7 +138,7 @@ export function transferLines(
   return lines
 }
 
-// ATM: bank (or credit card, cash advance) ↔ cash. Accounts match by kind or by the TDHP code (100 Kasa, 102 Bankalar).
-export const isCash = (a: AccountNode) => a.subtype === 'cash' || a.code === '100' || a.code.startsWith('100.')
-export const isBank = (a: AccountNode) => a.subtype === 'bank' || a.code === '102' || a.code.startsWith('102.')
-export const isCard = (a: AccountNode) => a.subtype === 'credit_card' || a.code === '309' || a.code.startsWith('309.')
+// ATM: bank (or credit card, cash advance) ↔ cash. Accounts match by kind (a child takes the kind of its group).
+export const isCash = (a: AccountNode) => a.subtype === 'cash'
+export const isBank = (a: AccountNode) => a.subtype === 'bank'
+export const isCard = (a: AccountNode) => a.subtype === 'credit_card'

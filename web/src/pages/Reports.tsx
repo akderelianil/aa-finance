@@ -47,7 +47,7 @@ export default function Reports({ membership }: { membership: Membership }) {
   }
   const nameCell = (r: ReportNode) => (
     <td style={{ paddingLeft: `${0.75 + r.node.depth * 1.25}rem` }} className={cn(r.children.length > 0 && 'font-medium')}>
-      <span className="mr-2 font-mono tabular-nums text-muted-foreground">{r.node.code}</span>{r.node.name}
+      {r.node.name}
     </td>
   )
   const num = (v: number, strong = false) => (

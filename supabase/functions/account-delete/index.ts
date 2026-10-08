@@ -23,7 +23,8 @@ serve(async (req, user) => {
         union all
         select c.id from accounts c join t on c.parent_id = t.id
       )
-      select a2.id, a2.system_key, a2.owner_member_id, a2.type from accounts a2 join t on t.id = a2.id for update of a2`
+      select a2.id, a2.system_key, a2.locked, a2.owner_member_id, a2.type from accounts a2 join t on t.id = a2.id for update of a2`
+    if (tree.some((n) => n.locked)) throw new HttpError(422, 'Sistem hesabı silinemez', 'locked_account')
     if (tree.some((n) => n.system_key)) throw new HttpError(422, 'Sistem hesabı silinemez', 'system_account')
     const ids = tree.map((n) => n.id as string)
 

@@ -63,7 +63,7 @@ export default function Directory({ membership }: { membership: Membership }) {
 
   const accountLabel = (id: string | null) => {
     const a = id ? byId.get(id) : undefined
-    return a ? <><span className="mr-2 font-mono tabular-nums text-muted-foreground">{a.code}</span>{a.name}</> : null
+    return a ? a.name : null
   }
   function linked(c: Contact) {
     if (c.kind === 'individual') return ''

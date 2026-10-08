@@ -104,7 +104,7 @@ export async function loadOwnedEntry(
   return e as { id: string; member_id: string; entry_date: string }
 }
 
-// Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Nakit" açılır.
+// Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Cüzdan - <para birimi>" açılır.
 export async function resolveAccount(tx: Tx, groupId: string, memberId: string, currency: string, accountId?: string) {
   if (accountId) {
     const [acc] = await tx`
@@ -126,7 +126,7 @@ export async function resolveAccount(tx: Tx, groupId: string, memberId: string, 
   const id = uuidv7()
   await tx`
     insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
-    values (${id}, ${groupId}, ${memberId}, 'asset', 'cash', 'Nakit', ${currency})`
+    values (${id}, ${groupId}, ${memberId}, 'asset', 'cash', ${'Cüzdan - ' + currency}, ${currency})`
   return id
 }
 

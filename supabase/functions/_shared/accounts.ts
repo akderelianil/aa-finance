@@ -2,7 +2,7 @@ import { Tx } from './db.ts'
 import { HttpError } from './http.ts'
 import { uuidv7 } from './uuid.ts'
 
-// Group system accounts (income): 645 and 646 under 64 (codes from trigger accounts_defaults).
+// Group system accounts (income): under the Gelir root (parent and code from trigger accounts_defaults).
 export async function createGroupSystemAccounts(tx: Tx, groupId: string) {
   await tx`
     insert into accounts (id, group_id, type, name, system_key) values
@@ -15,7 +15,7 @@ export async function applyAccountTemplate(tx: Tx, groupId: string) {
   await tx`select apply_account_template(${groupId})`
 }
 
-// Yeni üyenin başlangıç hesapları: açılış bakiyesi (özkaynak) ve cüzdan ("Nakit"); grubun ana para biriminde.
+// Yeni üyenin başlangıç hesapları: açılış bakiyesi (Özkaynak altında) ve cüzdan (Nakit grubunun altında); grubun ana para biriminde.
 export async function createMemberAccounts(
   tx: Tx,
   groupId: string,
@@ -25,7 +25,7 @@ export async function createMemberAccounts(
   await tx`
     insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency, system_key) values
       (${uuidv7()}, ${groupId}, ${memberId}, 'equity', null, 'Açılış Bakiyesi', ${currency}, 'opening_balance'),
-      (${uuidv7()}, ${groupId}, ${memberId}, 'asset', 'cash', 'Nakit', ${currency}, null)`
+      (${uuidv7()}, ${groupId}, ${memberId}, 'asset', 'cash', ${'Cüzdan - ' + currency}, ${currency}, null)`
 }
 
 // Kredi kartı kesim / son ödeme günü (kart başına bir kez; Yaklaşanlar buradan türer). Alan verilmezse dokunulmaz.

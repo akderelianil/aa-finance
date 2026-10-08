@@ -56,7 +56,7 @@ export default function Journal({ membership }: { membership: Membership }) {
       || e.journal_lines.some((l) => {
         const a = byId.get(l.account_id)
         return (l.memo ?? '').toLocaleLowerCase(i18n.language).includes(q)
-          || a?.code.startsWith(q) || a?.name.toLocaleLowerCase(i18n.language).includes(q)
+          || a?.name.toLocaleLowerCase(i18n.language).includes(q)
       }))
   }, [entries.data, search, byId, contactById, i18n.language])
 
@@ -153,7 +153,6 @@ export default function Journal({ membership }: { membership: Membership }) {
                       <tr key={l.id} className="[&>td]:px-3 [&>td]:py-0.5">
                         <td />
                         <td className={cn(l.direction === 'credit' && 'pl-10')}>
-                          <span className="mr-2 font-mono tabular-nums text-muted-foreground">{a?.code}</span>
                           {a?.name}
                           {l.currency !== base && (
                             <span className="ml-2 font-mono text-xs text-muted-foreground">

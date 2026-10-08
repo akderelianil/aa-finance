@@ -9,7 +9,7 @@ import { loadMember } from '../_shared/entries.ts'
 //            is_placeholder?, statement_day?, due_day? }
 // A child takes the parent type. Missing currency = parent currency, else base currency. Missing code = next free
 // child code; missing parent = default group of the type (trigger accounts_defaults).
-// Opening balances are journal entries against 500 Sermaye (Özkaynak).
+// Opening balances are journal entries against 3.01 Açılış Bakiyesi (Özkaynak).
 const TYPES = ['asset', 'liability', 'equity', 'income', 'expense']
 
 serve(async (req, user) => {
@@ -41,7 +41,9 @@ serve(async (req, user) => {
       insert into accounts (id, group_id, owner_member_id, parent_id, type, subtype, code, name, currency, is_placeholder)
       values (${id}, ${m.group_id}, ${f.owner ?? null}, ${parent?.id ?? null}, ${type}, ${f.subtype ?? null},
               ${f.code ?? null}, ${name}, ${currency}, ${body.is_placeholder === true})`
-    if (f.subtype === 'credit_card') await saveCardDays(tx, id, body)
+    // A child takes the kind of its parent group (trigger accounts_defaults): card days apply to a card.
+    const [made] = await tx`select subtype from accounts where id = ${id}`
+    if (made?.subtype === 'credit_card') await saveCardDays(tx, id, body)
   })
 
   return { account_id: id }
