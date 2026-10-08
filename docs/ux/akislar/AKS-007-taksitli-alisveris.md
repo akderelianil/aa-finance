@@ -49,7 +49,7 @@ flowchart TD
 | **Erken kapama** (kalan taksitleri tek seferde öde) | İşlem: yalnız **gerçekleşen kart ödemesi**. Banka kalan faizi siliyorsa ödenen tutar kart borcundan küçük kalır; fark "banka indirimi" olarak kart borcunu kapatan düzeltme (faiz giderini azaltır). Takvim kapanır. |
 | **Taksit vade farklı / ekstreye farklı yansıdı** | Gösterim bankanın gerçek ekstresine uydurulur; kullanıcı bir taksit tutarını elle düzeltebilmeli. İşlem etkilenmez (kart borcu zaten toplam). |
 | **Ekstre kesim günü** | Kesimden sonraki alışveriş **bir sonraki ekstreye** düşer, ilk taksit bazen sonraki ay görünür. Kart başına kesim günü ve son ödeme günü bilgisi; takvim buradan türetilir. Kullanıcı tarihi değiştirebilir. |
-| **Son ödeme tarihi** | "Yaklaşanlar"da görünür (uygulama içi). Geçerse "gecikmiş" görünür. |
+| **Son ödeme tarihi** | "Yaklaşanlar"da görünür (uygulama içi). Geçerse "Gecikti" görünür. |
 | **Kartı kısmen / asgari ödedi** | Kart borcu yalnız ödenen kadar azalır; kalan devreder. Bankanın yazdığı **akdi/gecikme faizi** ekstrede gerçekleşince **gider** olarak elle girilir. Taksit takvimi etkilenmez. |
 | **Geç ödeme** | Gecikme faizi/ücreti gerçekleşince gider. Önceden tahmini işlem yok. |
 | **Taksit ertelendi / yapılandırıldı** | Bankanın yeni ödeme takvimi gerçekleşince: kart borcu → kredi/yapılandırma işlemine dönüşür (bkz. [AKS-009](AKS-009-kredi.md)). Eski takvim kapanır. |

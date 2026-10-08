@@ -10,7 +10,7 @@ status: active
 ## Önce cevaplanmalı (tasarımı bekletenler)
 - [ ] **İade nasıl girilsin?** (harita B1) Bugün yolu yok. Öneri: Gider → Daha fazla → "İade"; aynı gider hesabında ve aynı hesapta ters işlem, harcama düşer. Seçenekler: (a) öneri · (b) İşlemler'de işlemin üstünde "İade geldi" düğmesi (ilk işleme bağlı) · (c) v1'de yok, Gelir olarak gir.
 - [ ] **Kart son ödeme tutarı** (harita B2): taksitli alışverişin ekstreye düşmemiş taksitleri tutardan düşülsün mü? Öneri: evet. Seçenek: hayır, kullanıcı "Ödedim" formunda tutarı elle düzeltsin.
-- [ ] **Borcu bağışlama** (harita B4): bana olan ya da benim borcum silinirse bakiye kapansın mı, nasıl sayılsın? Öneri: "Borcu sildim" seçeneği; verdiğim borç silinirse gider, aldığım borç silinirse gelir. Seçenek: gelir/gider yazmadan yalnız kapat (raporda görünmez).
+- [ ] **Borç silme** (harita B4): bana olan ya da benim borcum silinirse bakiye kapansın mı, nasıl sayılsın? Öneri: "Borcu sil" seçeneği; verdiğim borç silinirse gider, aldığım borç silinirse gelir. Seçenek: gelir/gider yazmadan yalnız kapat (raporda görünmez).
 - [ ] **Başkası ödedi, benim payım var** (harita B7) v1'de mi? Öneri: evet; Paylaştır'a "Kim ödedi?" alanı (varsayılan ben). Seçenek: Borç → Borç aldım + ayrı Gider (iki işlem, bugün mümkün değil çünkü Borç aldım hesaba para girişi ister).
 - ⏸→[ ] **Taksitte vade farkı:** kredide karar var (fark = maliyet gideri, işlem günü). Taksite de aynı kural uygulansın mı? Öneri: evet; Taksitli'ye isteğe bağlı "Toplam ödenecek" alanı, fark "Kredi Maliyeti" benzeri gider.
 
@@ -48,7 +48,7 @@ status: active
 - ⏸ Borç rengi, borç devri, faizli kişi borcu, yabancı para borç.
 
 ## Yaklaşanlar ([AKS-017](akislar/AKS-017-hatirlatma.md))
-- ✔ Uygulama içi liste, Ana sayfada; tarihe göre, gecikmiş kırmızı, tarihsiz bakiyeler altta (uygulandı).
+- ✔ Uygulama içi liste, Ana sayfada; tarihe göre, geciken satır kırmızı "Gecikti", tarihsiz bakiyeler altta (uygulandı).
 - ✔ Borçta vade isteğe bağlı; tarih yoksa bakiye tarihsiz satır olur (uygulandı).
 - ✔ Satırdan "Ödedim" / "Tahsil ettim" / "Borcumu ödedim" / "Vade sonu" önceden doldurulmuş formu açar (uygulandı).
 - [ ] "1 hafta ertele" hep 7 gün. Öneri: yeterli. Seçenek: tarih seçilsin.

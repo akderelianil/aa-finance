@@ -44,7 +44,7 @@ flowchart TD
   H -. tarihli bir şey doğduysa .-> P[Bekleyen → Yaklaşanlar]
   P --> D{Tarih geldi}
   D -- gerçek işlem girildi --> PK([Bekleyen kapanır])
-  D -- henüz olmadı --> PG[Gecikmiş: kırmızı]
+  D -- henüz olmadı --> PG[Gecikti: kırmızı]
   D -- ertele / kapat --> PE[+7 gün / hatırlatma kalkar]
   PG --> D
 ```
@@ -90,7 +90,7 @@ Hızlı işlem ekran düzeni [uygulandı]: büyük tutar en üstte · "Kime" ve 
 | **İade (ters işlem)** | Gerçekte geri döndü | İlk işleme bağlı ters işlem; harcama net düşer | **Yok** |
 | **Fark** | Banka farklı tutar yatırdı/çekti | Gerçek tutar girilir, fark gelir veya gider | Kredi masrafı/maliyeti, vadeli getiri/masraf, nakit avans masrafı |
 | **Kısmi** | Tutarın bir kısmı oldu | Kalan, Bekleyen olarak açık kalır | Tahsil ettim / Borcumu ödedim, kart ödemesi (kalan listede), vadeli kısmi çekim |
-| **Kapanış** | Bekleyenin sonu | Tamamlandı · kapatıldı · gecikmiş | Gerçek işlemle kendiliğinden; borç vadesinde "1 hafta ertele" ve "Kapat". **Kapat bakiyeyi sıfırlamaz** (§6) |
+| **Kapanış** | Bekleyenin sonu | Tamamlandı · kapatıldı · gecikti | Gerçek işlemle kendiliğinden; borç vadesinde "1 hafta ertele" ve "Kapat". **Kapat bakiyeyi sıfırlamaz** (§6) |
 
 Bilinçli ertelenenler (boşluk değil): yabancı para borç ve taksit, ATM başka banka masrafı, mutabakat/bakiye düzeltme, borç rengi, borç devri, faizli kişi borcu, kur korumalı hesap.
 
@@ -101,7 +101,7 @@ Bilinçli ertelenenler (boşluk değil): yabancı para borç ve taksit, ATM baş
 | B1 | **İade akışı yok.** Gelir olarak girilirse gelir şişer, harcama düşmez. | Her alışverişte olası; listedeki zorunlu istisna. | Gider → Daha fazla → "İade": aynı gider hesabında ve aynı hesapta ters işlem. |
 | B2 | **Kart son ödeme tutarı taksitli alışverişte yanlış.** Yaklaşanlar kesim günündeki kart borcunun tamamını gösterir; 10 taksitlik 10.000 TL'nin hepsi bu ay ödenecek görünür. | "Ödedim" düğmesi yanlış tutarı doldurur; kullanıcı bankaya güvenir, uygulamaya güvenmez. | Tutar = kesimdeki borç − henüz ekstreye düşmemiş taksitler. Kullanıcı tutarı yine değiştirebilir. |
 | B3 | **Düzelt'te hesap değişmiyor.** "Yanlış kart" en sık hata ([AKS-001](akislar/AKS-001-kartla-alisveris.md)). | Sil + yeniden gir iki iş. | Düzelt'e hesap çipi eklensin. |
-| B4 | **"Kapat" yalnız hatırlatmayı kaldırır**; bakiye tarihsiz satır olarak listeye geri döner. Bana olan borcu bağışlamak için işlem yok. | Kapanış kalıbı eksik; liste temizlenmez. | Ayrı "Borcu sildim" seçeneği: bakiye kapanır; verilen için gider, alınan için gelir. |
+| B4 | **"Kapat" yalnız hatırlatmayı kaldırır**; bakiye tarihsiz satır olarak listeye geri döner. Borç silme için işlem yok. | Kapanış kalıbı eksik; liste temizlenmez. | Ayrı "Borcu sil" seçeneği: bakiye kapanır; verilen için gider, alınan için gelir. |
 | B5 | **Başlangıçta girilen kredi ve süren taksitler takvimsiz.** Sihirbaz yalnız kalan borcu sorar. | Yaklaşanlar en önemli iki kalemi göstermez. | [AKS-019](akislar/AKS-019-baslangic.md): "Kalan taksit sayısı ve tutarı" isteğe bağlı sorulsun. |
 | B6 | **Taksit takvimi Yaklaşanlar'da değil**, Ayarlar → Taksitler'de. | İlke 6: tek liste. | Kart satırının altında "bu ay X taksit" bilgisi. |
 | B7 | **Başkasının ödediği ortak hesap yok.** Paylaştır yalnız "ben ödedim". | "Arkadaş ödedi, benim payım var" sık bir durum. | Borç → Borç aldım'a "harcama için" seçeneği ya da Paylaştır'da "ödeyen" alanı. Karar gerekli. |
@@ -119,7 +119,7 @@ B11 (Transfer için iki terim) 2026-10-08'de giderildi: uygulama her yerde "Tran
 **Tasarımı bekleten açık sorular** (ayrıntı [acik-sorular](acik-sorular.md)):
 1. **İade** nasıl girilsin? (B1)
 2. **Kart son ödeme tutarı** taksitleri dışlasın mı? (B2)
-3. **Bana olan borcu bağışlama:** gider mi, yalnız kapanış mı? (B4)
+3. **Borç silme:** gider mi, yalnız kapanış mı? (B4)
 4. **Başkasının ödediği ortak hesap** v1'de mi? (B7)
 5. **Taksitte vade farkı:** kredideki kural (fark = maliyet gideri, alışveriş günü) burada da geçsin mi?
 6. **Banka teyitleri** (nakit avans oranı/masrafı, erken kapama, erken bozmada kâr payı, otomatik yenileme). Ürün sahibi sözleşmeden bakacak.

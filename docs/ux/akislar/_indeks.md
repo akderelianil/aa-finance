@@ -12,7 +12,7 @@ Durum: 📥 yalnız gelen kutusunda · ✏️ akış yazıldı · ✅ uygulandı
 | [AKS-001](AKS-001-kartla-alisveris.md) | Kartla alışveriş; taksit, paylaştır, kalemler seçenek | Gider | çok sık | ✅ (Düzelt'te hesap yok, iade yok) |
 | AKS-002 / 003 | ATM çekme / yatırma | → [AKS-012](AKS-012-transfer.md) ile birleşti | - | birleşti |
 | [AKS-004](AKS-004-hesap-bolusme.md) | Paylaştır (eşit / tutar / yüzde, 3+ kişi) | Gider → Daha fazla | orta | ✅ ("başkası ödedi" yok) |
-| [AKS-005](AKS-005-borc.md) | Borç: Borç aldım / Borç verdim / Tahsil ettim / Borcumu ödedim | Borç | düşük-orta | ✅ (borcu bağışlama yok) |
+| [AKS-005](AKS-005-borc.md) | Borç: Borç aldım / Borç verdim / Tahsil ettim / Borcumu ödedim | Borç | düşük-orta | ✅ (borç silme yok) |
 | AKS-006 | ([AKS-005](AKS-005-borc.md) ile birleşti) | - | - | birleşti |
 | [AKS-007](AKS-007-taksitli-alisveris.md) | Taksitli alışveriş (tek gider + kart borcu, takvim gösterim) | Gider → Daha fazla | orta | ✅ (vade farkı, iade, erken kapama yok) |
 | [AKS-008](AKS-008-nakit-avans.md) | Nakit avans (masraf isteğe bağlı) | Transfer: kart → Nakit | son zamanlarda sık | ✅ giriş; banka davranışı varsayım |

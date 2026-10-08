@@ -42,8 +42,8 @@ flowchart TD
 | Kısmi ödeme | Kısmi | Kalan bakiye listede kalır |
 | Tam ödeme | Kapanış | Bakiye 0 → Yaklaşanlar'dan kalkar |
 | Yanlış kişi / tür / tutar | Geri Al / Sil | Borç işlemi düzeltilemez; sil + yeniden gir |
-| Vade geldi, ödenmedi | — | Gecikmiş (kırmızı); "1 hafta ertele" +7 gün |
-| Bağışlandı / vazgeçildi | Kapanış | "Kapat" yalnız hatırlatmayı kaldırır; bakiye kalır (harita B4) |
+| Vade geldi, ödenmedi | — | "Gecikti" (kırmızı); "1 hafta ertele" +7 gün |
+| Borç silindi (geri istenmeyecek) | Kapanış | "Kapat" yalnız hatırlatmayı kaldırır; bakiye kalır (harita B4) |
 | Karşı yönde borç | — | Tek net bakiye görünür |
 | Eski borç (başlangıçta) | — | Para girişi/çıkışı olmadan giriş yok ([AKS-019](AKS-019-baslangic.md)) |
 | Döviz borcu, faizli borç, borç devri | — | ⏸ Ertelendi |
@@ -56,4 +56,4 @@ flowchart TD
 Yukarıdaki akış. Kişi bakiyesi Rehber'de ve Yaklaşanlar'da görünür; Yaklaşanlar'daki "Tahsil ettim" / "Borcumu ödedim" düğmesi kişi ve tutarı doldurur.
 
 ## Açık sorular
-[acik-sorular](../acik-sorular.md) (Önce cevaplanmalı: borcu bağışlama; Bölüşme / borç).
+[acik-sorular](../acik-sorular.md) (Önce cevaplanmalı: borç silme; Bölüşme / borç).

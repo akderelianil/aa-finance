@@ -42,6 +42,8 @@ Allowed phrases (the check skips them): `Kayıt ol`.
 | Debt: borrowed / lent | Borç aldım / Borç verdim | |
 | Debt: got paid back / paid back | Tahsil ettim / Borcumu ödedim | `ödeş`, `alacak` |
 | Debts page | Borçlar | |
+| Write off a debt | Borç silme · action: `Borcu sil` | `bağışla` |
+| Overdue (plan) | Gecikti | `gecikmiş` |
 | Split | Paylaştır | |
 | Installment | Taksit | |
 | Cash advance | Nakit avans | |

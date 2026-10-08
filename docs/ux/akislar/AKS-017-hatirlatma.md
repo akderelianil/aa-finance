@@ -41,7 +41,7 @@ flowchart TD
 | Kısmi ödeme | Kısmi | Kalan tutarla listede kalır |
 | Kart taksitli alışveriş içeriyor | — | Tutar taksitlerin tamamını içerir (harita B2) |
 | Kartta kesim/son ödeme günü yok | — | Kart listede hiç görünmez |
-| Borcu bağışladım | Kapanış | Kapat bakiyeyi sıfırlamaz (harita B4) |
+| Borç silme (geri istemeyeceğim) | Kapanış | Kapat bakiyeyi sıfırlamaz (harita B4) |
 | Vade günü hafta sonu, para gelmedi | — | "Bekliyor"; işlem girilene kadar kalır |
 | Taksit takvimi | — | Listede yok; Ayarlar → Taksitler (harita B6) |
 | Ödenmiş ama girilmemiş | — | İşlem girilene kadar kalır (işlem = gerçekleşen) |

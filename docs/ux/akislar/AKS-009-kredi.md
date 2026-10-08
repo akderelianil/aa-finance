@@ -42,7 +42,7 @@ flowchart TD
   C --> D[Yaklaşanlar: Kredi taksidi n/N]
   D --> E{Taksit günü}
   E -- ödendi --> F[Yaklaşanlar → Ödedim: Transfer → kredi hesabı, tutar dolu]
-  E -- ödenmedi --> G[Gecikmiş; gecikme bedeli gerçekleşince gider]
+  E -- ödenmedi --> G[Gecikti; gecikme bedeli gerçekleşince gider]
   F --> H{Bitti mi?}
   H -- hayır --> D
   H -- evet --> I([Finansman kapandı])
@@ -58,7 +58,7 @@ flowchart TD
 | **Taksitli geri ödeme** | Normal akış; sabit taksit, takvim gösterim. |
 | **Erken kapama** | Kalan borç + (varsa) masraf; kâr payı indirimi olabilir (K5 teyit bekliyor). Gerçek ödenen esas; fark "banka indirimi" düzeltmesi ([AKS-007](AKS-007-taksitli-alisveris.md) ile aynı kalıp). |
 | **Kısmi erken ödeme** | Borç azalır; takvim yeniden hesaplanır mı (bankanın yeni takvimi esas); murabaha'da var mı bilinmiyor. |
-| **Gecikme** | Gecikme bedeli gider; Yaklaşanlar'da "gecikmiş". Katılım bankasında gecikme için faiz değil farklı adlandırma olabilir (bilinmiyor). |
+| **Gecikme** | Gecikme bedeli gider; Yaklaşanlar'da "Gecikti". Katılım bankasında gecikme için faiz değil farklı adlandırma olabilir (bilinmiyor). |
 | **Kısmi ödeme** (taksiti eksik ödedi) | Kalan taksit devreder; takvim bankaya göre. |
 | **Kredi iptali (cayma)** | Hesaba yatan para geri ödenir, masraflar iade/gider: ters işlem. |
 | **Yapılandırma** | Eski borç kapanır, yeni takvim açılır; fark gerçekleşen tutardan. |
