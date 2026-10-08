@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { callFunction } from '@/lib/api'
+import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { emptyLine, entryToDraft, today, useAccountEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import {
@@ -31,6 +32,8 @@ export default function AccountRegister({ membership }: { membership: Membership
   const accounts = useLedgerAccounts()
   const currencies = useCurrencies()
   const entries = useAccountEntries(id)
+  const contacts = useContacts()
+  const contactById = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c])), [contacts.data])
   const exponents = new Map((currencies.data ?? []).map((c) => [c.code, c.exponent]))
   const byId = useMemo(() => accounts.data?.byId ?? new Map<string, AccountNode>(), [accounts.data])
   const account = id ? byId.get(id) : undefined
@@ -155,7 +158,12 @@ export default function AccountRegister({ membership }: { membership: Membership
               return (
                 <tr key={r.lineId} className={cn('group', draft?.entryId === r.entry.id && 'bg-primary/10')}>
                   <td className="font-mono tabular-nums">{new Date(r.entry.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
-                  <td>{r.entry.description}</td>
+                  <td>
+                    {r.entry.description}
+                    {lineContacts(r.entry.journal_lines, contactById).map((n) => (
+                      <span key={n} className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{n}</span>
+                    ))}
+                  </td>
                   <td className={cn(r.other === t('reg.split') && 'italic text-muted-foreground')}>{r.other}</td>
                   <td className="text-muted-foreground">{r.memo}</td>
                   <td className="text-right font-mono tabular-nums">{r.debit ? fmt(r.debit) : ''}</td>

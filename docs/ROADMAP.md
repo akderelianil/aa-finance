@@ -20,7 +20,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 ## Phases
 | Phase | Content | Status |
 |---|---|---|
-| F0 Cleanup | Rules, docs, glossary. Menu: Hesap Planı · Yevmiye · Raporlar · Ayarlar. Hide convenience routes. | Done 2026-10-08 |
+| F0 Cleanup | Rules, docs, glossary. Menu: Hesap Planı · Yevmiye · Raporlar · Ayarlar (Rehber added in D1). Hide convenience routes. | Done 2026-10-08 |
 | F1 Schema | Currency on every account (income/expense get the base currency). Owner optional. `accounts.code` unique per group. Template codes. | Done 2026-10-08 |
 | F2 `journal-post` | One generic function: create, update, delete an entry from a line list. Balance check, row locks, rate lookup. | Done 2026-10-08 |
 | F3 Chart of Accounts | Tree table: code · name · type · currency · balance (with subtree). Add, edit, move, archive. Placeholder. | Done 2026-10-08 |
@@ -28,6 +28,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | F5 Account Register | One account's lines with the other account and a running balance. New/edit with the journal form, first line prefilled. | Done 2026-10-08 |
 | F6 Reports | Trial balance, balance sheet, income statement. Date range. Base currency. | Done 2026-10-08 |
 | Q1 Quick transactions | Sidebar button "Hızlı İşlem": Gelir · Gider (split to several accounts) · Transfer (between accounts, ATM withdrawal, ATM deposit; optional fee line). Different currencies: a second amount, day rate suggested. Posts a plain entry through `journal-post`; edit in the General Journal. Refund: later. | Done 2026-10-08 |
+| D1 Rehber | Directory back in the menu on the ledger core: person, brand, business/institution; contact and IBAN data; default income and expense account per contact, filled in Quick Transaction. `journal-post` lines take `contact_id`; Journal and Register show the contact. Open balance from receivable/payable lines. | Done 2026-10-08 |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

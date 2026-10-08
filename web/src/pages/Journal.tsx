@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { callFunction } from '@/lib/api'
+import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
@@ -32,6 +33,8 @@ export default function Journal({ membership }: { membership: Membership }) {
 
   const accounts = useLedgerAccounts()
   const members = useMembers()
+  const contacts = useContacts()
+  const contactById = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c])), [contacts.data])
   const currencies = useCurrencies()
   const entries = useJournalEntries(from, to)
   const exponents = new Map((currencies.data ?? []).map((c) => [c.code, c.exponent]))
@@ -49,12 +52,13 @@ export default function Journal({ membership }: { membership: Membership }) {
     const q = search.trim().toLocaleLowerCase(i18n.language)
     if (!q) return entries.data ?? []
     return (entries.data ?? []).filter((e) => e.description.toLocaleLowerCase(i18n.language).includes(q)
+      || lineContacts(e.journal_lines, contactById).some((n) => n.toLocaleLowerCase(i18n.language).includes(q))
       || e.journal_lines.some((l) => {
         const a = byId.get(l.account_id)
         return (l.memo ?? '').toLocaleLowerCase(i18n.language).includes(q)
           || a?.code.startsWith(q) || a?.name.toLocaleLowerCase(i18n.language).includes(q)
       }))
-  }, [entries.data, search, byId, i18n.language])
+  }, [entries.data, search, byId, contactById, i18n.language])
 
   const totals = visible.reduce((s, e) => {
     for (const l of e.journal_lines) s[l.direction] += Number(l.base_amount)
@@ -127,6 +131,9 @@ export default function Journal({ membership }: { membership: Membership }) {
                     <td className="font-mono tabular-nums">{new Date(e.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
                     <td colSpan={2} className="font-medium">
                       {e.description || <span className="text-muted-foreground italic">{t('gj.noDescription')}</span>}
+                      {lineContacts(e.journal_lines, contactById).map((n) => (
+                        <span key={n} className="ml-3 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">{n}</span>
+                      ))}
                       <span className="ml-3 text-xs font-normal text-muted-foreground">{memberName.get(e.member_id)}</span>
                     </td>
                     <td colSpan={2} />

@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AccountPicker } from '@/components/journal/AccountPicker'
+import { ContactPicker } from '@/components/journal/ContactPicker'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -12,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
+import { useContacts, type Contact } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { today } from '@/lib/journal'
 import { flattenTree, formatAmount, parseDecimalInput, toMinor, useCurrencies, useLedgerAccounts, type AccountNode } from '@/lib/ledger'
@@ -25,6 +27,7 @@ type TransferMode = 'between' | 'atm_withdraw' | 'atm_deposit'
 type Props = { open: boolean; onClose: () => void; membership: Membership }
 
 // Hızlı İşlem: Gelir · Gider · Transfer. Each form posts one plain journal entry through journal-post.
+// A Rehber contact tags every line; for Gelir / Gider its default account fills the first account line.
 export function QuickTransactionDialog({ open, onClose, membership }: Props) {
   const { t } = useTranslation()
   return (
@@ -62,6 +65,10 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
   const [kind, setKind] = useState<Kind>('expense')
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
+  const contacts = useContacts()
+  const activeContacts = useMemo(() => (contacts.data ?? []).filter((c) => !c.archived_at), [contacts.data])
+  const [contactId, setContactId] = useState('')
+  const [autoAccount, setAutoAccount] = useState('') // the account line the contact default filled in
   // Gelir / Gider
   const [moneyId, setMoneyId] = useState('')
   const [splits, setSplits] = useState<SplitDraft[]>([emptySplit()])
@@ -144,9 +151,27 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
   const badFeeAccount = kind === 'transfer' && feeMinor > 0 && !!feeAccount && !!from
     && feeAccount.currency !== from.currency && feeAccount.currency !== base
 
+  // Default account of the contact for the kind; only a postable account of that type counts.
+  const defaultFor = (c: Contact | undefined, k: Kind) => {
+    const id = k === 'income' ? c?.default_income_account_id : k === 'expense' ? c?.default_expense_account_id : null
+    return id && postable.some((a) => a.id === id && a.type === k) ? id : ''
+  }
+  function changeContact(id: string) {
+    setContactId(id)
+    if (kind === 'transfer') return
+    const def = defaultFor(activeContacts.find((c) => c.id === id), kind)
+    const first = splits[0]
+    // Replace the first account only while it is empty or still the previous contact's default.
+    if (first && (!first.accountId || first.accountId === autoAccount)) {
+      setSplits([{ ...first, accountId: def }, ...splits.slice(1)])
+      setAutoAccount(def)
+    }
+  }
+
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('journal-post', {
-      action: 'create', date, description: description.trim(), lines,
+      action: 'create', date, description: description.trim(),
+      lines: lines?.map((l) => (contactId ? { ...l, contact_id: contactId } : l)),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ledger'] })
@@ -165,7 +190,9 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
   }
   function changeKind(k: Kind) {
     setKind(k)
-    setSplits([emptySplit()])
+    const def = defaultFor(activeContacts.find((c) => c.id === contactId), k)
+    setSplits([{ ...emptySplit(), accountId: def }])
+    setAutoAccount(def)
     setMoneyAmount('')
     if (k === 'transfer') changeMode(mode)
     else if (description === atmText(mode)) setDescription('')
@@ -210,6 +237,12 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
       <div className="flex items-end gap-3">
         <Field label={t('ledger.date')}>
           <Input type="date" className="h-8 w-40" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label={t('directory.field')} className="w-60">
+          <ContactPicker
+            contacts={activeContacts} value={contactId} onChange={changeContact} aria-label={t('directory.field')}
+            className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
+          />
         </Field>
         <Field label={t('ledger.description')} className="flex-1">
           <Input className="h-8" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />

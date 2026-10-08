@@ -7,10 +7,10 @@ status: active
 
 ## Decisions
 - **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite/shadcn desktop web app on Cloudflare. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
-- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`; hidden flows: `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
+- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`, `contact_ledger_balances`; hidden flows: `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
 - **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
-- **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`. It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`. Entries of hidden flows with link tables (installment, deposit, loan, investment) are not editable here.
+- **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`, `contact_id` (Rehber tag). It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`. Entries of hidden flows with link tables (installment, deposit, loan, investment) are not editable here.
 - **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
 - **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
 - **Each journal entry belongs to one member** (the member who entered it). The group keeps one shared Chart of Accounts. The account owner (`owner_member_id`) is an optional label on any account type, not a posting rule.
@@ -54,7 +54,7 @@ A receipt with more than one category is one entry with one line per category (`
 | Income | `60` Ücret Gelirleri (600–602), `64` Diğer Olağan Gelir ve Kârlar (640, 642, 645, 646, 649.xx), `67` → `679.xx`. |
 | Expense | `77` → `770` Genel Giderler (`770.01` … `770.99`, sub-levels `770.02.01`), `78` → `780` Finansman Giderleri (`780.01` …). |
 | `template_key` | Stable id of a template node (`b100`, `e770`, `loan_fee`, …). The user can rename, move or archive it. |
-| Brands | Common brands with a default category (hidden Directory flow). |
+| Brands | Common brands with a default expense account (Rehber). |
 
 - Trigger `accounts_defaults` (insert): a missing currency = base currency; a missing parent = the default group (`account_default_parent`: cash → 100, bank/deposit → 102, investment → 118, receivable → 136, credit card → 309, loan → 300, payable → 336, opening balance → 500, income → 649, expense → 770); a missing code = `account_next_code(parent)`.
 - `account_next_code`: a 1–2 digit parent takes the first free digit (`10` → `101`); else the first free 2-digit suffix (`100` → `100.01`).
@@ -78,7 +78,7 @@ A receipt with more than one category is one entry with one line per category (`
 
 ## Scope
 - **v1 (desktop only):** Chart of Accounts, General Journal, Account Register, trial balance / balance sheet / income statement, group/members, multi-currency.
-- **Hidden (code kept, no route):** quick entry, Directory, debts, installments, cash advance, loan, term deposit, investments, plans, start wizard. Rebuild on `journal-post`.
+- **Hidden (code kept, no route):** quick entry, debts, installments, cash advance, loan, term deposit, investments, plans, start wizard. Rebuild on `journal-post`.
 - **Later:** bills, subscriptions, budget, period close, reconcile, scheduled entries.
 
 ## Rules the app enforces (the DB does not)

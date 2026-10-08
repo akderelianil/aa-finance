@@ -33,7 +33,8 @@ serve(async (req, user) => {
         or exists (select 1 from installment_plans where card_account_id = any(${ids}::uuid[]))
         or exists (select 1 from investment_trades where account_id = any(${ids}::uuid[]))
         or exists (select 1 from accounts where id = any(${ids}::uuid[]) and instrument_id is not null)
-        or exists (select 1 from contacts where default_category_id = any(${ids}::uuid[]))
+        or exists (select 1 from contacts where default_category_id = any(${ids}::uuid[])
+                   or default_income_account_id = any(${ids}::uuid[]) or default_expense_account_id = any(${ids}::uuid[]))
         or exists (select 1 from loan_settings where account_id = any(${ids}::uuid[]))
         or exists (select 1 from deposit_settings where account_id = any(${ids}::uuid[]))
       ) as used`

@@ -14,8 +14,7 @@ serve(async (req, user) => {
     const [c] = await tx`select id from contacts where id = ${body.id as string} and group_id = ${m.group_id} for update`
     if (!c) throw new HttpError(404, 'Kayıt bulunamadı', 'not_found')
     const [open] = await tx`
-      select 1 from contact_balances where contact_id = ${c.id}
-      group by contact_id, member_id having sum(net_base_amount) <> 0 limit 1`
+      select 1 from contact_ledger_balances where contact_id = ${c.id} and net_base_amount <> 0`
     if (open) throw new HttpError(422, 'Açık borç/alacak var', 'contact_has_balance')
     await tx`delete from brand_businesses where brand_id = ${c.id} or business_id = ${c.id}`
     await tx`update contacts set archived_at = now() where id = ${c.id}`

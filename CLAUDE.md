@@ -14,7 +14,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
 - Every account has a currency. Lines on an account are in the account currency. A missing rate is fetched by the server; a user-given rate wins.
 - A journal entry is a completed event only. Plans and reminders are not entries.
-- Convenience flows (quick entry, installment, loan, deposit, FX, investment, plans, wizard, directory) are hidden. Their code stays. Rebuild them later on `journal-post`.
+- Convenience flows (quick entry, installment, loan, deposit, FX, investment, plans, wizard) are hidden. Their code stays. Rebuild them later on `journal-post`.
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions.
 
 ## Engineering rules

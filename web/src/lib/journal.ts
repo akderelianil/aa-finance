@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 
 export type JournalLine = {
   id: string; account_id: string; direction: 'debit' | 'credit'; amount: number; currency: string
-  base_amount: number; fx_rate: string; memo: string | null; position: number
+  base_amount: number; fx_rate: string; memo: string | null; contact_id: string | null; position: number
 }
 export type JournalEntry = {
   id: string; entry_date: string; description: string; member_id: string; source_type: string | null
@@ -15,7 +15,7 @@ export function useJournalEntries(from: string, to: string) {
     queryKey: ['ledger', 'journal', from, to],
     queryFn: async () => {
       let q = supabase.from('journal_entries')
-        .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, position)')
+        .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
         .is('deleted_at', null)
         .order('entry_date').order('created_at')
         .limit(2000)
@@ -31,15 +31,22 @@ export function useJournalEntries(from: string, to: string) {
 }
 
 // Journal form draft (General Journal and Account Register).
-export type DraftLine = { key: number; accountId: string; memo: string; debit: string; credit: string; rate: string; base: string }
+export type DraftLine = {
+  key: number; accountId: string; memo: string; debit: string; credit: string; rate: string; base: string; contactId: string
+}
 export type Draft = { entryId?: string; date: string; description: string; lines: DraftLine[] }
 
 let nextKey = 1
 export const emptyLine = (side?: 'debit' | 'credit', amount?: string): DraftLine => ({
-  key: nextKey++, accountId: '', memo: '', rate: '', base: '',
+  key: nextKey++, accountId: '', memo: '', rate: '', base: '', contactId: '',
   debit: side === 'debit' ? amount ?? '' : '', credit: side === 'credit' ? amount ?? '' : '',
 })
 export const today = () => new Date().toLocaleDateString('sv')
+// Rehber field of the form: the one contact on the lines, '' for none, 'mixed' for several.
+export function draftContact(lines: DraftLine[]): string {
+  const ids = new Set(lines.map((l) => l.contactId).filter(Boolean))
+  return ids.size === 0 ? '' : ids.size === 1 ? [...ids][0] : 'mixed'
+}
 export const newDraft = (): Draft => ({ date: today(), description: '', lines: [emptyLine(), emptyLine()] })
 
 // Saved entry → form draft. A foreign line keeps its booked base amount.
@@ -55,7 +62,7 @@ export function entryToDraft(e: JournalEntry, base: string, exponents: Map<strin
     lines: e.journal_lines.map((l) => {
       const amount = dec(Number(l.amount), l.currency)
       return {
-        ...emptyLine(), accountId: l.account_id, memo: l.memo ?? '',
+        ...emptyLine(), accountId: l.account_id, memo: l.memo ?? '', contactId: l.contact_id ?? '',
         debit: l.direction === 'debit' ? amount : '', credit: l.direction === 'credit' ? amount : '',
         base: l.currency !== base ? dec(Number(l.base_amount), base) : '',
       }
@@ -75,7 +82,7 @@ export function useAccountEntries(accountId: string | undefined) {
       const entries: JournalEntry[] = []
       for (let i = 0; i < entryIds.length; i += 200) {
         const { data, error } = await supabase.from('journal_entries')
-          .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, position)')
+          .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
           .in('id', entryIds.slice(i, i + 200))
           .is('deleted_at', null)
         if (error) throw error

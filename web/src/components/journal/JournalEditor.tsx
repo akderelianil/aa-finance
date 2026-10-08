@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
-import { emptyLine, today, type Draft, type DraftLine } from '@/lib/journal'
+import { useContacts } from '@/lib/contacts'
+import { draftContact, emptyLine, today, type Draft, type DraftLine } from '@/lib/journal'
 import { formatAmount, parseDecimalInput, toMinor, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
+import { ContactPicker } from './ContactPicker'
 
 type Props = {
   draft: Draft
@@ -24,7 +26,8 @@ type Props = {
   onCancel: () => void
 }
 
-// General Journal entry form (GnuCash split view): date, description, lines (account, memo, debit, credit).
+// General Journal entry form (GnuCash split view): date, description, Rehber, lines (account, memo, debit, credit).
+// The Rehber field tags every line with one contact; an entry with several contacts keeps them until it is changed.
 // A foreign-currency line shows the rate (day rate suggested) and its base amount; the user can type either.
 // Totals and the imbalance are live; the entry saves only when balanced. Ctrl+Enter saves.
 export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, exponents, onSaved, onCancel }: Props) {
@@ -32,6 +35,9 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
   const baseExp = exponents.get(baseCurrency) ?? 2
   const expOf = (cur: string) => exponents.get(cur) ?? 2
   const [focusKey, setFocusKey] = useState<number | null>(null)
+  const contacts = useContacts()
+  const activeContacts = (contacts.data ?? []).filter((c) => !c.archived_at || draft.lines.some((l) => l.contactId === c.id))
+  const contact = draftContact(draft.lines)
 
   const setLine = (key: number, patch: Partial<DraftLine>) =>
     onChange({ ...draft, lines: draft.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) })
@@ -76,7 +82,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
   function addLine() {
     // GnuCash: a new line proposes the open difference on the other side.
     const amount = diff === 0 ? undefined : formatAmount(Math.abs(diff), baseExp, 'en').replace(/,/g, '')
-    const line = emptyLine(diff > 0 ? 'credit' : diff < 0 ? 'debit' : undefined, amount)
+    const line = { ...emptyLine(diff > 0 ? 'credit' : diff < 0 ? 'debit' : undefined, amount), contactId: contact === 'mixed' ? '' : contact }
     onChange({ ...draft, lines: [...draft.lines, line] })
     setFocusKey(line.key)
   }
@@ -95,6 +101,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
           side,
           amount: parseDecimalInput(side === 'debit' ? l.debit : l.credit, expOf(cur)),
           memo: l.memo.trim() || undefined,
+          contact_id: l.contactId || undefined,
           ...(cur !== baseCurrency && parseDecimalInput(l.base, baseExp) ? { base_amount: parseDecimalInput(l.base, baseExp) } : {}),
           ...(cur !== baseCurrency && !l.base && parseDecimalInput(l.rate, 10) ? { rate: parseDecimalInput(l.rate, 10) } : {}),
         }
@@ -133,6 +140,15 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
           <Input
             className="h-8" maxLength={200} value={draft.description} autoFocus
             onChange={(e) => onChange({ ...draft, description: e.target.value })}
+          />
+        </label>
+        <label className="flex w-56 flex-col gap-1 text-xs text-muted-foreground">
+          {t('directory.field')}
+          <ContactPicker
+            contacts={activeContacts} value={contact === 'mixed' ? '' : contact} aria-label={t('directory.field')}
+            placeholder={contact === 'mixed' ? t('directory.mixed') : undefined}
+            className="rounded-md border border-input text-foreground"
+            onChange={(id) => onChange({ ...draft, lines: draft.lines.map((l) => ({ ...l, contactId: id })) })}
           />
         </label>
         {draft.entryId && <span className="pb-2 text-sm font-medium text-primary">{t('gj.editing')}</span>}

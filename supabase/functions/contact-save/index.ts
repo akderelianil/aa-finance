@@ -4,9 +4,9 @@ import { loadMember } from '../_shared/entries.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 
 // Rehber kaydı ekle / düzenle. Rehber grup ortaktır: her üye düzenler.
-// Alanlar: name, kind (individual | brand | business), phone, email, tax_id,
-// default_category_id (yalnız marka; gider/gelir kategorisi), links (marka ↔ firma, karşı tarafın id'leri),
-// bank_accounts [{ bank_name?, iban }] (verilirse listenin tamamı yenisiyle değişir).
+// Fields: name, kind (individual | brand | business), phone, email,
+// default_income_account_id, default_expense_account_id (any kind; suggested in quick transactions),
+// links (brand ↔ business, ids of the other side), bank_accounts [{ bank_name?, iban }] (replaces the whole list).
 const KINDS = ['individual', 'brand', 'business']
 
 const optional = (v: unknown, field: string, max: number) =>
@@ -20,8 +20,8 @@ serve(async (req, user) => {
   if (!KINDS.includes(kind)) throw new HttpError(422, 'kind geçersiz', 'invalid_kind')
   const phone = optional(body.phone, 'phone', 40)
   const email = optional(body.email, 'email', 120)
-  const taxId = optional(body.tax_id, 'tax_id', 20)
-  const categoryId = kind === 'brand' ? optional(body.default_category_id, 'default_category_id', 40) : null
+  const incomeId = optional(body.default_income_account_id, 'default_income_account_id', 40)
+  const expenseId = optional(body.default_expense_account_id, 'default_expense_account_id', 40)
   const links = Array.isArray(body.links) ? body.links.filter((x): x is string => typeof x === 'string') : null
   const banks = Array.isArray(body.bank_accounts)
     ? body.bank_accounts.map((b) => {
@@ -41,11 +41,12 @@ serve(async (req, user) => {
         and lower(name) = lower(${name}) and id is distinct from ${id}`
     if (dup) throw new HttpError(409, 'Bu isim Rehber\'de var', 'duplicate_name')
 
-    if (categoryId) {
-      const [cat] = await tx`
-        select 1 from accounts where id = ${categoryId} and group_id = ${m.group_id}
-          and type in ('expense', 'income') and system_key is null and archived_at is null`
-      if (!cat) throw new HttpError(422, 'Kategori geçersiz', 'invalid_category')
+    for (const [accId, type] of [[incomeId, 'income'], [expenseId, 'expense']] as const) {
+      if (!accId) continue
+      const [acc] = await tx`
+        select 1 from accounts where id = ${accId} and group_id = ${m.group_id}
+          and type = ${type} and not is_placeholder and archived_at is null`
+      if (!acc) throw new HttpError(422, 'Hesap geçersiz', 'invalid_account')
     }
 
     let cid = id
@@ -53,14 +54,14 @@ serve(async (req, user) => {
       const [c] = await tx`select id from contacts where id = ${cid} and group_id = ${m.group_id} for update`
       if (!c) throw new HttpError(404, 'Kayıt bulunamadı', 'not_found')
       await tx`
-        update contacts set name = ${name}, kind = ${kind}, phone = ${phone}, email = ${email}, tax_id = ${taxId},
-          default_category_id = ${categoryId}
+        update contacts set name = ${name}, kind = ${kind}, phone = ${phone}, email = ${email},
+          default_income_account_id = ${incomeId}, default_expense_account_id = ${expenseId}
         where id = ${cid}`
     } else {
       cid = uuidv7()
       await tx`
-        insert into contacts (id, group_id, kind, name, phone, email, tax_id, default_category_id)
-        values (${cid}, ${m.group_id}, ${kind}, ${name}, ${phone}, ${email}, ${taxId}, ${categoryId})`
+        insert into contacts (id, group_id, kind, name, phone, email, default_income_account_id, default_expense_account_id)
+        values (${cid}, ${m.group_id}, ${kind}, ${name}, ${phone}, ${email}, ${incomeId}, ${expenseId})`
     }
 
     // Tür değiştiyse geçersiz kalan bağlar silinir; links verildiyse yeniden kurulur.

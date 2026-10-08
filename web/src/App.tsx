@@ -13,10 +13,11 @@ import OnboardingCreate from '@/pages/OnboardingCreate'
 import OnboardingJoin from '@/pages/OnboardingJoin'
 import Register from '@/pages/Register'
 
-// Hidden flows (Home, Directory, Installments, Investments, Setup) keep their pages but have no route.
+// Hidden flows (Home, Installments, Investments, Setup) keep their pages but have no route.
 const Accounts = lazy(() => import('@/pages/Accounts'))
 const AccountRegister = lazy(() => import('@/pages/AccountRegister'))
 const Reports = lazy(() => import('@/pages/Reports'))
+const Directory = lazy(() => import('@/pages/Directory'))
 
 function Loading() {
   const { t } = useTranslation()
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="/hesaplar/:id" element={<AccountRegister membership={membership.data} />} />
         <Route path="/yevmiye" element={<Journal membership={membership.data} />} />
         <Route path="/raporlar" element={<Reports membership={membership.data} />} />
+        <Route path="/rehber" element={<Directory membership={membership.data} />} />
         <Route path="/ayarlar" element={<Settings membership={membership.data} />} />
       </Route>
       <Route path="*" element={<Navigate to="/hesaplar" replace />} />

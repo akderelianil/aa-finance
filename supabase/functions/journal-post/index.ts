@@ -8,7 +8,8 @@ import { dayRate, parseRate, saveRate, toBase } from '../_shared/fx.ts'
 
 // General Journal write: create, update or delete one journal entry from a line list (GnuCash splits).
 // Request: { action: 'create' | 'update' | 'delete', entry_id?, date?, description?,
-//            lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo? }] }
+//            lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo?, contact_id? }] }
+// contact_id tags a line with a Rehber contact of the group (receivable/payable balance, who was paid).
 // amount is in the account currency. For a foreign-currency line the base amount comes from base_amount, else
 // from rate, else from the day rate (saved rate, TCMB, last saved). Total debit = total credit in base_amount.
 
@@ -78,6 +79,16 @@ async function parseLines(tx: Tx, m: Member, date: string, v: unknown): Promise<
     order by a.id for update of a`
   const accounts = new Map(rows.map((r) => [r.id as string, r]))
 
+  const contactIds = [...new Set(raw.map((l) => l.contact_id).filter((c) => c !== undefined && c !== null && c !== ''))]
+  if (contactIds.some((id) => typeof id !== 'string' || !/^[0-9a-f-]{36}$/i.test(id))) {
+    throw new HttpError(422, 'contact geçersiz', 'invalid_contact')
+  }
+  if (contactIds.length) {
+    const found = await tx`
+      select id from contacts where group_id = ${m.group_id} and id = any(${contactIds as string[]}::uuid[])`
+    if (found.length !== contactIds.length) throw new HttpError(422, 'contact geçersiz', 'invalid_contact')
+  }
+
   const out: RawLine[] = []
   let debit = 0n
   let credit = 0n
@@ -108,7 +119,8 @@ async function parseLines(tx: Tx, m: Member, date: string, v: unknown): Promise<
     const memo = l.memo ? requireString(l.memo, 'memo', 200) : null
     if (l.side === 'debit') debit += base
     else credit += base
-    out.push({ account: acc.id as string, dir: l.side, amount, currency, base, rate, memo })
+    const contactId = typeof l.contact_id === 'string' && l.contact_id ? l.contact_id : null
+    out.push({ account: acc.id as string, dir: l.side, amount, currency, base, rate, memo, contactId })
   }
   if (debit !== credit) {
     throw new HttpError(422, `Borç (${debit}) ve alacak (${credit}) toplamı eşit değil`, 'unbalanced')
