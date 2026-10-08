@@ -12,7 +12,6 @@ export const tr = {
     directory: 'Rehber',
     reports: 'Raporlar',
     settings: 'Ayarlar',
-    calendar: 'Takvim',
     add: 'Ekle',
     menu: 'Menü',
   },
@@ -48,8 +47,7 @@ export const tr = {
     theme_system: 'Sistem',
   },
   calendar: {
-    empty: 'Henüz bir şey yok',
-    hint: 'Takvim görünümü yakında.',
+    week: 'Hafta {{n}}',
   },
   dash: {
     family: 'Aile',

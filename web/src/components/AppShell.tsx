@@ -1,4 +1,4 @@
-import { BookOpenIcon, CalendarIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon } from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -10,6 +10,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { GroupHeader } from './GroupHeader'
+import { SidebarCalendar } from './SidebarCalendar'
 import { NavUser } from './NavUser'
 import { QuickTransactionDialog, type QuickKind } from './quick/QuickTransactionDialog'
 import { InsideAppShell } from './PageShell'
@@ -78,22 +79,7 @@ export function AppShell({ membership }: { membership: Membership }) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={t('nav.calendar')}
-                    isActive={isActive(pathname, '/takvim', false)}
-                    render={<NavLink to="/takvim" />}
-                  >
-                    <CalendarIcon />
-                    <span>{t('nav.calendar')}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <SidebarCalendar />
         </SidebarContent>
         <SidebarFooter>
           <NavUser user={user} />

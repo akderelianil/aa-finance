@@ -14,7 +14,6 @@ export const en: Translation = {
     directory: 'Directory',
     reports: 'Reports',
     settings: 'Settings',
-    calendar: 'Calendar',
     add: 'Add',
     menu: 'Menu',
   },
@@ -50,8 +49,7 @@ export const en: Translation = {
     theme_system: 'System',
   },
   calendar: {
-    empty: 'Nothing here yet',
-    hint: 'Calendar view is coming soon.',
+    week: 'Week {{n}}',
   },
   dash: {
     family: 'Family',
