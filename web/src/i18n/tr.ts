@@ -450,6 +450,12 @@ export const tr = {
     periodTotal: 'Dönem toplamı',
     deleteTitle: 'Bu yevmiye kaydı silinsin mi?',
   },
+  reg: {
+    other: 'Karşı hesap',
+    split: '— Çok satırlı —',
+    opening: 'Devreden bakiye',
+    notFound: 'Hesap bulunamadı.',
+  },
   errors: {
     duplicate_code: 'Bu hesap kodu kullanılıyor.',
     invalid_account_code: 'Hesap kodu geçersiz (ör. 100, 102.01).',

@@ -15,6 +15,7 @@ import Register from '@/pages/Register'
 
 // Hidden flows (Home, Directory, Installments, Investments, Setup) keep their pages but have no route.
 const Accounts = lazy(() => import('@/pages/Accounts'))
+const AccountRegister = lazy(() => import('@/pages/AccountRegister'))
 const Reports = lazy(() => import('@/pages/Reports'))
 
 function Loading() {
@@ -55,6 +56,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell membership={membership.data} />}>
         <Route path="/hesaplar" element={<Accounts membership={membership.data} />} />
+        <Route path="/hesaplar/:id" element={<AccountRegister membership={membership.data} />} />
         <Route path="/yevmiye" element={<Journal membership={membership.data} />} />
         <Route path="/raporlar" element={<Reports membership={membership.data} />} />
         <Route path="/ayarlar" element={<Settings membership={membership.data} />} />

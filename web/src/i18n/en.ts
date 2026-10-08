@@ -452,6 +452,12 @@ export const en: Translation = {
     periodTotal: 'Period total',
     deleteTitle: 'Delete this journal entry?',
   },
+  reg: {
+    other: 'Transfer account',
+    split: '— Split entry —',
+    opening: 'Opening balance',
+    notFound: 'Account not found.',
+  },
   errors: {
     duplicate_code: 'This account code is in use.',
     invalid_account_code: 'Account code is invalid (e.g. 100, 102.01).',

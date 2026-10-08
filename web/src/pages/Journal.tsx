@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
-import { emptyLine, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
+import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
@@ -62,24 +62,7 @@ export default function Journal({ membership }: { membership: Membership }) {
   }, { debit: 0, credit: 0 })
 
   function edit(e: JournalEntry) {
-    const dec = (minor: number, cur: string) => {
-      const x = exponents.get(cur) ?? 2
-      return (minor / 10 ** x).toFixed(x)
-    }
-    setDraft({
-      entryId: e.id,
-      date: e.entry_date,
-      description: e.description,
-      lines: e.journal_lines.map((l) => {
-        const line = emptyLine()
-        const amount = dec(Number(l.amount), l.currency)
-        return {
-          ...line, accountId: l.account_id, memo: l.memo ?? '',
-          debit: l.direction === 'debit' ? amount : '', credit: l.direction === 'credit' ? amount : '',
-          base: l.currency !== base ? dec(Number(l.base_amount), base) : '',
-        }
-      }),
-    })
+    setDraft(entryToDraft(e, base, exponents))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
