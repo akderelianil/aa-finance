@@ -3,43 +3,52 @@ owner: interaction-designer
 status: active
 ---
 
-# AKS-017 — Yaklaşanlar / hatırlatma ("kişi/kurum ödemedi")
+# AKS-017 — Yaklaşanlar / hatırlatma
 
-- **Kaynak:** Anlatım 6; **güncellendi: Anlatım 7 (yalnız uygulama içi liste)**
-- **Kim:** Ben (alacaklı); borçlu bir kişi veya kurum
-- **Tetikleyici:** Birinin bana borcu var (bölüşme [AKS-004](AKS-004-hesap-bolusme.md), borç verme AKS-006) ve ödemedi
-- **Sıklık:** Düşük-orta; borç bekleyen her kayıt için
-- **Hedef:** Unutmadan alacağımı takip etmek; ödeyince kayıt kendiliğinden kapanmalı
+- **Kaynak:** Anlatım 6-7; uygulama 2026-10-07 (Plan ve Yaklaşanlar)
+- **Kim:** Ben; karşı taraf kişi, kart, banka ya da vadeli hesap
+- **Tetikleyici:** Tarihli ya da açık bir şey bekliyor: kart son ödeme, kredi taksidi, vade günü, borç/alacak
+- **Sıklık:** Uygulama her açıldığında görülür
+- **Hedef:** Unutmamak; gerçek kayıt girilince satır kendiliğinden kalksın
 
-## Karar (Anlatım 7)
-**Bildirim yalnız uygulama içi liste: "Yaklaşanlar".** Native/telefon bildirimi **yok**. Kullanıcı uygulamayı açtığında listeyi görür. Bu ekran aynı zamanda ekstre taksit takvimi ([AKS-007](AKS-007-taksitli-alisveris.md)), vade günü ([AKS-018](AKS-018-vadeli-hesap.md)), kredi taksit takvimi ([AKS-009](AKS-009-kredi.md)) ve borç vadesini gösterir. Hepsi **kayıt değil, gösterim/hatırlatma**.
+## Kararlar [uygulandı]
+- Yalnız uygulama içi liste, **Ana sayfada** "Yaklaşanlar" kartı. Telefon bildirimi yok. Kişiye mesaj yok.
+- Hepsi **gösterim**, kayıt değil.
+- Sıra: tarihe göre; geçmiş tarih kırmızı "Gecikmiş" (vadeli hesapta "Bekliyor"); tarihsiz satırlar en altta.
+- Liste yalnız giren üyenin kendi kartlarını, kredilerini, vadelilerini ve kişi bakiyelerini gösterir.
+
+| Satır | Ne zaman görünür | Tutar | Düğme | Kendiliğinden kalkar |
+|---|---|---|---|---|
+| Kart son ödeme | Kartta kesim ve son ödeme günü girildiyse, kalan > 0 | Kesimdeki borç − kesimden sonra ödenen | Öde → Transfer, kart ve tutar dolu | Kart ödemesi kalanı sıfırlayınca |
+| Kredi taksidi n/N | Kalan borç > 0 | Taksit tutarı | Öde → Transfer → kredi hesabı | Bütün taksitler ödenince |
+| Vade günü | Vadeli hesap açıkken | Anapara + beklenen getiri | Bankada ne oldu? ([AKS-018](AKS-018-vadeli-hesap.md)) | Vade sonu kaydı girilince |
+| Borç/alacak (tarihli) | Vade tarihi girildiyse | Kişiyle net bakiye | Ödeşme · Ertele (+7 gün) · Vazgeç | Bakiye 0 olunca |
+| Borç/alacak (tarihsiz) | Bakiye ≠ 0 | Kişiyle net bakiye | Ödeşme | Bakiye 0 olunca |
 
 ## Akış
 ```mermaid
 flowchart TD
-  A([Bana borçlu kayıt var]) --> B{Ödendi mi?}
-  B -- evet --> Z([Yaklaşanlar'dan kalkar])
-  B -- hayır, tarih/süre doldu --> C[Yaklaşanlar'da: X ödemedi]
-  C --> D{Ne yapayım?}
-  D -- ödendi gir --> E[Gerçek ödeme kaydı: tam/kısmi]
-  D -- sonra hatırlat --> F[Ertele]
-  D -- vazgeç --> G[Borcu kapat/bağışla]
-  E --> B
-  F --> B
+  A([Ana sayfa: Yaklaşanlar]) --> B{Satır}
+  B -- Öde / Ödeşme / Bankada ne oldu --> C[Önceden doldurulmuş Hızlı Kayıt]
+  C --> D([Gerçek kayıt → satır kalkar ya da azalır])
+  B -- Ertele --> E[Tarih +7 gün]
+  B -- Vazgeç --> F[Hatırlatma kalkar; bakiye tarihsiz satır olarak kalır]
 ```
 
 ## İstisnalar
-- Kısmi ödeme: kalan tutar için listede kalır.
-- Kişi ödeyince (ödeme kaydı girildiğinde) satır otomatik kapanır; yanlış alarm olursa "ödendi" ile kapatılır.
-- Kurum: bana borçlu kurum (iade, alacak) olabilir; "ben kuruma ödemedim" (fatura) ayrı konu, fatura/abonelik **sonraki aşamada**.
-- Kişiye mesaj gitmesi: uygulama dışı; bu sürümde yok.
+| Durum | Kalıp | Bugün |
+|---|---|---|
+| Kısmi ödeme | Kısmi | Kalan tutarla listede kalır |
+| Kart taksitli alışveriş içeriyor | — | Tutar taksitlerin tamamını içerir (harita B2) |
+| Kartta kesim/son ödeme günü yok | — | Kart listede hiç görünmez |
+| Borçtan vazgeçtim (bağış) | Kapanış | Vazgeç bakiyeyi kapatmaz (harita B4) |
+| Vade günü hafta sonu, para gelmedi | — | "Bekliyor"; kayıt girilene kadar kalır |
+| Taksit takvimi | — | Listede yok; Ayarlar → Taksitler (harita B6) |
+| Ödenmiş ama girilmemiş | — | Kayıt girilene kadar kalır (kayıt = gerçekleşen) |
 
-## Sürtünme & duygu
-- Arkadaşa para sormak sosyal olarak zahmetli; liste sessizce hatırlatır, kimseyi rahatsız etmez.
-- Liste yalnız uygulama açılınca görünür; kullanıcı açmazsa kaçırır. Bu bilinçli kabul edilen sınır.
+## Sürtünme
+- Liste yalnız uygulama açılınca görünür; bilinçli sınır.
+- Arkadaşa para sormak zahmetli; liste sessizce hatırlatır.
 
-## Uygulamadaki karşılığı (şimdi)
-Yaklaşanlar listesi yok; `contact_balances` bakiyeyi gösteriyor. Vade/tarih alanı borç kaydında yok olabilir (kontrol edilecek, **uyumsuzluk adayı**).
-
-## Notlar / açık sorular
-Bkz. [acik-sorular](../acik-sorular.md) (Hatırlatma / Yaklaşanlar). Vade günü için bkz. [AKS-018](AKS-018-vadeli-hesap.md).
+## Açık sorular
+[acik-sorular](../acik-sorular.md) (Yaklaşanlar).

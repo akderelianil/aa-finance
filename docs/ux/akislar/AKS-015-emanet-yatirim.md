@@ -5,6 +5,7 @@ status: active
 
 # AKS-015 — Emanet parayla yatırım (ÇOK ZOR)
 
+- **Durum:** **v1 sonrası** (karar 2026-10-07, [ROADMAP](../../ROADMAP.md)). v1'de baba yalnız Rehber kişisi.
 - **Kaynak:** Anlatım 1
 - **Kim:** Ben (yönetici) + baba (para sahibi, yatırımdan anlamıyor)
 - **Tetikleyici:** Baba parayı verir; ben onun adına yatırım yaparım

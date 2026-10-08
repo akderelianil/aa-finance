@@ -5,107 +5,111 @@ status: active
 
 # Açık Sorular
 
-(✔ = cevaplandı/karar verildi, ayrıntı [gelen-kutusu](gelen-kutusu.md)'de · ⏸ = bilinçli ertelendi)
+İşaretler: ✔ karar verildi (uygulandıysa "uygulandı") · ⏸ bilinçli ertelendi · [ ] açık. Kararların kaynağı: [gelen-kutusu](gelen-kutusu.md) ve [ROADMAP](../ROADMAP.md). 2026-10-07'de bütün "(Öneri: …)" maddeleri karar sayıldı.
+
+## Önce cevaplanmalı (tasarımı bekletenler)
+- [ ] **İade nasıl girilsin?** (harita B1) Bugün yolu yok. Öneri: Gider → Daha fazla → "İade"; aynı kategori ve hesapta ters kayıt, harcama düşer. Seçenekler: (a) öneri · (b) İşlemler'de kaydın üstünde "İade geldi" düğmesi (ilk kayda bağlı) · (c) v1'de yok, Gelir olarak gir.
+- [ ] **Kart son ödeme tutarı** (harita B2): taksitli alışverişin ekstreye düşmemiş taksitleri tutardan düşülsün mü? Öneri: evet. Seçenek: hayır, kullanıcı "Öde" ekranında tutarı elle düzeltsin.
+- [ ] **Alacaktan / borçtan vazgeçme** (harita B4): bakiye kapansın mı, nasıl sayılsın? Öneri: "Borcu sildim" seçeneği; verdiğim borç silinirse gider, aldığım borç silinirse gelir. Seçenek: gelir/gider yazmadan yalnız kapat (raporda görünmez).
+- [ ] **Başkası ödedi, benim payım var** (harita B7) v1'de mi? Öneri: evet; Paylaştır'a "Kim ödedi?" alanı (varsayılan ben). Seçenek: Borç → Aldım + ayrı Gider (iki kayıt, bugün mümkün değil çünkü Aldım hesaba para girişi ister).
+- ⏸→[ ] **Taksitte vade farkı:** kredide karar var (fark = maliyet gideri, kayıt günü). Taksite de aynı kural uygulansın mı? Öneri: evet; Taksitli'ye isteğe bağlı "Toplam ödenecek" alanı, fark "Kredi Maliyeti" benzeri gider.
 
 ## Genel
 - [ ] Asıl kullanıcılar kimler (kişi sayısı, yaş, telefon alışkanlığı)? → `personalar/`
-- ✔ En sık işlemler: Gelir, Gider, Transfer, Borç Alma, Borç Verme, ATM → **Anlatım 8: ilk ekran 5 seçenek, Borç tek düğme (Aldım / Verdim / Ödeşme ikinci dokunuş)**
-- [ ] Borç ikinci adımında "Aldım / Verdim / Ödeşme" sırası ve varsayılan: son kullanılan yön öne çıksın mı? (Öneri: evet; gerçek sıklık verisi yok, doğrulanmadı.)
-- [ ] **Terim kararı:** katılım bankasında "faiz" yerine "kâr payı" kullanılır. Arayüzde ne yazsın? (Öneri: nötr "getiri" (kazanç) ve "maliyet" (borç); banka türü ayarı eklemeden. Seçenek: kullanıcı banka türünü seçsin, etiket değişsin.)
-- [ ] **Geri Al kapsamı (karar: ilk sürümde VAR):** (a) Süre: yalnız son kayıt mı, oturum boyunca mı, 10 dakika mı, süresiz mi? (Öneri: son kayıt için hemen "Geri Al" + sonra her zaman Düzelt/Sil.) (b) Hangi kayıtlar: taksit, bölüşme, kredi gibi çok satırlı kayıtlar tek adımda mı? (Öneri: evet.) (c) Başkasının payı olan kayıtta (bölüşme) kişi bakiyesi de geri döner mi? (d) Mağaza iadesi/ banka iadesi "Geri Al" değil ters hareket; fark kullanıcıya nasıl anlatılsın? (Öneri: Geri Al = "yanlış girdim", İade = "gerçekten geri geldi".) (e) Kilitli dönemde Geri Al kapalı mı? (Öneri: evet.) (f) Geri alınanı tekrar uygulama (ileri al) olsun mu? (Öneri: hayır, v1'de.)
+- ✔ İlk ekran: dört tür, Gider · Gelir · Transfer · Borç (uygulandı, 2026-10-08). ATM, kart ödemesi, nakit avans Transfer kısayolu.
+- [ ] ATM artık iki dokunuş (Transfer + kısayol). Yeterli mi? Öneri: evet; ölçülmedi. Seçenek: Transfer açılınca son kullanılan kısayol seçili gelsin.
+- ✔ Borç ikinci adımında son kullanılan yön öne çıksın (karar). **Uygulanmadı:** hep "Aldım" seçili açılır.
+- ✔ Terim: "getiri" (kazanç), "maliyet" (borç). Banka türü ayarı yok.
+- ✔ Geri Al: son kayıt hemen (8 sn bildirim), sonra Sil; çok satırlı kayıt tek adımda; kişi bakiyesi de geri döner; kilitli dönemde kapalı; ileri al yok (uygulandı).
+- [ ] **Düzelt kapsamı:** bugün yalnız sade gider/gelir düzelir, hesap değişmez (harita B3). Öneri: hesap da düzelsin; transfer ve borç da düzelsin. Seçenek: v1'de Sil + yeniden gir yeterli.
 - [ ] Bankadan teyit nasıl yapılıyor: ekstreye bakıp göz kontrolü mü, her harcamada anında mı?
-- ⏸ Renk dili (borç tek renk mi, "benim borcum" / "bana borçlu" ayrımı): kullanıcı "şimdilik es geç, ileride düzenleriz" dedi (Anlatım 6). Renklere takılma.
+- ⏸ Renk dili (borç rengi): "şimdilik es geç" (Anlatım 6).
+- [ ] **Terim çatışması:** İşlemler listesi "Aktarım", Hızlı Kayıt "Transfer" yazıyor (harita B11). Öneri: her yerde "Transfer".
 
 ## Hızlı Kayıt
-- ✔ Döviz, yatırım vb. "Diğer" altında
-- [ ] "Diğer"in içinde hangileri var ve hangi sırayla (döviz, yatırım, emanet, nakit avans, kredi, faiz…)? (Taksit artık Gider içinde, listeden çıktı.)
-- ✔ Taksitli alışveriş **Gider'in bir seçeneği** (Anlatım 6)
-- ✔ Bölüşme Gider akışı içinde **"paylaştır" adımı** (Anlatım 6)
-- [ ] Gider içindeki seçenekler (taksit, paylaştır, fiş/not) hangi sırada ve nasıl görünür? (Ekran önerisi değil; yalnız hangilerinin "seçenek" olduğu listesi.)
+- ✔ "Diğer" yalnız döviz ve yatırım (Transfer formunun altında bağlantı); emanet v1 sonrası (uygulandı).
+- ✔ Gider seçenekleri "Daha fazla" altında: Taksitli · Paylaştır · Kalemler · Döviz · Not · Etiket (uygulandı). Kalemler taksit ve paylaştırla birlikte kullanılmaz.
+- [ ] Kalemli (çok kategorili) giderde paylaştır ve taksit kapalı. Gerçek hayatta "market fişi, kartla taksitli" olur mu? Öneri: v1'de gerek yok.
+- [ ] Etiket yalnız Gider, Gelir, Transfer ve Borç'ta var; kredi ve vade sonunda yok. Öneri: her yerde olsun.
 
-## Taksitli alışveriş (AKS-007, Anlatım 7'de yeniden yazıldı)
-- ✔ Taksitli alışveriş = tek gider + kart borcu (tutarın tamamı). Aylık taksit yeni gider değil; ekstre taksit takvimi yalnız gösterim/hatırlatma (Anlatım 7).
-- ⏸ **Vade farkı muhasebesi: karar YOK, sonra karar verilecek (Anlatım 8).** Soru: banka toplamı baştan kart borcuna yazıyor mu, yoksa taksit taksit mi; vade farkı alışverişte ayrı gider mi, taksitte mi? (Önceki öneri: baştan yazıyorsa alışverişte gider + ayrı "faiz/vade farkı" gideri; taksit taksit yansıyorsa yansıdığı ekstrede.) Aynı soru ailesi: kredi/ihtiyaç finansmanında kâr payı farkı (AKS-009).
-- [ ] Kartlar için ekstre kesim günü ve son ödeme günü girilsin mi (takvim ve Yaklaşanlar buradan türer)? (Öneri: evet, kart başına bir kez.)
-- [ ] İadede ödenmiş taksitlerin karşılığı karta mı hesaba mı yatıyor; kullanıcı gerçek yatan yeri elle girsin mi? (Öneri: evet.)
-- [ ] Erken kapamada banka kalan faizi siliyor mu; fark nasıl görünsün? (Öneri: "banka indirimi" olarak ayrı düzeltme.)
+## Taksitli alışveriş ([AKS-007](akislar/AKS-007-taksitli-alisveris.md))
+- ✔ Tek gider + kart borcu (tutarın tamamı); takvim yalnız gösterim (uygulandı).
+- ✔ Kart başına kesim ve son ödeme günü bir kez girilir (uygulandı; Hesaplar ve sihirbaz).
+- ✔ İadede gerçek yatan yer ve tutar elle girilir (karar). İade akışı olmadığı için **uygulanamıyor** (yukarıda).
+- ✔ Erken kapamada banka indirimi ayrı düzeltme (karar). **Ekranı yok.**
+- [ ] Taksit takvimi Yaklaşanlar'da da görünsün mü (harita B6)? Öneri: kart satırının altında "bu ay X taksit".
+- [ ] Ödenmiş taksiti olan eski alışveriş silinemiyor. Yanlış girilmiş taksitli alışveriş nasıl düzeltilsin? Öneri: Düzelt'te tutar ve taksit sayısı değişsin, takvim yeniden türesin.
 
 ## Bölüşme / borç
-- ✔ 3+ kişi ve yüzdeli paylar gerekebilir (Anlatım 6)
-- [ ] 3+ kişide paylaşım türleri: eşit, tutar, yüzde. Aynı bölüşmede türler karışabilir mi (biri tutar, kalanlar eşit)? Yüzdelerin toplamı %100 değilse ne olsun?
-- [ ] Yuvarlama: kuruş artarsa (ör. 100 TL / 3) fazla kuruş kimde kalsın (bende mi)?
-- [ ] "Paylaştır" adımında kendi payım her zaman var mı, yoksa tamamını başkası için ödediğim durum da (benim payım 0) olabilir mi?
-- ✔ Hatırlatma isteniyor: "kişi/kurum ödemedi" şeklinde (Anlatım 6, bkz. AKS-017)
-- ⏸ Borç rengi (bkz. Genel)
+- ✔ Paylaştır: eşit varsayılan; kişi başı tutar ya da yüzde "Payları ayrı gir" ile; türler karışabilir; boş kalanlar ve ben kalanı eşit böleriz; artan kuruş bende; benim payım 0 olabilir; paylar toplamı aşarsa hata (uygulandı).
+- ✔ Ödeşmede yön kişinin bakiyesinden gelir, kullanıcı değiştirebilir (uygulandı).
+- [ ] Arkadaş ödeyince ödeşme kaydında hesap boşsa Nakit sayılıyor. Havale çoğunlukta mı? Öneri: son kullanılan hesap gelsin.
+- [ ] Aynı kişiyle hem alacak hem borç: bugün tek net bakiye görünür. Yeterli mi? Öneri: evet.
+- ⏸ Borç rengi, borç devri, faizli kişi borcu, yabancı para borç.
 
-## Hatırlatma / Yaklaşanlar (AKS-017)
-- ✔ Bildirim yalnız uygulama içi liste ("Yaklaşanlar"); telefon bildirimi yok (Anlatım 7). Kişiye mesaj gitmesi de bu sürümde yok.
-- [ ] Yaklaşanlar'da hangi kayıtlar görünsün ve hangi sırayla (vade günü, kart son ödeme, kredi taksiti, alacaklar)? Öneri: tarihe göre tek liste, gecikmiş olanlar üstte.
-- [ ] "Kurum ödemedi" ne demek: kurum bana borçlu (iade, alacak) mı, yoksa ben kuruma ödemedim (fatura vb., sonraki aşama) mi?
-- [ ] Ne zaman hatırlatılsın: borç kaydedilirken tarih mi seçilir, yoksa belli bir süre sonra otomatik mi (ör. 7 gün)? Üşengeç kullanıcı için varsayılan ne olsun?
+## Yaklaşanlar ([AKS-017](akislar/AKS-017-hatirlatma.md))
+- ✔ Uygulama içi liste, Ana sayfada; tarihe göre, gecikmiş kırmızı, tarihsiz bakiyeler altta (uygulandı).
+- ✔ Borçta vade isteğe bağlı; tarih yoksa bakiye tarihsiz satır olur (uygulandı).
+- ✔ Satırdan "Öde" / "Ödeşme" / "Bankada ne oldu?" önceden doldurulmuş formu açar (uygulandı).
+- [ ] "Ertele" hep 7 gün. Öneri: yeterli. Seçenek: tarih seçilsin.
+- [ ] "Kurum ödemedi": kurum bana borçlu (iade, alacak) mı, ben kuruma ödemedim (fatura, sonraki aşama) mı?
+- [ ] Liste yalnız giren üyenin kendi planlarını gösteriyor. Aile üyesinin kart son ödemesi de görünsün mü? Öneri: hayır, v1'de yalnız kendi.
 
-## Rehber
-- ✔ **Rehber katmanı (bireysel kişi / firma / marka) ve Rehber sayfası v1'de OLACAK (Anlatım 8, ürün sahibi kararı).** Sade sunum önerileri: [analiz](arsiv/analiz.md) Anlatım 8 bölümü.
-- [ ] Kayıt anında firma hiç sorulmasın, yalnız marka/kişi yazılsın; firma Rehber'de "ayrıntı" altında mı eklensin? (Öneri: evet; firma varsayılan kapalı/boş. Doğrulanmadı.)
-- [ ] Yeni isim yazılınca varsayılan tür ne olsun (gider akışında marka, borç akışında kişi)? (Öneri: bağlama göre, sonradan değiştirilebilir.)
-- ✔ Ad: Rehber · Firması bilinmeyen marka tek başına kaydedilir · IBAN çoğunlukla kopyalama için · Marka çok firmaya bağlanabilir · Kişi de marka olabilir · Kategori marka üzerinden gelir · Ticari unvan esas, vergi no/iletişim ek bilgi
-- ✔ Marka çok firmaya bağlıysa kayıt anında kullanıcı **seçebilir**; seçmezse **belirsiz** kalır; sonradan düzenlenebilir (Anlatım 6)
-- ✔ Aynı markanın farklı kategorileri olabilir; kategori otomatik gelir, kullanıcı **değiştirebilir** (Anlatım 6)
-- ✔ Mevcut kişiler **Rehber ile birleşecek** (Anlatım 6)
-- [ ] Belirsiz firma sonradan seçilince, geçmiş kayıtlar da yeni firmaya mı bağlanır (hepsi), yoksa yalnız seçilen kayıt mı? Franchise'da aynı marka farklı firmalara ödeme yapılmış olabileceği için bu önemli.
-- [ ] Kategori değiştirme kapsamı: "yalnız bu kayıt" mı, "bu markanın varsayılanı da değişsin" mi? (Öneri: varsayılan olarak yalnız bu kayıt; markanın varsayılanı Rehber'den değişir.)
-- [ ] Belirsiz firmalı harcamalar firma bazlı raporda nerede görünür ("Belirsiz" grubu)?
-- [ ] Mevcut borç/alacak kişilerinin Rehber'e taşınması: hepsi "bireysel" olarak mı gelir? (Mevcut `contacts` yapısıyla uyum, bkz. analiz.md uyumsuzluklar.)
+## Rehber ([AKS-016](akislar/AKS-016-kime-odeme-yaptim.md))
+- ✔ Kayıtta firma sorulmaz; firma marka ile Rehber'de bağlanır (uygulandı).
+- ✔ Yeni isim: giderde/gelirde marka, borçta/paylaştırda kişi (uygulandı).
+- ✔ Kayıtta kategori değişirse yalnız o kayıt değişir; marka ilk kullanılan kategoriyi öğrenir; varsayılan Rehber'den değişir (uygulandı).
+- ✔ Eski kişiler Rehber'e "kişi" olarak taşındı (uygulandı).
+- [ ] Yazım hatası yeni kayıt açıyor (harita B10). Rehber'de "Birleştir" olsun mu? Öneri: evet.
+- [ ] Bakiyesi olan kişi arşivlenirse ne olsun? Öneri: önce uyar; bakiye Yaklaşanlar'da kalsın.
+- [ ] Firma bazlı rapor (aynı unvana giden toplam) v1'de mi? Öneri: hayır.
+- [ ] Anlatım 6 kararı "çok firmalı markada kayıtta firma seçilebilir" idi; uygulamada kayıt yalnız markaya bağlı, firma kayıtta tutulmuyor. Franchise'da kayıt başına firma gerekli mi? Öneri: v1'de hayır; gerekirse Düzelt'e "firma" eklenir.
 
-## Nakit
-- ✔ Cüzdan tek nakit hesabı; ATM çekme/yatırma sormadan etkiler.
-- ⏸ ATM'de başka bankanın komisyonu: masraf olarak işlenebilir ama **şimdilik hiç dokunma**; varsayılan kategoriler ve hesaplar tam yapılmadan karar verilmeyecek. İleride yeniden açılır.
+## Transfer, ATM, nakit ([AKS-012](akislar/AKS-012-transfer.md))
+- ✔ Cüzdan tek nakit hesabı; ATM kısayolu cüzdanı kendiliğinden seçer (uygulandı).
+- ✔ Kart ödemesi = Transfer → kart (uygulandı).
+- [ ] Karttan banka hesabına para (nakit avans virmanı) bugün sıradan transfer (harita B8). Öneri: kart → kendi herhangi hesabım = nakit avans, komisyon sorulsun.
+- [ ] Kartta fazla ödeme (borçtan çok yatırma): kart artıya geçer. Uyarı gösterilsin mi? Öneri: evet, engellemeden.
+- ⏸ ATM başka banka komisyonu.
 
-## Faizli hesaplar
-- ✔ İki tür: günlük faizli (her gün otomatik yatar, vergi/kesinti görünür) ve 30-90 gün vadeli (sözleşme; vade sonu tutar kesin)
-- ✔ Günlük faiz kaydı **elle** girilir; **gerçekleşen işlem esas**, tahmini kayıt girilmez; ileride tahmini hesaplama yalnız **gösterilebilir** (Anlatım 6)
-- ✔ Vadeli hesapta **beklenen getiri gösterilir**; vade sonu hatırlatması **yalnız uygulama içi (Yaklaşanlar)** (Anlatım 6-7)
-- ✔ Otomatik yenileme, rollover, erken bozma kapsamda; akış AKS-018'de (Anlatım 7)
-- [ ] Yenilemede varsayılan: anapara+faiz mi yoksa yalnız anapara mı yenilenir? Hesap açılırken "vade sonunda ne olsun" tercihi kaydedilsin mi? (Öneri: evet, vadede değiştirilebilir.)
-- [ ] Yenilemede yeni oran/vade girişinde eski oran öneri olarak gösterilsin mi (oran genelde değişir)? (Öneri: göster ama boş geçmeye izin verme.)
-- [ ] Beklenen getiri brüt mü net mi gösterilsin (stopaj)? (Öneri: net, stopaj oranı hesap ayarı.)
-- [ ] Erken bozmada kısmi çekim yaşanıyor mu? (Anlatım 8 varsayımı: genel sözleşmede kısmi çekim = tam bozma + kalan tutarla yeni hesap; kalan en düşük limitin altındaysa özel cari. Ürün sahibi kendi deneyimiyle teyit etsin.)
-- ✔→düzeltildi (Anlatım 8): "Vade bitince vadesize döner" artık **varsayılan değil**. Türkiye Finans standardında (varsayım, doğrulanmadı) varsayılan sonuç **otomatik yenileme**; vadesize dönüş yalnız yenilememe talimatı varsa. Hedef vadesiz hesabı kullanıcı seçer, ama bu **yenilememe senaryosuna bağlı**.
-- [ ] Hesap açarken "vade sonunda: yenilensin / şu vadesize dönsün" talimatı kaydedilsin mi? Yoksa uygulama hiçbir şey varsaymasın, vade günü hep "bankaya bak, ne oldu?" mu sorsun? (Öneri: talimat isteğe bağlı kaydedilsin, ama sonuç yine elle onaylansın: kayıt = gerçekleşen.)
-- [ ] Yenilemede yeni oran girişi: banka oranı değiştirdiği için eski oranı öneri gösterme (Anlatım 8); "yeni oranı gir" boş mu başlasın? (Öneri: evet, eski oran yalnız bilgi.)
-- [ ] Kur korumalı katılma hesabı ayrı tür mü (vadeden önce kısmi çekim yok, yenileme müşteri talebine bağlı)? (Öneri: v1'de değil, düşük öncelik.)
-- [ ] Günlük faiz kaydı: günlük elle giriş zorunlu (Anlatım 7: kullanıcı zaten her gün kayıt girer; üşengeçlik şu an kriter değil). Atlanan günler için toplu giriş isteğe bağlı, öncelik düşük.
-- [ ] Günlük faizde kayıtta ne yazılır: yalnız "net yatan" mı, brüt faiz + kesinti (stopaj vb.) ayrı mı? (Vergi/kesinti görünür olmalı demiştin; ayrı alan mı, tek tutarın ayrıntısı mı?)
-- [ ] Vadeli hesabı açarken kullanıcı ne girer: anapara + oran + gün sayısı (beklenen getiri otomatik), yoksa doğrudan "vade sonunda alacağım tutar" mı? Hangisi sözleşme belgesine daha yakın?
-- [ ] Vade sonu hatırlatma ne zaman: vade günü mü, birkaç gün önce mi?
-- [ ] Vade günü hedef vadesiz hesap kayıtta mı seçilir (hesabı açarken) yoksa vade bitince mi sorulur? (Öneri: açarken seçilir, vadede değiştirilebilir.)
-- [ ] Vade sonu para vadesize **gelmezse** (banka yenilediyse/geciktiyse) kayıt nasıl düzeltilir? Erken bozma ve yenileme (yeniden vadeli açma) yaşanıyor mu?
+## Faizli hesaplar ([AKS-010](akislar/AKS-010-gunluk-faizli-hesap.md), [AKS-018](akislar/AKS-018-vadeli-hesap.md))
+- ✔ Günlük faiz elle, gerçekleşen esas.
+- ✔ Vadeli açılış: anapara + yıllık oran + gün + stopaj %; beklenen net getiri gösterilir (uygulandı).
+- ✔ Vade günü uygulama varsaymaz; kullanıcı "Yenilendi / Hesaba döndü / Erken bozdum" seçer; yenilemede varsayılan anapara + getiri; yeni oran boş başlar, eski oran yalnız bilgi; kısmi çekim "Bir kısmını çektim" ile (uygulandı).
+- ✔ Kur korumalı hesap v1'de değil.
+- [ ] Günlük faizde kesinti (stopaj) ayrı görünsün mü, yoksa yalnız net yatan mı? Bugün yalnız net.
+- [ ] Atlanan günler için toplu faiz girişi (öncelik düşük).
+- [ ] Erken bozmada kalan tutar yeni vadeli hesap olarak açılıyor mu (Anlatım 8 varsayımı)? Bugün erken bozma tam kapanış; kalan için yeni vadeli ayrıca açılır.
+
+## Nakit avans ve kredi ([AKS-008](akislar/AKS-008-nakit-avans.md), [AKS-009](akislar/AKS-009-kredi.md))
+- ✔ İkisi de v1'de (uygulandı).
+- ✔ Nakit avans: kart → Nakit; komisyon isteğe bağlı, gider olur ve kart borcuna eklenir (uygulandı).
+- ✔ Kredi: hesaba yatan + taksit sayısı + taksit tutarı; anlaşılan tutar, toplam, ilk taksit tarihi "Daha fazla" altında; toplam geri ödeme borç, maliyet ve masraf kredi günü gider; taksit = Transfer → kredi hesabı (uygulandı).
+- [ ] Nakit avans taksitlendiriliyor mu, yoksa tek ekstrede mi ödeniyor?
+- [ ] Kredi türleri: ihtiyaç kredisi, KMH, kart borcu yapılandırma; hangileri kullanılıyor?
+- [ ] Kredi erken kapama, kısmi erken ödeme, gecikme bedeli, cayma, yapılandırma: hangileri yaşanıyor? Öneri: erken kapama ilk (harita B9).
+- [ ] Kredi silinirken taksit ödemesi varsa engelleniyor. Yanlış girilmiş kredi nasıl düzeltilsin? Öneri: Düzelt'te taksit tutarı ve sayısı değişsin.
+
+## Başlangıç ([AKS-019](akislar/AKS-019-baslangic.md))
+- ✔ Sihirbaz: Nakit ve kategoriler hazır; banka, kart, kredi sorulur; her adım boş geçilebilir (uygulandı).
+- [ ] Sihirbazdaki krediye kalan taksit sayısı ve tutarı sorulsun mu (harita B5)? Öneri: evet, isteğe bağlı.
+- [ ] Süren taksitli alışverişler başlangıçta nasıl girilsin? Öneri: kart ekranında "süren taksitler" (kalan sayı + aylık tutar); gider yazılmaz, yalnız takvim.
+- [ ] Başlangıçta açık vadeli hesap nasıl girilsin? Bugün yalnız Transfer ile yeni açılış var. Öneri: anapara + oran + vade tarihi, para hareketi olmadan açılış.
+- [ ] Başlangıçta kişilerle açık borç/alacak nasıl girilsin? Öneri: Borç → Aldım/Verdim, hesap "yok" seçeneğiyle (para hareketi olmadan).
 
 ## Ürün sahibinin teyit edeceği banka bilgileri (Anlatım 8)
-Aşağıdakiler web aramasında **bulunamadı veya doğrulanamadı**; akışlar bunlara dayanmıyor, varsayım etiketli. Kaynak önerisi: kart sözleşmesi/ücret tarifesi, ihtiyaç finansmanı ön bilgilendirme formu, katılma hesabı sözleşmesi (Türkiye Finans, Bankacılık İşlemleri Sözleşmesi Bireysel madde 4.9/5/6).
-- [ ] **Nakit avans oranı ve komisyonu** (Türkiye Finans kartı): güncel aylık oran (TCMB tavanı haberlerde %4,42 → %5, güncel değer doğrulanmadı), komisyon yüzdesi/asgari tutar, faiz çekim gününden mi işliyor (V3), faizsiz kampanya var mı?
-- [ ] **Erken kapama koşulu** (ihtiyaç finansmanı): masraf/tazminat var mı, kalan kâr payı indiriliyor mu (yalnız karz formunda "erken ödeme tarihine göre hesaplanır" ifadesi bulundu)? Kısmi erken ödeme mümkün mü, taksit takvimi nasıl yeniden hesaplanıyor?
-- [ ] **Erken bozmada kâr payı** (katılma hesabı): ödeniyor mu, ne kadar; kısmi çekimde hesabın tamamı mı bozuluyor, kalan limit altında mı özel cariye dönüyor?
-- [ ] **Otomatik yenileme ayarı:** yenilememe bildirimi nasıl veriliyor (yazılı, şube, mobil); varsayılan yenileme gerçekten uygulanıyor mu; yenilemede hangi oran; anapara+kâr payı mı yoksa yalnız anapara mı yenileniyor?
-- [ ] **İhtiyaç finansmanı masrafları:** tahsis ücreti/sigorta kredi tutarından mı düşülüyor yoksa ayrı mı ödeniyor; KKDF/BSMV taksite mi ekleniyor?
-- [ ] **Kullanıcının kendi bankası katılım bankası mı?** (Terim kararını belirler.)
+Web aramasında bulunamadı veya doğrulanamadı; akışlar bunlara dayanmıyor. Kaynak: kart sözleşmesi/ücret tarifesi, ihtiyaç finansmanı ön bilgilendirme formu, katılma hesabı sözleşmesi.
+- [ ] Nakit avans oranı ve komisyonu; faiz çekim gününden mi işliyor; faizsiz kampanya var mı?
+- [ ] Kredide erken kapama masrafı ve kâr payı indirimi; kısmi erken ödeme.
+- [ ] Erken bozmada kâr payı; kısmi çekimde hesabın tamamı bozuluyor mu.
+- [ ] Otomatik yenileme ayarı; yenilemede anapara + kâr payı mı, yalnız anapara mı.
+- [ ] Kredi masrafları: tahsis ücreti/sigorta tutardan mı düşülüyor; KKDF/BSMV taksite mi ekleniyor.
+- [ ] Kullanıcının bankası katılım bankası mı?
 
-## Nakit avans ve kredi (ilk sürümde VAR, Anlatım 7; AKS-008, AKS-009 varsayımsal taslak, Anlatım 8)
-- ✔ Kullanıcı: ilk sürümde gerekli, son zamanlarda çok sık kullanıyor. Kapsam kararı kesin.
-- [ ] Nakit avans nasıl işliyor: kartla ATM'den mi çekiliyor, nakit cüzdana mı hesaba mı gidiyor? Komisyon çekimde mi, faiz günlük mü işliyor, ekstrede ayrı kalem mi?
-- [ ] Nakit avans taksitlendiriliyor mu, yoksa tek ekstrede mi ödeniyor?
-- [ ] Kredi türleri: ihtiyaç kredisi? KMH (ek hesap)? Kart borcunu yapılandırma? Hangileri kullanılıyor? (Anlatım 8 varsayımı: Türkiye Finans'ta ihtiyaç finansmanı = murabaha, sabit toplam geri ödeme, değişken faiz yok; KMH/değişken faiz bu üründe geçersiz olabilir. Doğrulanmadı.)
-- [ ] Kredi kaydında iki tutar girilsin mi: "anlaşılan tutar" ve "hesaba yatan net tutar" (tahsis/sigorta düşülmüşse fark gider)? (Öneri: evet, ikincisi boşsa ilkine eşit.)
-- [ ] Kredi borcu baştan toplam geri ödeme (anapara + kâr payı) mı yazılsın, yoksa yalnız ele geçen tutar mı? (Vade farkı kararıyla aynı aile; karar YOK, sonra.)
-- [ ] Kredi taksitini öderken anapara/faiz/vergi bölümünü bankanın planından elle mi gireceksin, yoksa tek tutar mı (uygulama bölsün)? (Öneri: tek tutar girilsin, bölüm isteğe bağlı "daha fazla" altında.)
-- [ ] Kredi için neyi görmek istiyorsun: kalan borç, taksit takvimi, toplam faiz maliyeti, hepsi?
-- [ ] Erken kapama, gecikme, kısmi ödeme, kredi iptali (cayma), yapılandırma: hangileri yaşanıyor?
-
-## Emanet para (kritik)
-- ✔ Baba kullanıcı değil; kâr/zarar bilgisi alır · karışık portföy · giriş/çıkış sürekli · şimdi aracı kurum uygulamalarından elle hesaplanıyor
-- ✔ Baba, Rehber'deki **bireysel kişi** olur (kişiler Rehber ile birleştiği için) (Anlatım 6 sonucu)
-- [ ] Rapor babaya hangi kanalla ve biçimde gidiyor (mesaj, ekran görüntüsü, sözlü)?
-- [ ] Hesaplama günlük mü, aylık mı; dönem başlangıç değeri nasıl alınıyor?
-- [ ] Yatırımlar birden fazla aracı kurumda mı? Fiyatlar elle girilebilir mi?
-- [ ] Kâr/zarar yalnız yatırım değer değişimi mi, kur farkı/komisyon dahil mi? Komisyon alıyor musun?
-- [ ] Net varlık (mavi) emanet payını hariç mi tutmalı? İki görünüm gerekir mi?
+## Emanet para (v1 sonrası, karar 2026-10-07)
+- ✔ Baba kullanıcı değil; Rehber'de kişi. Karışık portföy, sürekli giriş/çıkış.
+- [ ] Rapor babaya hangi kanalla ve biçimde gidiyor?
+- [ ] Hesaplama günlük mü aylık mı; dönem başlangıç değeri nasıl alınıyor?
+- [ ] Yatırımlar birden fazla aracı kurumda mı? Fiyatlar elle mi?
+- [ ] Kâr/zarar kur farkı ve komisyon dahil mi?
+- [ ] Net varlık emanet payını hariç mi tutmalı?

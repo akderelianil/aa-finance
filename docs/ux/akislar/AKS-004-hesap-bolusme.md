@@ -5,52 +5,53 @@ status: active
 
 # AKS-004 — Hesabı ben ödedim, sonra bölüşürüz
 
-- **Kaynak:** Anlatım 1, kararlar Anlatım 6
-- **Kim:** Ben + 1..n arkadaş (3+ kişi olabilir)
-- **Tetikleyici:** Birlikte yemek/etkinlik; tüm hesabı tek kişi (ben) kendi kartıyla ödedi
-- **Sıklık:** Orta; sosyal hayata bağlı
-- **Hedef:** Kendi payımı gider yazmak; arkadaşın payını "bana borçlu" olarak takip etmek; ödeşince kapatmak; ödemeyen için hatırlatma almak
+- **Kaynak:** Anlatım 1, kararlar Anlatım 6-7; uygulama 2026-10-07
+- **Kim:** Ben + 1..n kişi
+- **Tetikleyici:** Birlikte yemek/etkinlik; tüm hesabı ben ödedim
+- **Sıklık:** Orta
+- **Hedef:** Kendi payımı gider yazmak; diğerlerinin payını "bana borçlu" takip etmek; ödeşince kapatmak
 
-## Karar (Anlatım 6)
-Bölüşme ayrı bir akış değil, **Gider akışının içinde bir "paylaştır" adımı**dır ([AKS-001](AKS-001-kartla-alisveris.md)'in seçeneği). Gider normal girilir; "paylaştır" seçilirse kişiler ve paylar sorulur. Paylaşım şekilleri: **eşit, tutar bazlı, yüzdeli**; **3+ kişi** desteklenmeli.
-
-**Güncelleme (Anlatım 7):** Yüzde/tutar seçenekleri **varsayılan ekranda gizli** kalır. Varsayılan **eşit** bölüşmedir; tutar ve yüzde ayrıntısı yalnız **"daha fazla"** altında açılır. Yani ilk dokunuşta kullanıcı kişiyi seçer, sistem eşit böler; ayrıntıya girmek isteğe bağlıdır. (Eleştiri #4'ün kabulü; bkz. [elestiri-ve-istisnalar](../arsiv/elestiri-ve-istisnalar.md).)
+## Kararlar [uygulandı]
+- Bölüşme, Gider'in "Daha fazla → Paylaştır" seçeneğidir.
+- Kullanıcı kişileri yazar; sistem **eşit** böler, ben dahilim.
+- "Payları ayrı gir" ile kişi başı **tutar** ya da **yüzde** girilir; türler karışabilir. Payı boş kalanlar ve ben, kalanı eşit böleriz.
+- Bölünmeyen kuruş bende kalır. Benim payım 0 olabilir (tamamını başkası için ödedim). Paylar toplamı aşarsa kayıt reddedilir.
+- Yeni isim Rehber'de **kişi** olarak açılır.
+- Paylaştır ile taksit birlikte kullanılabilir; kalemler ve döviz ile kullanılamaz.
 
 ## Akış
 ```mermaid
 flowchart TD
-  A([Gider akışı: tutar, kart, kategori]) --> P{Paylaştır?}
+  A([Gider: tutar, kime, kategori, hesap]) --> P{Daha fazla → Paylaştır?}
   P -- hayır --> Z([Normal gider])
-  P -- evet --> D[Kişi/kişileri seç: Rehber, 1..n]
-  D --> E{Daha fazla seçenek açıldı mı?}
-  E -- hayır, varsayılan --> F[Eşit böl, kendim dahil]
-  E -- daha fazla: tutar --> G[Her arkadaşın payını yaz, kalan benim]
-  E -- daha fazla: yüzde --> Y[Her kişiye yüzde yaz, kalan benim]
-  F --> H([Kayıt: benim payım gider, arkadaşlar bana borçlu])
+  P -- evet --> D[Kişileri yaz: 1..n]
+  D --> E{Payları ayrı gir?}
+  E -- hayır --> F[Eşit böl, ben dahil]
+  E -- evet --> G[Kişi başı tutar / yüzde / boş]
+  F --> H([Kayıt: benim payım gider, diğerleri bana borçlu])
   G --> H
-  Y --> H
-  H --> I[Bekle]
-  I --> J{Arkadaş ödedi mi?}
-  J -- tam --> K([Borç kapandı])
-  J -- kısmen --> L[Kalan borç güncellenir]
-  L --> I
-  J -- hayır --> R[Yaklaşanlar'da görünür: AKS-017]
-  R --> I
+  H --> R[Yaklaşanlar: "Sana X borçlu", tarihsiz]
+  R --> J{Ödedi mi?}
+  J -- tam / kısmi --> K([Borç → Ödeşme; bakiye düşer])
+  J -- hayır --> R
 ```
 
-## Örnekler (kullanıcıdan)
-- Eşit: 2 kişi, yarı yarıya.
-- Eşit değil: toplam 833,28 → benim 647,50, arkadaşın 185,78 (kuruşlu tutar; yuvarlama kuralı gerekir).
-- Yeni (Anlatım 6): 3+ kişi; yüzdeli paylar (ör. %50 / %30 / %20).
+## İstisnalar
+| Durum | Kalıp | Bugün |
+|---|---|---|
+| Kısmi ödeme | Kısmi | Ödeşme tutarı kadar düşer; kalan listede |
+| Yanlış kişi / pay | Geri Al / Sil | Paylaşımlı kayıt düzeltilemez; sil + yeniden gir |
+| Arkadaş hiç ödemeyecek | Kapanış | "Vazgeç" bakiyeyi kapatmaz (harita B4) |
+| **Başkası ödedi, benim payım var** | — | **Yolu yok** (harita B7) |
+| Restoran hesabı iade/indirim | İade | Akış yok (harita B1) |
+| Taksitli + paylaştır | — | Tutarın tamamı kart borcu; arkadaş payı alacak; ödeşme takvime bağlı değil |
+| Döviz harcamada paylaştır | — | Bugün kapalı |
 
 ## Sürtünme
-- Ödeşme genelde başka kanalla olur (havale, nakit); sonradan "geldi" demek ayrı bir iş. Hatırlatma isteniyor ([AKS-017](AKS-017-hatirlatma.md)).
-- Arkadaş kayıtlı kişi mi, tek seferlik isim mi? Kişiler Rehber ile birleştiği için kaynak Rehber; yeni kişi yazarken eklenir (ayrıntı sonra).
-- Çok kişili yüzde/tutar girişi hızlı akışı yavaşlatır; bu yüzden varsayılan eşit, ayrıntı "daha fazla" altında (karar, Anlatım 7).
+- Ödeşme genelde havale/nakit; "geldi" demek ayrı bir iş. Yaklaşanlar'daki "Ödeşme" düğmesi kişi ve tutarı doldurur.
 
-## Uygulamadaki karşılığı
-Kişiler + borç/alacak var (`contact_balances`). Bölüşmenin tek adımda kurulup kurulamadığı **kontrol edilecek**. Yüzdeli paylar ve 3+ kişi mevcut modelle uyumlu mu doğrulanmalı (kişi başı alacak satırı).
+## Uygulamadaki karşılığı (şimdi)
+Gider → Daha fazla → Paylaştır: kişi satırları, "Kişi ekle", "Payları ayrı gir", altta "Senin payın: X · Kalanı sana borçlu olur". Bakiye Rehber'de kişi satırında ve Yaklaşanlar'da görünür.
 
 ## Açık sorular
-- Karışık paylaşım türü, yüzde toplamı ≠ %100, yuvarlama farkı kimde kalır, benim payım 0 olabilir mi? → [acik-sorular](../acik-sorular.md) (Bölüşme)
-- Arkadaş ödeyince nasıl girilir: nakit mi havale mi, hangi hesaba?
+[acik-sorular](../acik-sorular.md) (Önce cevaplanmalı: başkası ödedi; Bölüşme / borç).

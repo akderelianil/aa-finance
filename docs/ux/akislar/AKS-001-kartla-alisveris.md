@@ -5,7 +5,7 @@ status: active
 
 # AKS-001 — Kartla alışveriş (tek çekim)
 
-- **Kaynak:** Anlatım 1 (2026-10-07)
+- **Kaynak:** Anlatım 1 (2026-10-07), kararlar Anlatım 6; uygulama Hızlı Kayıt v3 (2026-10-08)
 - **Kim:** Her kullanıcı
 - **Tetikleyici:** Mağaza/siteden ürün veya hizmet alındı (banka bildirimi geldi ya da fiş var)
 - **Sıklık:** Günde birkaç kez; en sık işlem
@@ -14,32 +14,42 @@ status: active
 ## Akış
 ```mermaid
 flowchart TD
-  A([Alışveriş yapıldı]) --> B[Hızlı Kayıt aç]
-  B --> C[Tutar gir]
-  C --> D{Hangi kart?}
-  D -- son kullanılan / sık --> E[Tek dokunuşla seç]
-  E --> F[Ne için? kategori]
-  F --> G([Kaydedildi: gider kırmızı, kart borcu turuncu])
-  F -. isteğe bağlı .-> H[Not / fiş fotoğrafı]
-  F -. isteğe bağlı .-> I[Kime? Rehber: marka/kişi]
-  I -. kategori markadan gelir, değiştirilebilir .-> F
-  F -. seçenek .-> J[Taksitli → AKS-007]
-  F -. seçenek .-> K[Paylaştır → AKS-004]
+  A([Alışveriş yapıldı]) --> B[Hızlı Kayıt: Gider]
+  B --> C[Tutar]
+  C --> I[Kime? marka · isteğe bağlı]
+  I -- markanın kategorisi gelir --> F[Kategori]
+  F --> D[Hesap çipi: kart · boşsa Nakit]
+  D --> G([Kaydet: gider kırmızı −, kart borcu artar])
+  D -. Daha fazla .-> J[Taksitli → AKS-007]
+  D -. Daha fazla .-> K[Paylaştır → AKS-004]
+  D -. Daha fazla .-> L[Kalemler: fişte birden çok kategori]
+  D -. Daha fazla .-> M[Döviz · Not · Etiket]
 ```
 
-## Kararlar (Anlatım 6)
-- **Taksit** ve **paylaştır (bölüşme)** bu akışın **seçenekleridir**; ayrı ilk-ekran seçeneği değil. Tek çekim, varsayılan yol kalır.
-- "Kime?" (Rehber) isteğe bağlı; marka seçilirse **kategori otomatik gelir**, kullanıcı **değiştirebilir** (aynı markanın farklı kategorileri olabilir). Marka çok firmaya bağlıysa firma seçilebilir, seçilmezse belirsiz kalır (bkz. [AKS-016](AKS-016-kime-odeme-yaptim.md)).
+## Kararlar
+- Taksit, paylaştır ve kalemler bu akışın **seçenekleridir** ("Daha fazla" altında). Tek çekim varsayılan yol. [uygulandı]
+- "Kime?" isteğe bağlı; marka yazılırsa kategori kendiliğinden gelir, kullanıcı değiştirebilir. Yeni isim marka olarak açılır; marka ilk kullanılan kategoriyi öğrenir ([AKS-016](AKS-016-kime-odeme-yaptim.md)). [uygulandı]
+- Kategori listesinde üst kategori ipucu görünür ("Taksi · Ulaşım"); "Sadece grup" kategoriler seçilemez. [uygulandı]
 
-## Sapmalar
-- Banka bildirimi/ekstresiyle teyit ihtiyacı ("bankada veriler saklandığı için teyit edebilirim") → kayıt sonradan doğrulanabilmeli.
-- Yurt dışı / döviz harcama; taksit ([AKS-007](AKS-007-taksitli-alisveris.md)); bölüşme ([AKS-004](AKS-004-hesap-bolusme.md)).
+## İstisnalar
+| Durum | Kalıp | Bugün |
+|---|---|---|
+| Yanlış dokundum | Geri Al | 8 sn bildirim |
+| Yanlış kategori, tutar, tarih, marka | Düzelt | İşlemler → kalem → düzenle |
+| **Yanlış kart** | Düzelt | **Hesap düzeltilemez**; sil + yeniden gir (harita B3) |
+| Mağaza iade etti (tam / kısmi) | İade | **Akış yok** (harita B1) |
+| Değişim (fark ödendi / geri alındı) | İade + yeni gider | Akış yok; fark ödendiyse yeni gider girilir |
+| Yurt dışı / döviz | — | Daha fazla → Döviz: para birimi, kur, bankanın TL tutarı (isteğe bağlı) |
+| Fişte birden çok kategori | — | Daha fazla → Kalemler; kalan ana kategoriye |
+| Banka tutarı farklı çıktı | Düzelt | Tutar düzeltilir |
+| Başkasının payı var | — | Paylaştır ([AKS-004](AKS-004-hesap-bolusme.md)) |
 
 ## Sürtünme
-- Çok kart: yanlış kartı seçmek kolay. Kart sıralaması (son kullanılan, sık) önemli.
+- Çok kart: yanlış kartı seçmek kolay. Hesap çipi boşsa Nakit sayılır; kartla ödeyen kullanıcı çipi unutursa harcama nakitten düşer. İlke 2 kararı "son kart varsayılan" idi; **uygulanmadı**.
 
-## Uygulamadaki karşılığı
-Hızlı giriş var (QuickEntry); "tek dokunuş kart + kategori" yeterince hızlı mı, ölçülmedi.
+## Uygulamadaki karşılığı (şimdi)
+Hızlı Kayıt → Gider (yukarıdaki akış). İşlemler'de düzenle yalnız tek hesaplı, ana para birimli gider/gelirde açılır.
 
 ## Açık sorular
 - Banka ekstresiyle teyit pratikte nasıl yapılıyor? (banka içe aktarma kapsam dışı)
+- İade ve Düzelt kapsamı → [acik-sorular](../acik-sorular.md).

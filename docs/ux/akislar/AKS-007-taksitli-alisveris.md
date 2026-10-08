@@ -5,7 +5,7 @@ status: active
 
 # AKS-007 — Taksitli kart alışverişi
 
-- **Kaynak:** Anlatım 1 (senaryo 6), karar Anlatım 6; **yeniden yazıldı: Anlatım 7 (2026-10-07, "gerçekleşen esaslı")**
+- **Kaynak:** Anlatım 1 (senaryo 6), karar Anlatım 6; yeniden yazıldı Anlatım 7; **uygulandı 2026-10-07** (Gider → Daha fazla → Taksitli)
 - **Kim:** Her kullanıcı
 - **Tetikleyici:** Kartla alışveriş yapılırken ödeme taksitli seçildi
 - **Sıklık:** Orta
@@ -19,19 +19,17 @@ status: active
 - **Her ay:** banka ekstreye 1.000 TL taksit yazar. Bu **yeni gider değil, kayıt da değil**; yalnız **gösterim/hatırlatma** ("Ekstre taksit takvimi": bu ay 1.000, kalan 9 taksit, kalan 9.000).
 - **Kart borcunun azalması = gerçekleşen kart ödemesi** (kullanıcı kartı ödediğinde, ödediği tutarla). Taksit "ödendi" diye ayrıca işaretlenmez; takvim, kartın ödemelerinden bağımsızdır.
 
-Önceki yargımın düzeltilmesi: "gelecek taksitler tahmin mi, kayıt mı" diye bir çelişki **yoktu**; ben Plan'ı kayıt gibi düşünmüştüm. Doğrusu: Plan = kayıt değil, gösterim/hatırlatma (bkz. [elestiri-ve-istisnalar](../arsiv/elestiri-ve-istisnalar.md)).
-
 ## Karar (Anlatım 6, geçerli)
-Taksitli alışveriş **Gider'in bir seçeneği**dir. [AKS-001](AKS-001-kartla-alisveris.md) akışı aynen başlar; "taksitli" seçilirse taksit sayısı sorulur.
+Taksitli alışveriş **Gider'in bir seçeneği**dir. [AKS-001](AKS-001-kartla-alisveris.md) akışı aynen başlar; "Taksitli" seçilirse taksit sayısı (2-36) ve kart sorulur, "Aylık yaklaşık X" gösterilir. Tek kart varsa seçili gelir. İlk taksit tarihi kartın kesim/son ödeme gününden türer. [uygulandı]
 
 ## Akış
 ```mermaid
 flowchart TD
-  A([Gider akışı: tutar, kart, kategori]) --> B{Taksitli mi?}
+  A([Gider akışı: tutar, kime, kategori]) --> B{Daha fazla → Taksitli?}
   B -- hayır --> Z([Tek çekim: AKS-001])
-  B -- evet --> C[Kaç taksit? Vade farkı var mı?]
+  B -- evet --> C[Kaç taksit? Hangi kart?]
   C --> D([Kaydedilen: tek gider + kart borcu. Taksit takvimi sadece gösterim])
-  D --> E[Yaklaşanlar: bu ay ekstreme X taksit düşecek, son ödeme tarihi]
+  D --> E[Kart son ödeme Yaklaşanlar'da; takvim Ayarlar → Taksitler'de]
   E --> F{Kullanıcı kartı ödedi mi?}
   F -- evet --> G([Kart ödemesi kaydı: kart borcu azalır, banka hesabı azalır])
   F -- hayır, son ödeme yaklaştı --> H[Yaklaşanlar'da uyarı: uygulama içi]
@@ -44,7 +42,7 @@ flowchart TD
 | Durum | Ne olur (kayıt / gösterim) |
 |---|---|
 | **Vade farksız taksit** | Yukarıdaki ana akış. |
-| **Vade farkı / faizli taksit** (ör. 10.000 ürün, toplam 11.200) | Açık karar: banka çoğunlukla toplamı baştan kart borcuna yazar. Öneri: alışverişte **10.000 gider (kategori)** + **1.200 faiz/vade farkı gideri (ayrı kalem)**, kart borcu 11.200; çünkü borç gerçekleşti. Bankanın farkı taksit taksit ekstreye yansıttığı kartlarda ise fark, yansıdığı ekstrede kaydedilir. Kullanıcı hangisi olduğunu bankasından biliyor mu: soru açık. |
+| **Vade farkı / faizli taksit** (ör. 10.000 ürün, toplam 11.200) | Karar yok; ekran yok. Kredide karar var: fark kayıt günü maliyet gideri. [öneri] Aynısı: alışverişte 10.000 gider (kategori) + 1.200 maliyet gideri, kart borcu 11.200. Bugün kullanıcı 11.200'ü tek kategoriye girer (Kalemler taksitle birlikte kapalı). |
 | **İade (tam)** | Mağaza iade eder: gider **ters yazılır** (kategori düşer), kart borcu aynı tutarda azalır. Banka kalan taksitleri iptal eder; takvim kapanır. Ödenmiş taksitlerin karşılığı kart hesabına **alacak** olarak döner (banka bazen karta, bazen hesaba yatırır); gerçekten yatan yer ve tutar elle girilir. |
 | **İade (kısmi)** | Aynı, iade tutarı kadar. Takvim yeniden hesaplanır (banka genelde son taksitlerden düşer; gerçek ekstre esas, gösterim ona uyar). |
 | **Değişim** | İade + yeni alışveriş yerine tek net hareket (fark öder/alır) mümkün; taksit sayısı değişmişse yeni takvim. |
@@ -67,13 +65,14 @@ flowchart TD
 - Aylık elle taksit girişi **yok**; kullanıcı yalnız alışverişi girer, ve kartı ödediğinde kart ödemesini girer.
 - Yanlış anlama riski: kullanıcı "taksit ödedim"i ayrı bir iş sanabilir. Kart ödemesi tek eylem; taksitler yalnız bilgidir.
 
-## Uygulamadaki karşılığı (şimdi) — KONTROL EDİLECEK
-Kod okunmadı; yalnız not. Mevcutta `installment-create/pay` Edge Function'ları ve ayrı Taksitler sayfası var. İlkeyle uyumu kontrol edilmeli:
-- `installment-create` alışverişte **tek gider + kart borcu** mu yazıyor, yoksa her taksit için ayrı gider/borç satırı mı oluşturuyor (çifte sayım riski)?
-- `installment-pay` taksit ödemesini **gerçek kart ödemesi** olarak mı kaydediyor, yoksa "taksit ödendi" ayrı bir olay mı (gerçekleşmemiş/ikili kayıt riski)?
-- Gelecek taksitler **kayıt (ileri tarihli satır)** olarak mı tutuluyor? Öyleyse "gerçekleşmemiş kayıt yok" ilkesiyle çelişir; takvim gösterim olmalı.
-- İade, erken kapama, vade farkı, kesim/son ödeme günü modelde karşılık buluyor mu?
-- Giriş yolu "Gider'in seçeneği" kararıyla değişecek (ekran önerisi yok).
+## Uygulamadaki karşılığı (şimdi)
+- Alışverişte **tek gider + kart borcu** yazılır; takvim ayrı tablo, kayıt değil. İlkeyle uyumlu. [uygulandı]
+- Taksit "ödendi" diye işaretlenmez; kart borcu Transfer → kart ile azalır. [uygulandı]
+- Takvim Ayarlar → Taksitler'de, aya göre toplamlı. Yaklaşanlar'da yok (harita B6).
+- **Uyumsuzluk:** Yaklaşanlar'daki kart son ödeme tutarı kesimdeki kart borcunun tamamıdır; ekstreye düşmemiş taksitleri de içerir (harita B2).
+- Vade farkı, iade, erken kapama, süren taksit açılışı için ekran yok.
+- Taksit yalnız ana para birimli kredi kartında; kalemler ve döviz ile birlikte kullanılmaz; paylaştır ile kullanılır.
+- Ödenmiş taksiti olan eski alışveriş silinemez.
 
 ## Notlar / açık sorular
 Bkz. [acik-sorular](../acik-sorular.md) (Taksitli alışveriş).

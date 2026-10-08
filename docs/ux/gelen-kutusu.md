@@ -108,3 +108,25 @@ ARAŞTIRMA (Türkiye Finans Katılım Bankası; web aramasından, çoğu doğrul
 - Kaynaklar: Türkiye Finans Bankacılık İşlemleri Sözleşmesi Bireysel (madde 4.9, 5, 6) ve Kur Korumalı Katılma Hesabı ön bilgilendirme formları (turkiyefinans.com.tr sözleşmeler ve formlar sayfası, bazıları "arşivde"), hesapkurdu/teklifimgelsin/hesap.com karşılaştırma sayfaları, haber siteleri (TCMB nakit avans tavanı).
 
 Ayrıca acik-sorular.md'ye "Ürün sahibinin teyit edeceği banka bilgileri" listesi ekle (nakit avans oranı/komisyonu, erken kapama koşulu, erken bozmada kâr payı, otomatik yenileme ayarı).
+
+## 2026-10-08 — Kararlar ve uygulama (anlatım değil; [ROADMAP](../ROADMAP.md) ve commit kayıtlarından aktarıldı)
+> Ürün sahibinin 2026-10-07/08 kararları ROADMAP'te. Burada yalnız özet ve bağlantı var.
+
+KARARLAR (ROADMAP "Decisions"):
+- harita §7'deki bütün öneriler kabul: emanet yatırım v1 sonrası; kart ödemesi = Transfer → kart; kesim/son ödeme günü kart başına bir kez; Geri Al = son kayıt hemen, sonra Düzelt/Sil, çok satırlı kayıt tek adımda; terimler "getiri" / "maliyet".
+- acik-sorular'daki bütün "(Öneri: …)" maddeleri karar sayıldı.
+- harita §6 kabul ("Diğer" yalnız döviz, yatırım, emanet).
+- Kredi: kredi günü toplam geri ödeme borç olur; toplam − anlaşılan = maliyet gideri; anlaşılan − yatan = masraf gideri; her taksit kredi hesabına transfer; erken kapama indirimi = Fark.
+- Vadeli: kullanıcı anapara + oran + gün girer; beklenen net getiri türetilir (stopaj oranı hesapta). Vadede gerçek tutar girilir; fark gelir ya da gider.
+- Hesap şablonu: 2 seviyeli kategori ağacı; "Sadece grup" kategori elle ayarlanır; her üyeye "Nakit"; başlangıç sihirbazı banka, kart, kredi sorar; üyeler arası harçlık = verende gider, alanda gelir (iki kayıt); "Kupon & Hediye Çeki" gelir; marka → kategori varsayılanları şablonda.
+
+UYGULANANLAR (sırayla):
+1. Hızlı Kayıt v2: 5 düğme + ATM otomatik cüzdan + Geri Al bildirimi + yön işaretleri.
+2. Gider seçenekleri: taksit, paylaştır (eşit, 3+ kişi, artan kuruş bende), not; kendi kaydını silme.
+3. Rehber: kişi / marka / firma, IBAN, marka varsayılan kategori.
+4. Plan ve Yaklaşanlar: kart son ödeme, borç vadesi, önceden doldurulmuş ödeme, taksit takvimi gösterim.
+5. Nakit avans (isteğe bağlı komisyon); banka kredisi.
+6. Vadeli hesap: Transfer'den açılış, vade sonu, erken bozma; Geri Al önceki dönemi geri getirir.
+7. Defter bütünlüğü: "Sadece grup" kategoriler, çok kategorili fiş (kalemler).
+8. Hesap şablonu ve `/baslangic` sihirbazı.
+9. Hızlı Kayıt v3: dört tür (Gider · Gelir · Transfer · Borç); tutar en üstte; çip satırı (hesap · tarih · Daha fazla); seyrek seçenekler "Daha fazla" altında; Kaydet sabit. ATM, kart ödemesi, nakit avans Transfer kısayolu oldu. Etiketler (#etiket, filtre, toplam).

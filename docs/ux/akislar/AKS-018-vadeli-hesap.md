@@ -5,7 +5,7 @@ status: active
 
 # AKS-018 — Vadeli hesap (30-90 gün): açılış, vade sonu, yenileme, erken bozma
 
-- **Kaynak:** Anlatım 1 (senaryo 9), Anlatım 5, kararlar Anlatım 6; genişletildi Anlatım 7; **düzeltildi: Anlatım 8 (2026-10-07, Türkiye Finans katılma hesabı araştırması)**
+- **Kaynak:** Anlatım 1 (senaryo 9), Anlatım 5-8, [ROADMAP](../../ROADMAP.md) kararı; **uygulandı 2026-10-07** (Transfer'den açılış, Yaklaşanlar'dan vade sonu)
 - **Kim:** Hesap sahibi (ben)
 - **Tetikleyici:** Parayı belli süreliğine, sabit oranla vadeli hesaba yatırdım
 - **Sıklık:** Nadir açılış; vade sonu tek olay (yenileme varsa tekrarlar)
@@ -29,8 +29,8 @@ status: active
 ## Akış 1: açılış → vade sonu
 ```mermaid
 flowchart TD
-  A([Parayı vadeli hesaba yatırdım]) --> B[Tutar, hangi hesaptan, süre, oran]
-  B --> C[Vade sonu talimatı: yenilensin mi / yenilenmesin, hangi vadesize dönsün]
+  A([Parayı vadeli hesaba yatırdım]) --> B[Transfer: Nereden banka, Nereye + Yeni vadeli hesap]
+  B --> C[Tutar, yıllık oran %, gün, stopaj %]
   C --> D([Kaydedilen: para vadesizden vadeli hesaba geçti; gelir/gider yok])
   D --> E[Gösterim: ilk dönem beklenen getiri, vade tarihi]
   E --> F[Yaklaşanlar: vade günü]
@@ -104,8 +104,15 @@ flowchart TD
 - Yenilemede oran değiştiği için beklenen getiri belirsizleşir; kullanıcı Excel'deki hesabın artık tutmayacağını görebilir. Etiketleme ("tahmini") bu hayal kırıklığını azaltır.
 - Anapara+getiri mi yalnız anapara mı yenilendiğini kullanıcı bankadan bilir; yanlış seçilirse bakiye bankadan sapar.
 
-## Uygulamadaki karşılığı (şimdi)
-Vadeli hesap için özel nesne (vade tarihi, oran, hedef hesap, yenileme tercihi) yok; `accounts` tipleri kontrol edilecek, **uyumsuzluk adayı**. Yenileme "aynı hesap yeni dönem" olarak nasıl modelleneceği (dönem geçmişi) ayrıca bir uyumsuzluk adayı. Yaklaşanlar için tarih/Plan karşılığı yok (kod okunmadı).
+## Uygulamadaki karşılığı (şimdi) [uygulandı]
+- **Açılış:** Transfer → Nereye "+ Yeni vadeli hesap"; yıllık oran %, gün (varsayılan 32), stopaj %; "Vade sonunda beklenen net getiri: X (gösterim)". Vade sonu talimatı ve dönülecek hesap **sorulmaz**; vade günü sorulur.
+- **Yaklaşanlar:** vade günü satırı, tutar = anapara + beklenen getiri; tarih geçince "Bekliyor". Düğme: "Bankada ne oldu?".
+- **Vade sonu formu:** üstte anapara · oran · vade · beklenen. Seçim: **Yenilendi** / **Hesaba döndü** (vade öncesinde **Erken bozdum**).
+  - Yenilendi: gerçekleşen net getiri (beklenen dolu), "Anapara + getiri" ya da "Yalnız anapara" (getiri hedef hesaba), yeni oran % (boş; eski oran ipucu), gün (eskisi dolu), "Bir kısmını çektim" → çekilen tutar + hedef hesap.
+  - Hesaba döndü / Erken bozdum: hesaba yatan gerçek tutar (vadede anapara + beklenen, erken bozmada yalnız anapara dolu); fark getiri geliri ya da kesinti gideri; hedef hesap.
+- Aynı vadeli hesap yeni döneme geçer; vade sonu kaydı geri alınırsa önceki dönem geri gelir. Açılış, hareket varsa silinemez.
+- Yalnız ana para birimi. Kur korumalı hesap yok.
+- **Boşluk:** Başlangıçta zaten açık olan vadeli hesabı girme yolu yok ([AKS-019](AKS-019-baslangic.md)).
 
 ## Notlar / açık sorular
 Bkz. [acik-sorular](../acik-sorular.md) (Faizli hesaplar ve "Ürün sahibinin teyit edeceği banka bilgileri"). Günlük faizli tür: [AKS-010](AKS-010-gunluk-faizli-hesap.md).

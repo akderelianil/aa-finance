@@ -20,8 +20,8 @@ status: active
 ## Akış
 ```mermaid
 flowchart TD
-  A([Banka bugünün faizini yatırdı]) --> B[Hesabı seç: günlük faizli hesap]
-  B --> C[Yatan faizi gir]
+  A([Banka bugünün faizini yatırdı]) --> B[Hızlı Kayıt → Gelir]
+  B --> C[Yatan faizi gir, kategori, hesap çipi: günlük faizli hesap]
   C --> D{Kesinti ayrı gösterilsin mi?}
   D -- evet --> E[Brüt + kesinti]
   D -- hayır --> F[Net yatan tutar]
@@ -39,7 +39,9 @@ flowchart TD
 - Tahmin kayda girmediği için bakiye bankayla uyumlu kalır (güven).
 
 ## Uygulamadaki karşılığı (şimdi)
-Faiz geliri için özel akış yok; genel gelir kaydı kullanılabilir. Hesap türü "günlük faizli" ayrımı (kesinti alanı) modelde ayrı bir şey mi, kontrol edilecek.
+- Özel akış yok; Hızlı Kayıt → Gelir: tutar (net yatan), kategori, hesap çipinde günlük faizli hesap. Yeterli kısa.
+- Hesap türünde "günlük faizli" ayrımı yok; kesinti (stopaj) ayrı girilmez. Akıştaki "Brüt + kesinti" dalı **uygulanmadı**.
+- Hesap çipi boşsa Nakit sayılır; kullanıcı her gün hesabı seçmek zorunda (İlke 2 "son hesap" uygulanmadı).
 
 ## Notlar / açık sorular
 Bkz. [acik-sorular](../acik-sorular.md) (Faizli hesaplar). Vadeli tür: [AKS-018](AKS-018-vadeli-hesap.md).
