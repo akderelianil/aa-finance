@@ -12,3 +12,4 @@ docs/.obsidian/*
 # Claude Code: personal settings and local agent memory
 .claude/settings.local.json
 .claude/agent-memory-local/
+.playwright-cli/

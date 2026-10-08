@@ -23,15 +23,6 @@
         "@upstash/context7-mcp@latest"
       ]
     },
-    "playwright": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@playwright/mcp@latest"
-      ]
-    },
     "shadcn": {
       "command": "npx",
       "args": [

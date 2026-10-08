@@ -40,7 +40,7 @@ Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warni
 3. Money is `bigint`/string everywhere. Rate/quantity is `numeric` → string. No float.
 4. New Edge Function: use the `_shared/` helpers (db, http, accounts, uuid). Write = one transaction + `FOR UPDATE` on the affected account rows.
 5. If unsure of library syntax, check current docs with context7. Versions are new (react-router 8, tailwind 4, vite 8, i18next 26) and can differ from training data.
-6. Open every UI change with the playwright MCP and take a screenshot. Screenshots go to `.playwright-mcp/` (gitignored).
+6. Open every UI change with Playwright CLI and take a screenshot: `npx -y @playwright/cli open <url>`, then `screenshot`, then `close`. Snapshots and screenshots go to `.playwright-cli/` (gitignored).
 
 ## Status (2026-10-08)
 Ledger-core roadmap in progress ([ROADMAP](ROADMAP.md)). The UX roadmap flows are hidden.
