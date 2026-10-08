@@ -87,7 +87,7 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
   const money = acc(moneyId)
   const from = acc(fromId)
   const to = acc(toId)
-  const feeAccount = acc(feeAccountId) ?? (fee ? defaultFee : undefined)
+  const feeAccount = acc(feeAccountId) ?? defaultFee
 
   // Day rates of the foreign currencies on the form (suggestions; journal-post books the given base amounts).
   const used = kind === 'transfer'
@@ -305,7 +305,7 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
               <Field label={t('quick.counterAmount', { currency: to.currency })}>
                 <AmountInput
                   className={amountCls} value={counter} currency={to.currency} base={base}
-                  placeholder={counterSuggest !== null ? fmt(counterSuggest, to.currency) : ''}
+                  placeholder={counterSuggest ? fmt(counterSuggest, to.currency) : ''}
                   onChange={setCounter}
                 />
               </Field>
@@ -357,7 +357,7 @@ function Picker({ accounts, value, onChange, label, autoFocus }: {
   return (
     <AccountPicker
       accounts={accounts} value={value} onChange={onChange} autoFocus={autoFocus} aria-label={label}
-      className="rounded-md border border-input text-foreground"
+      className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
     />
   )
 }
