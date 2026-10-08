@@ -1,4 +1,5 @@
-import { BookOpenIcon, ChartPieIcon, ListTreeIcon, SettingsIcon } from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
@@ -11,6 +12,7 @@ import {
 } from '@/components/ui/sidebar'
 import { GroupHeader } from './GroupHeader'
 import { NavUser } from './NavUser'
+import { QuickTransactionDialog } from './quick/QuickTransactionDialog'
 import { InsideAppShell } from './PageShell'
 
 const ITEMS = [
@@ -37,6 +39,7 @@ function Shell({ membership }: { membership: Membership }) {
   const { t } = useTranslation()
   const { session } = useAuth()
   const { pathname } = useLocation()
+  const [quickOpen, setQuickOpen] = useState(false)
   const user = {
     name: membership.displayName ?? session?.user.email ?? '',
     email: session?.user.email ?? '',
@@ -50,6 +53,21 @@ function Shell({ membership }: { membership: Membership }) {
           <GroupHeader group={membership.group} />
         </SidebarHeader>
         <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={t('nav.quick')} onClick={() => setQuickOpen(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                  >
+                    <PlusIcon />
+                    <span>{t('nav.quick')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -83,6 +101,7 @@ function Shell({ membership }: { membership: Membership }) {
           <InsideAppShell.Provider value><Outlet /></InsideAppShell.Provider>
         </div>
       </SidebarInset>
+      <QuickTransactionDialog open={quickOpen} onClose={() => setQuickOpen(false)} membership={membership} />
     </SidebarProvider>
   )
 }
