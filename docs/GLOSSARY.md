@@ -7,7 +7,7 @@ status: active
 
 Use these terms only. The Turkish column is the term for UI text (`web/src/i18n/tr.ts`). Users know accounting: use the standard Turkish accounting term (Tek Düzen Hesap Planı, GnuCash Turkish).
 
-The "Do not use" column is machine-checked. `cd web && npm run check:terms` fails on each hit in `tr.ts` strings, except the namespaces of hidden flows (list in `web/scripts/check-terms.mjs`). Each value is a word start, case-insensitive. To add a term, add a row here. To change a term, ask the product owner first.
+The "Do not use" column is machine-checked. `cd web && npm run check:terms` fails on each hit in `tr.ts` strings, except the namespaces listed in `web/scripts/check-terms.mjs`. Each value is a word start, case-insensitive. To add a term, add a row here. To change a term, ask the product owner first.
 
 Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış yap`, `Girişe dön`.
 
@@ -73,4 +73,3 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 | `base_amount` | Line amount in the group base currency. Entries balance on it. |
 | Minor unit | Money as int64 (kuruş, cent). Never float. |
 | `template_key` | Stable id of a template account. Code finds a fixed account by it, never by name. |
-| Hidden flow | A convenience flow (quick entry, installment, loan, ...) whose UI is hidden since 2026-10-08. |

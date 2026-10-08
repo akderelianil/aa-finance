@@ -10,7 +10,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 ## Decisions (2026-10-08, product owner)
 - Users know accounting. The UI uses real accounting terms and follows accounting standards.
 - v1 is desktop only.
-- Convenience flows are hidden, not deleted: quick entry, installment, loan, deposit, FX exchange, investment, plans, start wizard, directory. Rebuild them later on `journal-post`.
+- Convenience flows (installment, loan, deposit, FX exchange, investment, plans, start wizard, legacy quick entry) were deleted on 2026-10-08; git history keeps them. Rebuild later on `journal-post`, driven by `docs/ux/`.
 - Every account has a currency (also income and expense). The owner member is optional on every account and is a label only.
 - The group and its members stay. Screens show one shared ledger.
 - Account code on every account for sorting. The UI does not show it. The chart is simple: five roots, locked system groups, free accounts below. The system sets the frame; the user fills it.

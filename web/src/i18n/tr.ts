@@ -99,7 +99,7 @@ export const tr = {
     inviteHint: 'Kodu aile üyelerine gönder. 7 gün geçerli.',
     inviteCode: 'Davet kodu',
     copy: 'Kopyala',
-    lockDate: 'Dönem kilidi (bu tarihe kadar işlem değişmez)',
+    lockDate: 'Dönem kilidi (bu tarihe kadar kayıt değişmez)',
     lockHint: 'Boş bırakırsan kilit kalkar.',
     copied: 'Kopyalandı',
   },

@@ -21,15 +21,14 @@ const allowed = ticks(glossary.match(/^Allowed phrases.*$/m)?.[0] ?? '').map(low
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const pattern = new RegExp(`(?<!\\p{L})(${[...banned].map(esc).join('|')})`, 'gu')
 
-// Sources: string literals in tr.ts, outside the namespaces of hidden flows. docs/ux is not checked.
-const HIDDEN = new Set(['dashboard', 'setup', 'home', 'entry', 'directory', 'people', 'upcoming', 'installments',
-  'investments', 'attachments'])
+// Sources: string literals in tr.ts, outside the namespaces in SKIP. docs/ux is not checked.
+const SKIP = new Set(['dashboard', 'entry', 'directory'])
 const sources = []
 const tr = fs.readFileSync(path.join(root, 'web/src/i18n/tr.ts'), 'utf8')
 let ns = ''
 tr.split('\n').forEach((l, i) => {
   ns = l.match(/^ {2}(\w+): \{/)?.[1] ?? ns
-  if (HIDDEN.has(ns)) return
+  if (SKIP.has(ns)) return
   const text = [...l.matchAll(/'([^']*)'/g)].map((m) => m[1]).join(' ')
   if (text) sources.push({ file: 'web/src/i18n/tr.ts', line: i + 1, text })
 })

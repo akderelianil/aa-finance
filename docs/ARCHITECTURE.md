@@ -7,10 +7,10 @@ status: active
 
 ## Decisions
 - **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite/shadcn desktop web app on Cloudflare. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
-- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`, `contact_ledger_balances`; hidden flows: `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
+- **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`, `contact_ledger_balances`; `report_totals`, `report_cash_flow`).
 - **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
-- **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`, `contact_id` (Rehber tag). The entry takes optional `tags` (names; new names open as group tags; on update, omitted `tags` keep the current ones). It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`. Entries of hidden flows with link tables (installment, deposit, loan, investment) are not editable here.
+- **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`, `contact_id` (Rehber tag). The entry takes optional `tags` (names; new names open as group tags; on update, omitted `tags` keep the current ones). It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`.
 - **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
 - **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
 - **Each journal entry belongs to one member** (the member who entered it). The group keeps one shared Chart of Accounts. The account owner (`owner_member_id`) is an optional label on any account type, not a posting rule.
@@ -43,7 +43,7 @@ The DB enforces these rules for every writer (`20261008030000_ledger_integrity.s
 - A parent has the same group and type, and is not a system account. Owner and currency can differ.
 - Every account has a currency and a code (digits and dots: `1`, `1.02`, `1.02.01`). The UI does not show codes.
 
-A receipt with more than one category is one entry with one line per category (`items` in `transaction-create` and `transaction-update`).
+A receipt with more than one category is one entry with one line per category (split lines in `journal-post`).
 
 ## Account template
 `apply_account_template(group_id)` (`20261008090000_simple_chart.sql`) is the single source of the starting chart. Onboarding calls it first, then creates the system and member accounts. It is idempotent.
@@ -70,7 +70,7 @@ A receipt with more than one category is one entry with one line per category (`
 
 ## Scope
 - **v1 (desktop only):** Chart of Accounts, General Journal, Account Register, trial balance / balance sheet / income statement, group/members, multi-currency.
-- **Hidden (code kept, no route):** quick entry, debts, installments, cash advance, loan, term deposit, investments, plans, start wizard. Rebuild on `journal-post`.
+- **Deleted (2026-10-08, see git history):** legacy quick entry, debts, installments, cash advance, loan, term deposit, investments, plans, start wizard. Rebuild on `journal-post`.
 - **Later:** bills, subscriptions, budget, period close, reconcile, scheduled entries.
 
 ## Rules the app enforces (the DB does not)
