@@ -13,16 +13,16 @@ export function SidebarCalendar() {
   const locale = i18n.resolvedLanguage === 'en' ? enUS : tr
   return (
     <SidebarGroup className="mt-auto">
-      <SidebarGroupContent>
-        <div className="flex flex-col gap-1 px-2 pb-1">
+      <SidebarGroupContent className="flex flex-col gap-2 rounded-lg p-3 ring-1 ring-sidebar-border">
+        <div className="flex flex-col">
           <p className="text-sm font-medium">{today.toLocaleDateString(locale.code, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           <p className="text-xs text-muted-foreground">
             {today.toLocaleDateString(locale.code, { weekday: 'long' })} · {t('calendar.week', { n: getISOWeek(today) })}
           </p>
         </div>
         <Calendar
-          mode="single" selected={today} month={today} locale={locale} weekStartsOn={1} showWeekNumber
-          hideNavigation disabled className="w-full p-0 [--cell-size:--spacing(8)]"
+          mode="single" selected={today} month={today} locale={locale} weekStartsOn={1}
+          hideNavigation disabled className="mx-auto w-fit p-0 [--cell-size:--spacing(7)]"
         />
       </SidebarGroupContent>
     </SidebarGroup>
