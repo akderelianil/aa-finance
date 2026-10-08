@@ -10,6 +10,7 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { GroupHeader } from './GroupHeader'
 import { NavUser } from './NavUser'
