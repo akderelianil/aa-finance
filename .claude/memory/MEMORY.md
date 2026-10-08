@@ -4,3 +4,4 @@
 - [Stack & machine gotchas](project-aa-finance-stack.md) — Supabase + Edge Functions + React; Windows quirks; docs/DEVELOPMENT.md
 - [Ledger core pivot (2026-10-08)](project-ledger-core-pivot.md) — GnuCash-style core; convenience flows hidden; desktop only; open calls
 - [No git remote](project-no-git-remote.md) — commit only, never push
+- [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer done; next debt/loan
