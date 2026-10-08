@@ -1,3 +1,4 @@
+import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -40,8 +41,10 @@ export function ThemeToggle() {
 
   return (
     <ToggleGroup value={[theme]} onValueChange={change} spacing={2} aria-label={t('settings.theme')}>
-      {(['light', 'dark', 'system'] as const).map((k) => (
-        <ToggleGroupItem key={k} value={k} variant="outline">{t(`settings.theme_${k}`)}</ToggleGroupItem>
+      {([['light', SunIcon], ['dark', MoonIcon], ['system', MonitorIcon]] as const).map(([k, Icon]) => (
+        <ToggleGroupItem key={k} value={k} variant="outline" aria-label={t(`settings.theme_${k}`)} title={t(`settings.theme_${k}`)}>
+          <Icon />
+        </ToggleGroupItem>
       ))}
     </ToggleGroup>
   )

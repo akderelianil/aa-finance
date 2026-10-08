@@ -1,4 +1,4 @@
-import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { BookOpenIcon, CalendarIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -20,7 +20,6 @@ const ITEMS = [
   { to: '/yevmiye', key: 'journal', icon: BookOpenIcon, end: false },
   { to: '/raporlar', key: 'reports', icon: ChartPieIcon, end: false },
   { to: '/rehber', key: 'directory', icon: ContactIcon, end: false },
-  { to: '/ayarlar', key: 'settings', icon: SettingsIcon, end: false },
 ] as const
 
 function isActive(pathname: string, to: string, end: boolean) {
@@ -76,6 +75,22 @@ export function AppShell({ membership }: { membership: Membership }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={t('nav.calendar')}
+                    isActive={isActive(pathname, '/takvim', false)}
+                    render={<NavLink to="/takvim" />}
+                  >
+                    <CalendarIcon />
+                    <span>{t('nav.calendar')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

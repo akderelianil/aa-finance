@@ -6,6 +6,7 @@ import { useMembership } from '@/auth/useMembership'
 import { AppShell } from '@/components/AppShell'
 import { PageShell } from '@/components/PageShell'
 import Journal from '@/pages/Journal'
+import Calendar from '@/pages/Calendar'
 import Settings from '@/pages/Settings'
 import Login from '@/pages/Login'
 import OnboardingChoice from '@/pages/OnboardingChoice'
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/yevmiye" element={<Journal membership={membership.data} />} />
         <Route path="/raporlar" element={<Reports membership={membership.data} />} />
         <Route path="/rehber" element={<Directory membership={membership.data} />} />
+        <Route path="/takvim" element={<Calendar />} />
         <Route path="/ayarlar" element={<Settings membership={membership.data} />} />
       </Route>
       <Route path="*" element={<Navigate to="/anasayfa" replace />} />
