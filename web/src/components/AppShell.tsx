@@ -1,17 +1,14 @@
-import {
-  BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon,
-} from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import type { Membership } from '@/auth/useMembership'
+import { Separator } from '@/components/ui/separator'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
 import { GroupHeader } from './GroupHeader'
 import { NavUser } from './NavUser'
 import { QuickTransactionDialog, type QuickKind } from './quick/QuickTransactionDialog'
@@ -25,9 +22,6 @@ const ITEMS = [
   { to: '/rehber', key: 'directory', icon: ContactIcon, end: false },
   { to: '/ayarlar', key: 'settings', icon: SettingsIcon, end: false },
 ] as const
-
-// Icon rail: 4rem wide, large icons, labels in tooltips. The trigger expands it to show labels.
-const BUTTON = 'group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center [&_svg]:size-5'
 
 function isActive(pathname: string, to: string, end: boolean) {
   return end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)
@@ -46,7 +40,7 @@ export function AppShell({ membership }: { membership: Membership }) {
   }
 
   return (
-    <SidebarProvider defaultOpen={false} style={{ '--sidebar-width-icon': '4rem' } as React.CSSProperties}>
+    <SidebarProvider>
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <GroupHeader group={membership.group} />
@@ -75,7 +69,6 @@ export function AppShell({ membership }: { membership: Membership }) {
                     <SidebarMenuButton
                       tooltip={t(`nav.${key}`)}
                       isActive={isActive(pathname, to, end)}
-                      className={cn(BUTTON, 'data-active:bg-primary data-active:text-primary-foreground data-active:hover:bg-primary/90 data-active:hover:text-primary-foreground')}
                       render={<NavLink to={to} end={end} />}
                     >
                       <Icon />
