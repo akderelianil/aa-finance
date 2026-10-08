@@ -5,6 +5,7 @@ export const tr = {
     logout: 'Çıkış yap',
   },
   nav: {
+    quick: 'Yeni Kayıt',
     home: 'Ana Sayfa',
     journal: 'Yevmiye',
     accounts: 'Hesap Planı',

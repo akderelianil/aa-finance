@@ -1,7 +1,4 @@
-import {
-  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon,
-  SettingsIcon, type LucideIcon,
-} from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -25,12 +22,6 @@ const ITEMS = [
   { to: '/rehber', key: 'directory', icon: ContactIcon, end: false },
   { to: '/ayarlar', key: 'settings', icon: SettingsIcon, end: false },
 ] as const
-
-const QUICK: { kind: QuickKind; icon: LucideIcon }[] = [
-  { kind: 'expense', icon: ArrowUpRightIcon },
-  { kind: 'income', icon: ArrowDownLeftIcon },
-  { kind: 'transfer', icon: ArrowLeftRightIcon },
-]
 
 function isActive(pathname: string, to: string, end: boolean) {
   return end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)
@@ -58,17 +49,15 @@ export function AppShell({ membership }: { membership: Membership }) {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {QUICK.map(({ kind, icon: Icon }) => (
-                  <SidebarMenuItem key={kind}>
-                    <SidebarMenuButton
-                      tooltip={t(`quick.kind.${kind}`)} onClick={() => setQuick(kind)}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-                    >
-                      <Icon />
-                      <span>{t(`quick.kind.${kind}`)}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={t('nav.quick')} onClick={() => setQuick('expense')}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                  >
+                    <PlusIcon />
+                    <span>{t('nav.quick')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

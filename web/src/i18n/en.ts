@@ -7,6 +7,7 @@ export const en: Translation = {
     logout: 'Log out',
   },
   nav: {
+    quick: 'New Entry',
     home: 'Home',
     journal: 'General Journal',
     accounts: 'Chart of Accounts',
