@@ -7,7 +7,7 @@ export const en: Translation = {
     logout: 'Log out',
   },
   nav: {
-    quick: 'New Entry',
+    quick: 'Quick Entry',
     home: 'Home',
     journal: 'General Journal',
     accounts: 'Chart of Accounts',
@@ -203,7 +203,7 @@ export const en: Translation = {
     usedHint: 'An account with entries keeps its type and currency.',
   },
   quick: {
-    title: 'New Entry',
+    title: 'Quick Entry',
     subtitle: 'Record income, expense and transfers in one place. The entry goes to the General Journal.',
     kind: { income: 'Income', expense: 'Expense', transfer: 'Transfer' },
     mode: { between: 'Between accounts', atm_withdraw: 'ATM withdrawal', atm_deposit: 'ATM deposit' },

@@ -5,7 +5,7 @@ export const tr = {
     logout: 'Çıkış yap',
   },
   nav: {
-    quick: 'Yeni Kayıt',
+    quick: 'Hızlı Kayıt',
     home: 'Ana Sayfa',
     journal: 'Yevmiye',
     accounts: 'Hesap Planı',
@@ -201,7 +201,7 @@ export const tr = {
     usedHint: 'Kaydı olan hesabın türü ve para birimi değişmez.',
   },
   quick: {
-    title: 'Yeni Kayıt',
+    title: 'Hızlı Kayıt',
     subtitle: "Gelir, gider ve transferi tek ekrandan kaydet. Kayıt Yevmiye'ye düşer.",
     kind: { income: 'Gelir', expense: 'Gider', transfer: 'Transfer' },
     mode: { between: 'Hesaplar arası', atm_withdraw: 'ATM para çekme', atm_deposit: 'ATM para yatırma' },
