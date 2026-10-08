@@ -1,18 +1,20 @@
-import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import {
+  ArrowDownLeftIcon, ArrowLeftRightIcon, ArrowUpRightIcon, BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon,
+  SettingsIcon, type LucideIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import type { Membership } from '@/auth/useMembership'
 import { Separator } from '@/components/ui/separator'
-import { EntryDialogProvider } from './EntryDialog'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { GroupHeader } from './GroupHeader'
 import { NavUser } from './NavUser'
-import { QuickTransactionDialog } from './quick/QuickTransactionDialog'
+import { QuickTransactionDialog, type QuickKind } from './quick/QuickTransactionDialog'
 import { InsideAppShell } from './PageShell'
 
 const ITEMS = [
@@ -24,24 +26,22 @@ const ITEMS = [
   { to: '/ayarlar', key: 'settings', icon: SettingsIcon, end: false },
 ] as const
 
+const QUICK: { kind: QuickKind; icon: LucideIcon }[] = [
+  { kind: 'expense', icon: ArrowUpRightIcon },
+  { kind: 'income', icon: ArrowDownLeftIcon },
+  { kind: 'transfer', icon: ArrowLeftRightIcon },
+]
+
 function isActive(pathname: string, to: string, end: boolean) {
   return end ? pathname === to : pathname === to || pathname.startsWith(`${to}/`)
 }
 
 // Desktop only (v1): left sidebar.
 export function AppShell({ membership }: { membership: Membership }) {
-  return (
-    <EntryDialogProvider membership={membership}>
-      <Shell membership={membership} />
-    </EntryDialogProvider>
-  )
-}
-
-function Shell({ membership }: { membership: Membership }) {
   const { t } = useTranslation()
   const { session } = useAuth()
   const { pathname } = useLocation()
-  const [quickOpen, setQuickOpen] = useState(false)
+  const [quick, setQuick] = useState<QuickKind | null>(null)
   const user = {
     name: membership.displayName ?? session?.user.email ?? '',
     email: session?.user.email ?? '',
@@ -58,15 +58,17 @@ function Shell({ membership }: { membership: Membership }) {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip={t('nav.quick')} onClick={() => setQuickOpen(true)}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-                  >
-                    <PlusIcon />
-                    <span>{t('nav.quick')}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {QUICK.map(({ kind, icon: Icon }) => (
+                  <SidebarMenuItem key={kind}>
+                    <SidebarMenuButton
+                      tooltip={t(`quick.kind.${kind}`)} onClick={() => setQuick(kind)}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                    >
+                      <Icon />
+                      <span>{t(`quick.kind.${kind}`)}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -103,7 +105,7 @@ function Shell({ membership }: { membership: Membership }) {
           <InsideAppShell.Provider value><Outlet /></InsideAppShell.Provider>
         </div>
       </SidebarInset>
-      <QuickTransactionDialog open={quickOpen} onClose={() => setQuickOpen(false)} membership={membership} />
+      <QuickTransactionDialog kind={quick} onClose={() => setQuick(null)} membership={membership} />
     </SidebarProvider>
   )
 }

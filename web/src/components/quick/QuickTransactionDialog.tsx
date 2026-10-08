@@ -21,23 +21,24 @@ import {
   convertMinor, incomeExpenseLines, isBank, isCard, isCash, transferLines, type FxCtx, type QuickLine,
 } from '@/lib/quick'
 
-type Kind = 'income' | 'expense' | 'transfer'
+export type QuickKind = 'income' | 'expense' | 'transfer'
+type Kind = QuickKind
 type TransferMode = 'between' | 'atm_withdraw' | 'atm_deposit'
 
-type Props = { open: boolean; onClose: () => void; membership: Membership }
+type Props = { kind: QuickKind | null; onClose: () => void; membership: Membership }
 
 // Hızlı İşlem: Gelir · Gider · Transfer. Each form posts one plain journal entry through journal-post.
 // A Rehber contact tags every line; for Gelir / Gider its default account fills the first account line.
-export function QuickTransactionDialog({ open, onClose, membership }: Props) {
+export function QuickTransactionDialog({ kind, onClose, membership }: Props) {
   const { t } = useTranslation()
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+    <Dialog open={kind !== null} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t('quick.title')}</DialogTitle>
           <DialogDescription>{t('quick.subtitle')}</DialogDescription>
         </DialogHeader>
-        {open && <QuickForm membership={membership} onClose={onClose} />}
+        {kind && <QuickForm key={kind} initialKind={kind} membership={membership} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   )
@@ -47,7 +48,7 @@ type SplitDraft = { key: number; accountId: string; memo: string; amount: string
 let nextKey = 1
 const emptySplit = (): SplitDraft => ({ key: nextKey++, accountId: '', memo: '', amount: '' })
 
-function QuickForm({ membership, onClose }: { membership: Membership; onClose: () => void }) {
+function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; membership: Membership; onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const base = membership.group.base_currency
@@ -62,7 +63,7 @@ function QuickForm({ membership, onClose }: { membership: Membership; onClose: (
   const byId = accounts.data?.byId ?? new Map<string, AccountNode>()
   const acc = (id: string) => (id ? byId.get(id) : undefined)
 
-  const [kind, setKind] = useState<Kind>('expense')
+  const [kind, setKind] = useState<Kind>(initialKind)
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
   const contacts = useContacts()

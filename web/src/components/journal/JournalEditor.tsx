@@ -13,7 +13,7 @@ import { draftContact, emptyLine, today, type Draft, type DraftLine } from '@/li
 import { formatAmount, parseDecimalInput, toMinor, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
-import { TagsField } from '@/components/entry/Fields'
+import { TagsField } from '@/components/journal/TagsField'
 import { ContactPicker } from './ContactPicker'
 
 type Props = {

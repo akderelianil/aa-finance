@@ -1,11 +1,11 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
-import { parseAccountFields, saveCardDays } from '../_shared/accounts.ts'
+import { parseAccountFields } from '../_shared/accounts.ts'
 import { loadMember } from '../_shared/entries.ts'
 
 // Edit an account of the group Chart of Accounts (GnuCash "Edit Account"). Any member can edit.
 // Request: { account_id, name?, code?, parent_id? (null = root), currency?, subtype?, owner_member_id?,
-//            is_placeholder?, archived?, statement_day?, due_day? }. A missing field stays.
+//            is_placeholder?, archived? }. A missing field stays.
 // A locked system account (roots, groups, receivable, payable) keeps name, parent, kind, group flag and archive state.
 // DB triggers: an account with lines keeps its type and currency and cannot become a placeholder;
 // a parent has the same type and is not a system account; no cycle. A system account cannot be archived.
@@ -63,7 +63,6 @@ serve(async (req, user) => {
       if (a.system_key && body.archived) throw new HttpError(422, 'Sistem hesabı arşivlenemez', 'system_account')
       await tx`update accounts set archived_at = ${body.archived ? new Date() : null} where id = ${a.id}`
     }
-    if ((f.subtype ?? a.subtype) === 'credit_card') await saveCardDays(tx, a.id as string, body)
   })
 
   return { ok: true }

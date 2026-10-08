@@ -31,51 +31,6 @@ export function assertNotLocked(lockDate: string | null, date: string) {
   if (lockDate && date <= lockDate) throw new HttpError(422, 'Bu dönem kilitli', 'period_locked')
 }
 
-// Gruplayıcı kategori adı yazılırsa aynı adla yeni kategori açılmaz; alt kategori seçilmeli.
-export async function findOrCreateCategory(tx: Tx, groupId: string, type: string, name: string) {
-  const [found] = await tx`
-    select id, is_placeholder from accounts
-    where group_id = ${groupId} and type = ${type} and system_key is null and archived_at is null
-      and lower(name) = lower(${name})
-    order by is_placeholder, created_at limit 1`
-  if (found?.is_placeholder) throw new HttpError(422, 'Gruplayıcı kategoriye kayıt girilmez', 'placeholder_account')
-  if (found) return found.id as string
-  const id = uuidv7()
-  await tx`insert into accounts (id, group_id, type, name) values (${id}, ${groupId}, ${type}, ${name})`
-  return id
-}
-
-// Kodun kayıt attığı şablon kategorisi (kredi masrafı, vadeli getiri ...): ad değişse de template_key ile bulunur.
-// Kullanıcı silmişse aynı adla bulunur ya da açılır ve anahtarı geri alır.
-export async function findTemplateCategory(tx: Tx, groupId: string, key: string, type: string, name: string) {
-  const [found] = await tx`select id from accounts where group_id = ${groupId} and template_key = ${key}`
-  if (found) return found.id as string
-  const id = await findOrCreateCategory(tx, groupId, type, name)
-  await tx`update accounts set template_key = ${key} where id = ${id} and template_key is null`
-  return id
-}
-
-// Rehber kaydı isimle bulunur; yoksa bağlama göre türle açılır (gider/gelir: marka, borç/paylaşım: kişi).
-export async function findOrCreateContact(
-  tx: Tx, groupId: string, name: string, kind: 'individual' | 'brand' = 'individual',
-) {
-  const [found] = await tx`
-    select id from contacts
-    where group_id = ${groupId} and archived_at is null and lower(name) = lower(${name})
-    order by created_at limit 1`
-  if (found) return found.id as string
-  const id = uuidv7()
-  await tx`insert into contacts (id, group_id, kind, name) values (${id}, ${groupId}, ${kind}, ${name})`
-  return id
-}
-
-// Markanın varsayılan kategorisi yoksa ilk kullanılan kategori olur (sonra Rehber'den değişir).
-export async function learnBrandCategory(tx: Tx, contactId: string | null, categoryId: string) {
-  if (!contactId) return
-  await tx`update contacts set default_category_id = ${categoryId}
-           where id = ${contactId} and kind = 'brand' and default_category_id is null`
-}
-
 // Çağıran kullanıcının üyeliği + grup bilgisi.
 export async function loadMember(tx: Tx, userId: string) {
   const [m] = await tx`
@@ -103,54 +58,6 @@ export async function loadOwnedEntry(
   assertNotLocked(member.lock_date, e.entry_date)
   return e as { id: string; member_id: string; entry_date: string }
 }
-
-// Hesap verilmediyse üyenin ana para birimindeki ilk nakit hesabı; yoksa "Cüzdan - <para birimi>" açılır.
-export async function resolveAccount(tx: Tx, groupId: string, memberId: string, currency: string, accountId?: string) {
-  if (accountId) {
-    const [acc] = await tx`
-      select id, currency from accounts
-      where id = ${accountId} and group_id = ${groupId} and owner_member_id = ${memberId}
-        and type in ('asset', 'liability') and not is_placeholder and archived_at is null
-      for update`
-    if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
-    if (acc.currency !== currency) throw new HttpError(422, 'Hesap para birimi uyumsuz', 'currency_mismatch')
-    return acc.id as string
-  }
-  const [cash] = await tx`
-    select id from accounts
-    where group_id = ${groupId} and owner_member_id = ${memberId} and subtype = 'cash'
-      and currency = ${currency} and not is_placeholder and archived_at is null
-    order by created_at limit 1
-    for update`
-  if (cash) return cash.id as string
-  const id = uuidv7()
-  await tx`
-    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
-    values (${id}, ${groupId}, ${memberId}, 'asset', 'cash', ${'Cüzdan - ' + currency}, ${currency})`
-  return id
-}
-
-// Üyenin kişi bazlı alacak ("receivable") / borç ("payable") hesabı; yoksa açılır.
-export async function resolveDebtAccount(
-  tx: Tx,
-  m: { group_id: string; member_id: string; base_currency: string },
-  subtype: 'receivable' | 'payable',
-) {
-  const [found] = await tx`
-    select id from accounts
-    where group_id = ${m.group_id} and owner_member_id = ${m.member_id} and subtype = ${subtype}
-      and currency = ${m.base_currency} and not is_placeholder and archived_at is null
-    order by created_at limit 1 for update`
-  if (found) return found.id as string
-  const id = uuidv7()
-  const [type, name] = subtype === 'receivable' ? ['asset', 'Alacaklar'] : ['liability', 'Borçlar']
-  await tx`
-    insert into accounts (id, group_id, owner_member_id, type, subtype, name, currency)
-    values (${id}, ${m.group_id}, ${m.member_id}, ${type}, ${subtype}, ${name}, ${m.base_currency})`
-  return id
-}
-
-export type NewLine = { account: string; dir: 'debit' | 'credit'; contactId?: string | null }
 
 export type RawLine = {
   account: string
@@ -194,13 +101,12 @@ export async function setEntryTags(tx: Tx, groupId: string, entryId: string, nam
 export async function postRawEntry(
   tx: Tx,
   m: EntryOwner,
-  e: { date: string; description?: string; sourceType?: string; isEstimated?: boolean; lines: RawLine[]; tags?: string[] },
+  e: { date: string; description?: string; lines: RawLine[]; tags?: string[] },
 ) {
   const entryId = uuidv7()
   await tx`
-    insert into journal_entries (id, group_id, member_id, created_by, entry_date, description, source_type, is_estimated)
-    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''},
-            ${e.sourceType ?? null}, ${e.isEstimated ?? false})`
+    insert into journal_entries (id, group_id, member_id, created_by, entry_date, description)
+    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''})`
   await insertLines(tx, entryId, e.lines)
   if (e.tags?.length) await setEntryTags(tx, m.group_id, entryId, e.tags)
   return entryId
@@ -216,106 +122,8 @@ export async function insertLines(tx: Tx, entryId: string, lines: RawLine[]) {
   }
 }
 
-// Kalemler (GnuCash split): fişteki diğer kategoriler [{category_name, amount}]. Boş dizi = kalem yok.
-export type Part = { account: string; amount: bigint }
-
-export async function parseItems(tx: Tx, groupId: string, kind: string, v: unknown, exponent: number): Promise<Part[]> {
-  if (v === undefined || v === null) return []
-  if (!Array.isArray(v) || v.length > 20) throw new HttpError(422, 'items geçersiz', 'invalid_items')
-  const parts: Part[] = []
-  for (const r of v) {
-    const o = typeof r === 'object' && r !== null ? r as Record<string, unknown> : {}
-    if (typeof o.category_name !== 'string' || !o.category_name.trim() || o.category_name.length > 60) {
-      throw new HttpError(422, 'items geçersiz', 'invalid_items')
-    }
-    parts.push({
-      account: await findOrCreateCategory(tx, groupId, kind, o.category_name.trim()),
-      amount: parseAmount(o.amount, exponent),
-    })
-  }
-  return parts
-}
-
-// Ana kategori + kalemler; toplamdan kalan ana kategoriye yazılır.
-export function withRest(mainAccount: string, total: bigint, parts: Part[]): Part[] {
-  const rest = parts.reduce((r, p) => r - p.amount, total)
-  if (rest <= 0n) throw new HttpError(422, 'Kalemler toplamı tutarı aşıyor', 'items_exceed_total')
-  return [{ account: mainAccount, amount: rest }, ...parts]
-}
-
-// Ana para biriminde, tek tutarlı kayıt (kısayol).
-export function postEntry(
-  tx: Tx,
-  m: EntryOwner,
-  e: { date: string; amount: bigint; description?: string; sourceType?: string; lines: NewLine[]; tags?: string[] },
-) {
-  return postRawEntry(tx, m, {
-    date: e.date, description: e.description, sourceType: e.sourceType, tags: e.tags,
-    lines: e.lines.map((l) => ({
-      account: l.account, dir: l.dir, amount: e.amount, currency: m.base_currency, base: e.amount, contactId: l.contactId,
-    })),
-  })
-}
-
-// Üyenin kendi bilanço hesabını (herhangi bir para biriminde) kilitleyip döndürür.
-export async function lockOwnAccount(tx: Tx, groupId: string, memberId: string, accountId: unknown) {
-  if (typeof accountId !== 'string') throw new HttpError(422, 'account geçersiz', 'invalid_account')
-  const [acc] = await tx`
-    select id, currency, type from accounts
-    where id = ${accountId} and group_id = ${groupId} and owner_member_id = ${memberId}
-      and type in ('asset', 'liability') and not is_placeholder and archived_at is null
-    for update`
-  if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
-  return acc as { id: string; currency: string; type: 'asset' | 'liability' }
-}
-
-// Soft delete with the links of hidden flows: installment plan, plans, term deposit, loan.
+// Soft delete: the entry stays in the table with deleted_at / deleted_by.
 export async function softDeleteEntry(tx: Tx, entryId: string, memberId: string) {
-  const entry = { id: entryId }
-  const m = { member_id: memberId }
-  // Taksit bağlantıları: alışveriş kaydı silinirse plan kalkar (ödenmiş taksit varsa engel);
-  // ödeme kaydı silinirse taksit yeniden açılır.
-  const [plan] = await tx`select id from installment_plans where purchase_entry_id = ${entry.id}`
-  if (plan) {
-    const [paid] = await tx`select 1 from installments where plan_id = ${plan.id} and payment_entry_id is not null limit 1`
-    if (paid) throw new HttpError(422, 'Ödenmiş taksitleri olan alışveriş silinemez', 'plan_has_payments')
-    await tx`delete from installments where plan_id = ${plan.id}`
-    await tx`delete from installment_plans where id = ${plan.id}`
-  }
-  await tx`update installments set payment_entry_id = null where payment_entry_id = ${entry.id}`
-  // Bu kayıtla doğan plan (borç vadesi) da gider.
-  await tx`delete from plans where source_entry_id = ${entry.id}`
-  // Vadeli hesap: açılış silinirse hesap kalkar; vade sonu kaydı silinirse önceki dönem geri gelir.
-  const [dep] = await tx`
-    select account_id, open_entry_id, prev from deposit_settings
-    where open_entry_id = ${entry.id} or last_settle_entry_id = ${entry.id} for update`
-  if (dep && dep.open_entry_id === entry.id) {
-    const [other] = await tx`
-      select 1 from journal_lines l join journal_entries e on e.id = l.entry_id
-      where l.account_id = ${dep.account_id} and e.deleted_at is null and e.id <> ${entry.id} limit 1`
-    if (other) throw new HttpError(422, 'Hareketi olan vadeli hesabın açılışı silinemez', 'deposit_has_movements')
-    await tx`delete from deposit_settings where account_id = ${dep.account_id}`
-    await tx`update accounts set archived_at = now() where id = ${dep.account_id}`
-  } else if (dep && dep.prev) {
-    const p = dep.prev as Record<string, unknown>
-    await tx`
-      update deposit_settings set principal = ${p.principal as string}, annual_rate = ${p.annual_rate as string},
-        days = ${p.days as number}, start_date = ${p.start_date as string}, maturity_date = ${p.maturity_date as string},
-        last_settle_entry_id = ${(p.last_settle_entry_id as string | null) ?? null}, prev = ${tx.json((p.prev ?? null) as never)},
-        closed_at = null
-      where account_id = ${dep.account_id}`
-    await tx`update accounts set archived_at = null where id = ${dep.account_id}`
-  }
-  // Kredi kaydı silinirse kredi hesabı da gider (başka hareketi varsa silinemez).
-  const [loan] = await tx`select account_id from loan_settings where source_entry_id = ${entry.id}`
-  if (loan) {
-    const [other] = await tx`
-      select 1 from journal_lines l join journal_entries e on e.id = l.entry_id
-      where l.account_id = ${loan.account_id} and e.deleted_at is null and e.id <> ${entry.id} limit 1`
-    if (other) throw new HttpError(422, 'Taksit ödemesi olan kredi silinemez', 'loan_has_payments')
-    await tx`delete from loan_settings where account_id = ${loan.account_id}`
-    await tx`update accounts set archived_at = now() where id = ${loan.account_id}`
-  }
-  await tx`update journal_entries set deleted_at = now(), deleted_by = ${m.member_id}, updated_at = now()
-           where id = ${entry.id}`
+  await tx`update journal_entries set deleted_at = now(), deleted_by = ${memberId}, updated_at = now()
+           where id = ${entryId}`
 }

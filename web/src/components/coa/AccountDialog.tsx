@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
@@ -12,7 +12,6 @@ import { Spinner } from '@/components/ui/spinner'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { flattenTree, type AccountNode, type Member } from '@/lib/ledger'
-import { supabase } from '@/lib/supabase'
 
 export type AccountTarget =
   | { mode: 'create'; parent: AccountNode | null }
@@ -58,8 +57,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
   const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? baseCurrency)
   const [owner, setOwner] = useState(edit?.owner_member_id ?? '')
   const [placeholder, setPlaceholder] = useState(edit?.is_placeholder ?? false)
-  const [statementDay, setStatementDay] = useState<string | undefined>(undefined)
-  const [dueDay, setDueDay] = useState<string | undefined>(undefined)
   const used = !!edit && edit.net !== 0
   const subtype = edit?.subtype ?? parent?.subtype ?? null
 
@@ -71,20 +68,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
       && (n.is_placeholder || n.id === initialParent))
     .map((n) => ({ value: n.id, label: n.path ? `${n.path} › ${n.name}` : n.name }))
 
-  const isCard = subtype === 'credit_card'
-  const card = useQuery({
-    queryKey: ['card-settings', edit?.id],
-    enabled: !!edit && isCard,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('credit_card_settings').select('statement_day, due_day').eq('account_id', edit!.id).maybeSingle()
-      if (error) throw error
-      return data
-    },
-  })
-  const stmt = statementDay ?? card.data?.statement_day?.toString() ?? ''
-  const due = dueDay ?? card.data?.due_day?.toString() ?? ''
-
   function pickParent(id: string) {
     setParentId(id)
     const p = byId.get(id)
@@ -93,8 +76,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
 
   const save = useMutation({
     mutationFn: () => {
-      const cardDays = isCard && (statementDay !== undefined || dueDay !== undefined)
-        ? { statement_day: stmt || null, due_day: due || null } : {}
       if (edit) {
         const changed = <K extends string>(k: K, v: unknown, old: unknown) => (v !== old ? { [k]: v } : {})
         return callFunction('account-update', {
@@ -104,7 +85,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
           ...changed('currency', currency, edit.currency),
           ...changed('owner_member_id', owner || null, edit.owner_member_id),
           ...changed('is_placeholder', placeholder, edit.is_placeholder),
-          ...cardDays,
         })
       }
       return callFunction('account-create', {
@@ -113,7 +93,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
         currency,
         owner_member_id: owner || undefined,
         is_placeholder: placeholder,
-        ...cardDays,
       })
     },
     onSuccess: () => { onSaved(); onClose() },
@@ -174,18 +153,6 @@ function Form({ target, roots, members, currencies, baseCurrency, onClose, onSav
               <FieldDescription>{t('coa.placeholderHint')}</FieldDescription>
             </div>
           </Field>
-        )}
-        {isCard && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field>
-              <FieldLabel htmlFor="acc-stmt">{t('coa.statementDay')}</FieldLabel>
-              <Input id="acc-stmt" type="number" min={1} max={31} value={stmt} onChange={(e) => setStatementDay(e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="acc-due">{t('coa.dueDay')}</FieldLabel>
-              <Input id="acc-due" type="number" min={1} max={31} value={due} onChange={(e) => setDueDay(e.target.value)} />
-            </Field>
-          </div>
         )}
         <FormError message={save.error ? errorMessage(t, save.error) : null} />
         <DialogFooter>

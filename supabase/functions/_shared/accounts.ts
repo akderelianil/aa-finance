@@ -28,22 +28,6 @@ export async function createMemberAccounts(
       (${uuidv7()}, ${groupId}, ${memberId}, 'asset', 'cash', ${'Cüzdan - ' + currency}, ${currency}, null)`
 }
 
-// Kredi kartı kesim / son ödeme günü (kart başına bir kez; Yaklaşanlar buradan türer). Alan verilmezse dokunulmaz.
-export async function saveCardDays(tx: Tx, accountId: string, body: Record<string, unknown>) {
-  if (body.statement_day === undefined && body.due_day === undefined) return
-  const day = (v: unknown) => {
-    if (v === null || v === '' || v === undefined) return null
-    const n = Number(v)
-    if (!Number.isInteger(n) || n < 1 || n > 31) throw new HttpError(422, 'Gün geçersiz', 'invalid_day')
-    return n
-  }
-  const statement = day(body.statement_day)
-  const due = day(body.due_day)
-  await tx`
-    insert into credit_card_settings (account_id, statement_day, due_day) values (${accountId}, ${statement}, ${due})
-    on conflict (account_id) do update set statement_day = excluded.statement_day, due_day = excluded.due_day`
-}
-
 // GnuCash account kinds per type (accounts.subtype). null = the plain type.
 const SUBTYPES: Record<string, string[]> = {
   asset: ['cash', 'bank', 'deposit', 'investment', 'receivable', 'other'],

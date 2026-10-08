@@ -15,9 +15,6 @@ import { dayRate, parseRate, saveRate, toBase } from '../_shared/fx.ts'
 // amount is in the account currency. For a foreign-currency line the base amount comes from base_amount, else
 // from rate, else from the day rate (saved rate, TCMB, last saved). Total debit = total credit in base_amount.
 
-// Entries of hidden flows with link tables (installment, deposit, loan, investment) are edited in their flow.
-const LINKED = ['installment', 'installment_payment', 'deposit', 'deposit_open', 'loan', 'investment']
-
 type Member = Awaited<ReturnType<typeof loadMember>>
 
 serve(async (req, user) => {
@@ -40,10 +37,6 @@ serve(async (req, user) => {
     let existing: string | null = null
     if (action === 'update') {
       const entry = await loadOwnedEntry(tx, body.entry_id, m)
-      const [src] = await tx`select source_type from journal_entries where id = ${entry.id}`
-      if (LINKED.includes(src.source_type as string)) {
-        throw new HttpError(422, 'Bu kayıt türü henüz düzenlenemiyor', 'unsupported_entry')
-      }
       existing = entry.id
     }
 

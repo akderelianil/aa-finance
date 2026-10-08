@@ -1,12 +1,12 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql } from '../_shared/db.ts'
-import { parseAccountFields, saveCardDays } from '../_shared/accounts.ts'
+import { parseAccountFields } from '../_shared/accounts.ts'
 import { uuidv7 } from '../_shared/uuid.ts'
 import { loadMember } from '../_shared/entries.ts'
 
 // New account in the group Chart of Accounts (GnuCash "New Account"). Any member can add one.
 // Request: { name, parent_id?, type? (required without parent), code?, currency?, subtype?, owner_member_id?,
-//            is_placeholder?, statement_day?, due_day? }
+//            is_placeholder? }
 // A child takes the parent type. Missing currency = parent currency, else base currency. Missing code = next free
 // child code; missing parent = default group of the type (trigger accounts_defaults).
 // Opening balances are journal entries against 3.01 Açılış Bakiyesi (Özkaynak).
@@ -41,9 +41,6 @@ serve(async (req, user) => {
       insert into accounts (id, group_id, owner_member_id, parent_id, type, subtype, code, name, currency, is_placeholder)
       values (${id}, ${m.group_id}, ${f.owner ?? null}, ${parent?.id ?? null}, ${type}, ${f.subtype ?? null},
               ${f.code ?? null}, ${name}, ${currency}, ${body.is_placeholder === true})`
-    // A child takes the kind of its parent group (trigger accounts_defaults): card days apply to a card.
-    const [made] = await tx`select subtype from accounts where id = ${id}`
-    if (made?.subtype === 'credit_card') await saveCardDays(tx, id, body)
   })
 
   return { account_id: id }

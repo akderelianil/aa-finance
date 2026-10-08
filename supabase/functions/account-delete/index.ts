@@ -31,20 +31,14 @@ serve(async (req, user) => {
     const [used] = await tx`
       select (
         exists (select 1 from journal_lines where account_id = any(${ids}::uuid[]))
-        or exists (select 1 from installment_plans where card_account_id = any(${ids}::uuid[]))
-        or exists (select 1 from investment_trades where account_id = any(${ids}::uuid[]))
-        or exists (select 1 from accounts where id = any(${ids}::uuid[]) and instrument_id is not null)
         or exists (select 1 from contacts where default_category_id = any(${ids}::uuid[])
                    or default_income_account_id = any(${ids}::uuid[]) or default_expense_account_id = any(${ids}::uuid[]))
-        or exists (select 1 from loan_settings where account_id = any(${ids}::uuid[]))
-        or exists (select 1 from deposit_settings where account_id = any(${ids}::uuid[]))
       ) as used`
 
     if (used.used) {
       await tx`update accounts set archived_at = now() where id = any(${ids}::uuid[]) and archived_at is null`
       return { archived: true }
     }
-    await tx`delete from credit_card_settings where account_id = any(${ids}::uuid[])`
     // Yapraklardan köke: parent_id FK'si sırayı zorlar; tek ifadede silmek için önce üst bağlantılarını boşalt.
     await tx`update accounts set parent_id = null where id = any(${ids}::uuid[])`
     await tx`delete from accounts where id = any(${ids}::uuid[])`
