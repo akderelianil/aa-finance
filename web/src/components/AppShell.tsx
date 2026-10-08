@@ -1,4 +1,4 @@
-import { BookOpenIcon, ChartPieIcon, ContactIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -16,6 +16,7 @@ import { QuickTransactionDialog } from './quick/QuickTransactionDialog'
 import { InsideAppShell } from './PageShell'
 
 const ITEMS = [
+  { to: '/anasayfa', key: 'home', icon: LayoutDashboardIcon, end: false },
   { to: '/hesaplar', key: 'accounts', icon: ListTreeIcon, end: false },
   { to: '/yevmiye', key: 'journal', icon: BookOpenIcon, end: false },
   { to: '/raporlar', key: 'reports', icon: ChartPieIcon, end: false },
