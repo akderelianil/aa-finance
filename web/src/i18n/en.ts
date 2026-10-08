@@ -226,6 +226,7 @@ export const en: Translation = {
     mode: { between: 'Between accounts', atm_withdraw: 'ATM withdrawal', atm_deposit: 'ATM deposit' },
     debt: {
       borrow: 'Borrow', lend: 'Lend', collect: 'Collection', pay: 'Payment', person: 'Person (required)', receivedIn: 'Account in (Debit)', givenFrom: 'Account out (Credit)',
+      openPayable: 'Open payable (we owe)', openReceivable: 'Open receivable (they owe)', overpay: 'Amount exceeds the open balance ({{amount}} {{currency}}). You can still save.',
       debtAmount: 'Amount on the debt account ({{currency}})', needPerson: 'Pick the person.',
     },
     paidFrom: 'Paid from (Credit)',

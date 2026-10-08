@@ -5,20 +5,17 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
-import { Stat, StatStrip } from '@/components/StatStrip'
+import { CompositionBar, Stat, StatStrip } from '@/components/StatStrip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
 import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
-import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { topSlices } from '@/lib/chart'
 import { errorMessage } from '@/lib/errors'
 import { formatAmount, shown, useCurrencies, useLedgerAccounts, type AccountType } from '@/lib/ledger'
 import { cumulativeNet, periodNet, rollUp, type ReportNode, type Totals } from '@/lib/reports'
 import { supabase } from '@/lib/supabase'
-import { cn } from '@/lib/utils'
 
 type Scope = 'group' | 'me'
 type Period = 'month' | 'year'
@@ -150,13 +147,25 @@ export default function Dashboard({ membership }: { membership: Membership }) {
           label={t('dash.netWorth')} value={money(stats.netWorth)} loading={loading} hint={t('dash.asOfToday')}
           tone={stats.netWorth < 0 ? 'danger' : 'neutral'}
         />
+        <div className="col-span-3 border-t pt-4">
+          {!loading && (
+            <CompositionBar
+              format={money}
+              segments={[
+                { key: 'liab', label: t('dash.liabilities'), value: stats.liabilities, color: 'var(--chart-4)' },
+                { key: 'net', label: t('dash.netWorth'), value: stats.netWorth, color: 'var(--chart-2)' },
+              ]}
+            />
+          )}
+        </div>
       </StatStrip>
       <StatStrip title={t('dash.periodSummary')}>
-        <Stat label={t('dash.income')} value={money(stats.income)} loading={loading} hint={periodLabel} />
-        <Stat label={t('dash.expense')} value={money(stats.expense)} loading={loading} hint={periodLabel} />
+        <Stat label={t('dash.income')} value={money(stats.income)} loading={loading} hint={periodLabel} spark={{ values: trend.map((m) => m.income), color: 'var(--chart-2)' }} />
+        <Stat label={t('dash.expense')} value={money(stats.expense)} loading={loading} hint={periodLabel} spark={{ values: trend.map((m) => m.expense), color: 'var(--chart-4)' }} />
         <Stat
           label={t('dash.netResult')} value={money(stats.net)} loading={loading}
           tone={stats.net < 0 ? 'danger' : 'neutral'}
+          spark={{ values: trend.map((m) => m.income - m.expense), color: 'var(--primary)' }}
           badge={rate === null ? undefined : { text: t('dash.savingRate', { pct: rate }), variant: rate < 0 ? 'destructive' : 'success' }}
         />
       </StatStrip>
@@ -183,17 +192,19 @@ export default function Dashboard({ membership }: { membership: Membership }) {
             )}
           </CardContent>
         </Card>
-        <RankedList
+        <RankedBars
           title={t('dash.topExpenses')} description={periodLabel} total={stats.expense} money={money} empty={t('dash.noExpense')} loading={loading}
+          color="var(--chart-4)"
           rows={stats.topExpense.map((c) => ({ id: c.id, name: c.name, value: c.value }))}
         />
       </section>
 
       <section className="grid grid-cols-3 gap-4">
-        <RankedList title={t('dash.assetGroups')} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} rows={stats.assetGroups} />
-        <RankedList title={t('dash.liabilityGroups')} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} rows={stats.liabilityGroups} />
-        <RankedList
+        <RankedBars title={t('dash.assetGroups')} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} rows={stats.assetGroups} color="var(--primary)" />
+        <RankedBars title={t('dash.liabilityGroups')} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} rows={stats.liabilityGroups} color="var(--chart-4)" />
+        <RankedBars
           title={t('dash.earnings')} description={periodLabel} total={stats.income} money={money} empty={t('dash.noIncome')} loading={loading}
+          color="var(--chart-2)"
           rows={stats.incomeSlices.map((s) => ({ id: s.name, name: s.name, value: s.value }))}
         />
       </section>
@@ -201,8 +212,8 @@ export default function Dashboard({ membership }: { membership: Membership }) {
   )
 }
 
-// Ranked list: name, amount and a thin bar for the share of the total.
-function RankedList({ title, description, rows, total, money, empty, loading }: {
+// Ranked bars: name, amount and share on one line, a bar in the series colour underneath. No table, no grid lines.
+function RankedBars({ title, description, rows, total, money, empty, loading, color }: {
   title: string
   description?: string
   rows: { id: string; name: string; value: number }[]
@@ -210,6 +221,7 @@ function RankedList({ title, description, rows, total, money, empty, loading }: 
   money: (v: number) => string
   empty: string
   loading?: boolean
+  color: string
 }) {
   return (
     <Card>
@@ -221,21 +233,25 @@ function RankedList({ title, description, rows, total, money, empty, loading }: 
         {loading ? <Skeleton className="h-32 w-full" /> : rows.length === 0 ? (
           <Empty className="py-6"><EmptyHeader><EmptyDescription>{empty}</EmptyDescription></EmptyHeader></Empty>
         ) : (
-          <Table>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="max-w-0 min-w-0">
-                    <div className="flex flex-col gap-1.5">
-                      <span className="truncate">{r.name}</span>
-                      <Progress value={total > 0 ? Math.min(100, Math.max(0, (r.value / total) * 100)) : 0} aria-label={r.name} />
-                    </div>
-                  </TableCell>
-                  <TableCell className={cn('w-36 text-right tabular-nums', r.value < 0 && 'text-destructive')}>{money(r.value)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ul className="flex flex-col gap-3">
+            {rows.map((r) => {
+              const pct = total > 0 ? Math.min(100, Math.max(0, (r.value / total) * 100)) : 0
+              return (
+                <li key={r.id} className="flex flex-col gap-1.5">
+                  <div className="flex items-baseline justify-between gap-2 text-sm">
+                    <span className="truncate">{r.name}</span>
+                    <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
+                      {money(r.value)}
+                      <span className="w-9 text-right text-xs text-muted-foreground">{Math.round(pct)}%</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${r.name} ${Math.round(pct)}%`}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
         )}
       </CardContent>
     </Card>

@@ -13,12 +13,12 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
-import { useContacts, type Contact } from '@/lib/contacts'
+import { useContactDebt, useContacts, type Contact } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { today } from '@/lib/journal'
 import { flattenTree, formatAmount, parseDecimalInput, toMinor, useCurrencies, useLedgerAccounts, type AccountNode } from '@/lib/ledger'
 import {
-  convertMinor, incomeExpenseLines, isBank, isCard, isCash, transferLines, type FxCtx, type QuickLine,
+  convertMinor, incomeExpenseLines, isBank, isCard, isCash, toBaseMinor, transferLines, type FxCtx, type QuickLine,
 } from '@/lib/quick'
 
 export type QuickKind = 'income' | 'expense' | 'transfer' | 'debt'
@@ -157,6 +157,14 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   const debtMinor = money ? minor(amount, money.currency) : 0
   const debtSuggest = money && debtAccount && debtDiffer ? convertMinor(fx, debtMinor, money.currency, debtAccount.currency) : null
   const debtCounter = debtAccount && debtDiffer ? (counter ? minor(counter, debtAccount.currency) : debtSuggest) : null
+
+  // Open balance of the chosen person on the debt account; Tahsilat / Ödeme above it is warned about.
+  const debtOpen = useContactDebt(kind === 'debt' ? contactId : '', debtAccount?.subtype === 'payable' ? 'payable' : 'receivable')
+  const debtSide = debtAccount?.currency ?? base
+  const debtAmountMinor = debtDiffer ? debtCounter ?? 0 : debtMinor
+  const debtAmountBase = debtAccount ? toBaseMinor(fx, debtAmountMinor, debtSide) : null
+  const reducing = debtMode === 'collect' || debtMode === 'pay'
+  const overpay = kind === 'debt' && reducing && debtOpen.data !== undefined && debtAmountBase !== null && debtAmountBase > debtOpen.data
 
   let lines: QuickLine[] | null = null
   if (kind === 'debt') {
@@ -300,6 +308,13 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
               <AmountInput className={amountCls} value={amount} currency={money?.currency} base={base} onChange={setAmount} />
             </Field>
           </div>
+          {contactId && debtOpen.data !== undefined && (
+            <p className="text-sm text-muted-foreground">
+              {t(debtAccount?.subtype === 'payable' ? 'quick.debt.openPayable' : 'quick.debt.openReceivable')}
+              {': '}
+              <span className="font-mono tabular-nums">{fmt(debtOpen.data, base)} {base}</span>
+            </p>
+          )}
           {debtDiffer && debtAccount && (
             <Field label={t('quick.debt.debtAmount', { currency: debtAccount.currency })} className="w-1/2 pr-1.5">
               <AmountInput
@@ -422,6 +437,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
         <FormError
           message={save.error ? errorMessage(t, save.error)
             : kind === 'debt' && !contactId ? t('quick.debt.needPerson')
+              : overpay ? t('quick.debt.overpay', { amount: fmt(debtOpen.data ?? 0, base), currency: base })
               : sameAccount ? t('quick.sameAccount')
               : badFeeAccount ? t('quick.feeCurrency') : null}
         />

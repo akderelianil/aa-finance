@@ -29,7 +29,8 @@ Dört işlem **aynı form**. Üstteki seçim yalnız yönü ve borç hesabını 
 - Kişi zorunlu: kime borçlu olduğumuz ya da kimin bize borçlu olduğu Rehber bakiyesinden izlenir.
 - Borç hesabı sorulmaz. Tek hesaptır (Kişilere Borçlar ya da Kişilerden Alacaklar), sistem seçer.
 - Para hesabı yalnız Varlık olur (Nakit, Banka). Kart ve alacak hesabı seçilemez.
-- Kısmi tahsilat/ödeme serbesttir; kişinin kalan bakiyesi Rehber'de görünür.
+- Kişi seçilince formda açık bakiye görünür: alacak işlemlerinde "Açık alacağımız", borç işlemlerinde "Açık borcumuz" (ana para birimi).
+- Kısmi tahsilat/ödeme serbesttir. Tahsilat/Ödeme tutarı açık bakiyeyi aşarsa uyarı çıkar; Kaydet kapanmaz.
 - Para hesabı ile borç hesabının para birimi farklıysa ikinci tutar sorulur. Boşsa gün kuruyla önerilir.
 
 ## Kayıt
@@ -58,4 +59,4 @@ Dört işlem **aynı form**. Üstteki seçim yalnız yönü ve borç hesabını 
 | Banka | | 1.000 |
 
 ## Henüz yok
-Vade, faiz, taksit planı, bakiyeyi aşan ödeme uyarısı, kredi (banka kredisi), borç silme / bağışlama.
+Vade, faiz, taksit planı, kredi (banka kredisi), borç silme / bağışlama.

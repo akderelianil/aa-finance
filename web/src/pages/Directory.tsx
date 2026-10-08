@@ -1,15 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CopyIcon, PlusIcon, XIcon } from 'lucide-react'
+import { ArrowDownLeftIcon, ArrowUpRightIcon, BuildingIcon, CopyIcon, MailIcon, PhoneIcon, PlusIcon, TagIcon, UserIcon, XIcon, type LucideIcon } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AccountPicker } from '@/components/journal/AccountPicker'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
+import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/toast'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
@@ -21,7 +27,20 @@ import { cn } from '@/lib/utils'
 
 type Link = { brand_id: string; business_id: string }
 
-// Rehber: people, brands and businesses/institutions in one table. Each contact can suggest a default income
+const KIND_ICON: Record<ContactKind, LucideIcon> = { individual: UserIcon, brand: TagIcon, business: BuildingIcon }
+
+const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toLocaleUpperCase('tr')).join('')
+
+function ContactHint({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<Button size="icon-sm" variant="ghost" aria-label={`${label}: ${value}`} />}>{icon}</TooltipTrigger>
+      <TooltipContent>{value}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+// Rehber: people, brands and businesses/institutions as cards. Each contact can suggest a default income
 // and expense account for Quick Transaction. The open balance comes from receivable/payable lines tagged
 // with the contact (whole group, base currency).
 export default function Directory({ membership }: { membership: Membership }) {
@@ -56,7 +75,7 @@ export default function Directory({ membership }: { membership: Membership }) {
   })
 
   const active = useMemo(() => (contacts.data ?? []).filter((c) => !c.archived_at), [contacts.data])
-  const nameOf = new Map(active.map((c) => [c.id, c.name]))
+  const byContact = new Map(active.map((c) => [c.id, c]))
   const q = search.trim().toLocaleLowerCase(i18n.language)
   const rows = active.filter((c) => (filter === 'all' || c.kind === filter)
     && (!q || [c.name, c.phone, c.email].some((v) => v?.toLocaleLowerCase(i18n.language).includes(q))))
@@ -66,11 +85,11 @@ export default function Directory({ membership }: { membership: Membership }) {
     return a ? a.name : null
   }
   function linked(c: Contact) {
-    if (c.kind === 'individual') return ''
+    if (c.kind === 'individual') return []
     return (links.data ?? [])
       .filter((l) => (c.kind === 'brand' ? l.brand_id : l.business_id) === c.id)
-      .map((l) => nameOf.get(c.kind === 'brand' ? l.business_id : l.brand_id))
-      .filter(Boolean).join(', ')
+      .map((l) => byContact.get(c.kind === 'brand' ? l.business_id : l.brand_id))
+      .filter((x): x is Contact => !!x)
   }
 
   return (
@@ -92,45 +111,87 @@ export default function Directory({ membership }: { membership: Membership }) {
         </ToggleGroup>
       </div>
 
-      <div className="rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
-            <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-              <th>{t('directory.name')}</th>
-              <th className="w-28">{t('directory.kind')}</th>
-              <th>{t('directory.phone')} · {t('directory.email')}</th>
-              <th>{t('directory.defaultIncome')}</th>
-              <th>{t('directory.defaultExpense')}</th>
-              <th className="w-44 !text-right" title={t('directory.balanceHint')}>{t('directory.balance')} ({base})</th>
-            </tr>
-          </thead>
-          <tbody className="[&>tr]:border-t [&>tr>td]:px-3 [&>tr>td]:py-1.5">
-            {contacts.isLoading && <tr><td colSpan={6} className="text-center text-muted-foreground">{t('ledger.loading')}</td></tr>}
-            {contacts.data && rows.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground">{t('directory.empty')}</td></tr>}
-            {rows.map((c) => {
-              const net = balances.data?.get(c.id) ?? 0
-              const sub = linked(c)
-              return (
-                <tr key={c.id} className="cursor-pointer hover:bg-muted/40" onClick={() => setEditing(c)}>
-                  <td>
-                    <span className="font-medium">{c.name}</span>
-                    {sub && <span className="ml-2 text-xs text-muted-foreground">{sub}</span>}
-                  </td>
-                  <td className="text-muted-foreground">{t(`directory.kinds.${c.kind}`)}</td>
-                  <td className="text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(' · ')}</td>
-                  <td>{accountLabel(c.default_income_account_id)}</td>
-                  <td>{accountLabel(c.default_expense_account_id)}</td>
-                  <td className="text-right font-mono tabular-nums">
-                    {net !== 0 && <>
-                      {formatAmount(Math.abs(net), baseExp, i18n.language)}
-                      <span className="ml-1 text-xs text-muted-foreground">{t(net > 0 ? 'directory.debitShort' : 'directory.creditShort')}</span>
-                    </>}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      {contacts.isLoading && (
+        <div className="grid grid-cols-3 gap-4">
+          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-44" />)}
+        </div>
+      )}
+      {contacts.data && rows.length === 0 && (
+        <Empty><EmptyHeader><EmptyTitle>{t('directory.empty')}</EmptyTitle></EmptyHeader></Empty>
+      )}
+      <div className="grid grid-cols-3 gap-4">
+        {rows.map((c) => {
+          const net = balances.data?.get(c.id) ?? 0
+          const related = linked(c)
+          const incomeName = accountLabel(c.default_income_account_id)
+          const expenseName = accountLabel(c.default_expense_account_id)
+          return (
+            <Card
+              key={c.id} role="button" tabIndex={0}
+              className="cursor-pointer transition-colors hover:bg-muted/40"
+              onClick={() => setEditing(c)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditing(c) } }}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Avatar size="lg"><AvatarFallback>{initials(c.name)}</AvatarFallback></Avatar>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <CardTitle className="truncate">{c.name}</CardTitle>
+                    <Badge variant="secondary">
+                      {(() => { const K = KIND_ICON[c.kind]; return <K data-icon="inline-start" /> })()}
+                      {t(`directory.kinds.${c.kind}`)}
+                    </Badge>
+                  </div>
+                </div>
+                <CardAction className="flex gap-1">
+                  {c.phone && <ContactHint icon={<PhoneIcon />} label={t('directory.phone')} value={c.phone} />}
+                  {c.email && <ContactHint icon={<MailIcon />} label={t('directory.email')} value={c.email} />}
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-3">
+                {related.length > 0 && (
+                  <AvatarGroup>
+                    {related.slice(0, 5).map((r) => (
+                      <Tooltip key={r.id}>
+                        <TooltipTrigger render={<Avatar size="sm" />}><AvatarFallback>{initials(r.name)}</AvatarFallback></TooltipTrigger>
+                        <TooltipContent>{r.name}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {related.length > 5 && <AvatarGroupCount className="size-6 text-xs">+{related.length - 5}</AvatarGroupCount>}
+                  </AvatarGroup>
+                )}
+                {(incomeName || expenseName) && (
+                  <div className="flex flex-wrap gap-1">
+                    {incomeName && (
+                      <Tooltip>
+                        <TooltipTrigger render={<Badge variant="outline" />}><ArrowDownLeftIcon data-icon="inline-start" />{incomeName}</TooltipTrigger>
+                        <TooltipContent>{t('directory.defaultIncome')}</TooltipContent>
+                      </Tooltip>
+                    )}
+                    {expenseName && (
+                      <Tooltip>
+                        <TooltipTrigger render={<Badge variant="outline" />}><ArrowUpRightIcon data-icon="inline-start" />{expenseName}</TooltipTrigger>
+                        <TooltipContent>{t('directory.defaultExpense')}</TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+              {net !== 0 && (
+                <CardFooter className="justify-between border-t">
+                  <Tooltip>
+                    <TooltipTrigger render={<span className="text-xs text-muted-foreground" />}>{t('directory.balance')} ({base})</TooltipTrigger>
+                    <TooltipContent className="max-w-64">{t('directory.balanceHint')}</TooltipContent>
+                  </Tooltip>
+                  <span className="flex items-center gap-2 font-mono text-sm tabular-nums">
+                    {formatAmount(Math.abs(net), baseExp, i18n.language)}
+                    <Badge variant="secondary">{t(net > 0 ? 'directory.debitShort' : 'directory.creditShort')}</Badge>
+                  </span>
+                </CardFooter>
+              )}
+            </Card>
+          )
+        })}
       </div>
       <FormError message={contacts.error ? errorMessage(t, contacts.error) : null} />
 

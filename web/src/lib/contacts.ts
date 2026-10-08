@@ -37,3 +37,21 @@ export function lineContacts(lines: { contact_id: string | null }[], byId: Map<s
   return [...new Set(lines.flatMap((l) => (l.contact_id ? [l.contact_id] : [])))]
     .map((id) => byId.get(id)?.name ?? '—')
 }
+
+/** Open receivable (the contact owes us) or payable (we owe the contact) of one contact, base minor units. */
+export function useContactDebt(contactId: string, subtype: 'receivable' | 'payable') {
+  return useQuery({
+    queryKey: ['ledger', 'contact-debt', contactId, subtype],
+    enabled: !!contactId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contact_debt_balances')
+        .select('open_base_amount')
+        .eq('contact_id', contactId)
+        .eq('subtype', subtype)
+        .maybeSingle()
+      if (error) throw error
+      return Number(data?.open_base_amount ?? 0)
+    },
+  })
+}

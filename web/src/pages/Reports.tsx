@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
+import { CompositionBar } from '@/components/StatStrip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -164,6 +165,15 @@ export default function Reports({ membership }: { membership: Membership }) {
           const totalEquity = equity.reduce((s, r) => s + val(r), 0) + netIncomeToDate
           return (
             <div className="grid grid-cols-2 divide-x">
+              <div className="col-span-2 border-b px-3 py-3">
+                <CompositionBar
+                  format={fmt}
+                  segments={[
+                    { key: 'l', label: t('ledger.typePlural.liability'), value: totalLiab, color: 'var(--chart-4)' },
+                    { key: 'e', label: t('ledger.typePlural.equity'), value: totalEquity, color: 'var(--primary)' },
+                  ]}
+                />
+              </div>
               <table className="w-full self-start text-sm">
                 <tbody>{section(t('ledger.typePlural.asset'), assets, val)}</tbody>
               </table>
@@ -193,6 +203,16 @@ export default function Reports({ membership }: { membership: Membership }) {
         {!loading && tab === 'income' && (() => {
           const val = (r: ReportNode) => shown(r.node.type, periodNet(r.totals))
           return (
+            <>
+              <div className="border-b px-3 py-3">
+                <CompositionBar
+                  format={fmt}
+                  segments={[
+                    { key: 'x', label: t('ledger.typePlural.expense'), value: sum(expense, periodNet), color: 'var(--chart-4)' },
+                    { key: 'n', label: t(netIncomePeriod >= 0 ? 'rep.netProfit' : 'rep.netLoss'), value: netIncomePeriod, color: 'var(--chart-2)' },
+                  ]}
+                />
+              </div>
             <table className="w-full text-sm">
               <tbody>
                 {section(t('ledger.typePlural.income'), income, val)}
@@ -202,6 +222,7 @@ export default function Reports({ membership }: { membership: Membership }) {
                 </tr>
               </tbody>
             </table>
+            </>
           )
         })()}
       </div>

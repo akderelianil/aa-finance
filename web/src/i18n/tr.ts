@@ -224,6 +224,7 @@ export const tr = {
     mode: { between: 'Hesaplar arası', atm_withdraw: 'ATM para çekme', atm_deposit: 'ATM para yatırma' },
     debt: {
       borrow: 'Borç Alma', lend: 'Borç Verme', collect: 'Tahsilat', pay: 'Ödeme', person: 'Kişi (zorunlu)', receivedIn: 'Giren hesap (Borç)', givenFrom: 'Çıkan hesap (Alacak)',
+      openPayable: 'Açık borcumuz', openReceivable: 'Açık alacağımız', overpay: 'Tutar açık bakiyeyi ({{amount}} {{currency}}) aşıyor. Yine de kaydedebilirsin.',
       debtAmount: 'Borç hesabındaki tutar ({{currency}})', needPerson: 'Kişiyi seç.',
     },
     paidFrom: 'Ödeme hesabı (Alacak)',
