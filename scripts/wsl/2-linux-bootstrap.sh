@@ -34,7 +34,8 @@ cd "$DEST"
 
 # Claude Code state: project memory + session history, local settings, global settings/skills/plans.
 # .credentials.json is NOT copied: run `claude` and log in again inside WSL.
-WIN_HOME="$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '')")"
+WIN_HOME="$(wslpath "$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '
+')")"
 WIN_PROJ="$WIN_HOME/.claude/projects/C--Users-anil-akdereli-aa-finance"
 LIN_PROJ="$HOME/.claude/projects/$(echo "$DEST" | sed 's#[/.]#-#g')"
 mkdir -p "$LIN_PROJ" "$HOME/.claude"
@@ -54,6 +55,17 @@ chmod 600 "$DEST/web/.env.local" 2>/dev/null || true
 # Linux has a working graphify binary: drop the Windows .cmd wrapper from hooks and docs
 sed -i 's#scripts/graphify\.cmd#graphify#g' .claude/settings.json CLAUDE.md docs/DEVELOPMENT.md
 git rm -q --cached scripts/graphify.cmd 2>/dev/null && rm -f scripts/graphify.cmd || true
+
+# MCP reads SUPABASE_ACCESS_TOKEN from the process env: export it from the repo .env (value never printed)
+if ! grep -q 'aa-finance SUPABASE_ACCESS_TOKEN' "$HOME/.bashrc"; then
+  cat >> "$HOME/.bashrc" <<'RC'
+# aa-finance SUPABASE_ACCESS_TOKEN
+if [ -f "$HOME/aa-finance/.env" ]; then
+  _t="$(grep -E '^SUPABASE_ACCESS_TOKEN=' "$HOME/aa-finance/.env" | cut -d= -f2-)"
+  [ -n "$_t" ] && export SUPABASE_ACCESS_TOKEN="$_t"; unset _t
+fi
+RC
+fi
 
 (cd web && npm install)
 graphify update . && graphify hook install

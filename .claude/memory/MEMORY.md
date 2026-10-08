@@ -1,7 +1,7 @@
 - [Working style](feedback-working-style.md) — Turkish chat; options on decisions; critical; minimal scope; commit phases without asking
 - [Secrets via .env](feedback-use-dotenv-secrets.md) — load root .env per command, never print values
 - [Doc & agent system](feedback-doc-system.md) — EN docs, STE, relative links, .claude/rules, agent learning loop
-- [Stack & machine gotchas](project-aa-finance-stack.md) — Supabase + Edge Functions + React; Windows quirks; docs/DEVELOPMENT.md
+- [Stack & machine gotchas](project-aa-finance-stack.md) — Supabase + Edge Functions + React; Ubuntu/WSL2 setup; docs/DEVELOPMENT.md
 - [Ledger core pivot (2026-10-08)](project-ledger-core-pivot.md) — GnuCash-style core; convenience flows hidden; desktop only; open calls
 - [No git remote](project-no-git-remote.md) — commit only, never push
 - [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer done; next debt/loan

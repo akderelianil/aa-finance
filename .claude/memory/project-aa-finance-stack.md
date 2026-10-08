@@ -1,6 +1,6 @@
 ---
 name: project-aa-finance-stack
-description: "aa-finance stack and Windows/machine gotchas; commands and debt live in docs/DEVELOPMENT.md"
+description: "aa-finance stack and Ubuntu/WSL2 machine gotchas; commands and debt live in docs/DEVELOPMENT.md"
 metadata:
   type: project
 ---
@@ -8,7 +8,7 @@ metadata:
 Stack (decided 2026-10-07): Supabase `ckwigjohcdsfqglmmzdq` (dev only) + TypeScript Edge Functions + React/Vite/shadcn desktop app, Cloudflare Pages later. Decisions: `docs/ARCHITECTURE.md`; commands, secrets, status, release tasks: `docs/DEVELOPMENT.md` (read at session start). Product state: [[project-ledger-core-pivot]].
 
 Gotchas not worth rediscovering:
-- pnpm is blocked: use npm / `npx supabase`. PowerShell 5.1 corrupts UTF-8: write files with Write/Edit.
+- Dev is Ubuntu on WSL2 since 2026-10-08, bash only (no Windows/PowerShell). Work in `~/aa-finance`, never `/mnt/c`. Use npm / `npx supabase`.
 - Load root `.env` per command (`set -a; . ./.env; set +a`), never print values; Supabase MCP is read-only and often Unauthorized, use the CLI ([[feedback-use-dotenv-secrets]]).
 - Pin `npm:@supabase/supabase-js@2.117.2` in functions (2.117.3 tarball missing).
 - postgres.js returns `date` as JS Date: cast `::text` before string compares.

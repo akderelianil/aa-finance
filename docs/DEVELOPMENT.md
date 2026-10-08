@@ -13,13 +13,13 @@ Quick start and fixes for repeated mistakes. Decisions: [ARCHITECTURE](ARCHITECT
 | Frontend dev | `cd web && npm run dev` |
 | Build (type check + build) | `cd web && npm run build` |
 | Lint (oxlint) | `cd web && npm run lint` |
-| Supabase CLI | `npx supabase ...` (pnpm is blocked) |
+| Supabase CLI | `npx supabase ...` |
 
 Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warning, build clean). After a UI text or `docs/ux` change, also run `npm run check:terms` ([GLOSSARY](GLOSSARY.md)).
 
-## Machine pitfalls (Windows)
-- **No pnpm:** Application Control blocks it. Use npm.
-- **PowerShell 5.1 breaks UTF-8** (BOM, mojibake). Write files with the Write/Edit tools. Do not touch Turkish content with `Set-Content`/`Get-Content`.
+## Machine notes (Ubuntu on WSL2)
+- Work in `~/aa-finance` (ext4). Do not run from `/mnt/c`: it is slow and has file-mode and line-ending noise.
+- Use npm. Files are UTF-8 with LF (`.gitattributes`).
 - The dev DB password is unchanged on purpose (dev stage). Never write it to a file.
 - **Supabase MCP is read-only and may return "Unauthorized"** (token not in its process env). Use the CLI; see Secrets.
 
@@ -27,10 +27,9 @@ Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warni
 - The root `.env` (gitignored) holds tokens and secret keys. The template `.env.example` is committed and has no values. Frontend vars are separate: `web/.env.local` (only `VITE_*`, not secret).
 - `.env` does not load automatically for Claude/CLI. Load it per command. **Never print or log a value.**
   - bash: `set -a; . ./.env; set +a; npx supabase ...`
-  - PowerShell: `Get-Content .env | ? { $_ -match '^\s*[^#]\S*=' } | % { $k,$v = $_ -split '=',2; Set-Item "env:$($k.Trim())" $v.Trim() }`
 - The direct `SUPABASE_DB_URL` (`db.<ref>.supabase.co`) is IPv6 only and fails on this machine. The CLI does not need it: with `.env` loaded, `npx supabase migration list --linked` and `db push --linked` work with `SUPABASE_ACCESS_TOKEN` only (verified 2026-10-07). For direct SQL, use the shared pooler URL.
 - Check presence, not value: `[ -n "$SUPABASE_ACCESS_TOKEN" ] && echo set`.
-- `.mcp.json` reads `${SUPABASE_ACCESS_TOKEN}` from the process env, not from `.env`. For MCP, the token must also be in the User env var, and Claude Code must restart.
+- `.mcp.json` reads `${SUPABASE_ACCESS_TOKEN}` from the process env, not from `.env`. For MCP, export it in `~/.bashrc` (see `scripts/wsl/2-linux-bootstrap.sh`), then restart Claude Code.
 - Do not show `.env` with Read/cat. To see key names: `sed -E 's/=.*/=<hidden>/' .env`.
 
 ## Working rules
@@ -76,8 +75,7 @@ Claude memory lives in the repo: `.claude/memory/` (index `MEMORY.md`). On a new
 
 A knowledge graph of the code lives in `graphify-out/` (git-ignored, rebuildable). Claude Code queries it before grepping, which saves tokens.
 
-- Install once: `python -m pip install --user uv`, then `python -m uv tool install "graphifyy[sql]"`.
-- `graphify.exe` is blocked by Application Control. Use `graphify <args>` (runs `python -m graphify` from the uv tool env).
+- Installed with `pipx install "graphifyy[sql]"` (`~/.local/bin/graphify`). Call `graphify <args>` directly.
 - Commands: `graphify query "<question>"`, `path "<A>" "<B>"`, `explain "<concept>"`, `update .` (AST only, no API cost).
 - Git hooks (`post-commit`, `post-checkout`) rebuild the graph. Re-install them with `graphify hook install`. Exclusions: `.graphifyignore`.
 - Strict mode is on (`.claude/settings.json`): the first raw file read per session is blocked until one query ran. Disable with `GRAPHIFY_HOOK_STRICT=0`.
