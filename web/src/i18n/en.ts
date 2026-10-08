@@ -9,8 +9,8 @@ export const en: Translation = {
   },
   nav: {
     home: 'Home',
-    journal: 'Transactions',
-    accounts: 'Accounts',
+    journal: 'General Journal',
+    accounts: 'Chart of Accounts',
     directory: 'Directory',
     reports: 'Reports',
     settings: 'Settings',

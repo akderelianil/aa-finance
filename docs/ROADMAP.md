@@ -3,30 +3,30 @@ owner: main
 status: active
 ---
 
-# Roadmap (UX map → code)
+# Roadmap (ledger core)
 
-Source: [ux/harita.md](ux/harita.md). Started 2026-10-07.
+Goal: a GnuCash-style double-entry core for professional personal-finance users. Started 2026-10-08.
 
-## Decisions (2026-10-07, product owner)
-- All proposals in harita §7 are accepted: deposit-for-father (emanet) is after v1; card payment = Transfer → card; card statement/due day is entered once per card; Undo = last record right away, later Edit/Delete, a multi-line record undoes in one step; terms "getiri" / "maliyet".
-- All "(Öneri: …)" items in [ux/acik-sorular.md](ux/acik-sorular.md) are accepted as decisions.
-- harita §6 is accepted: "Diğer" keeps only FX, investment and deposit-for-father. Cash advance = ATM → withdraw with a credit card. Term deposit = Transfer → term account. Loan = Debt → borrowed, from a bank.
-
-- Loan (2026-10-07): the total repayment is the debt on the loan day; total − agreed amount is a cost expense that day; agreed − deposited amount is a fee expense. Each installment is a transfer to the loan account. An early-payoff discount is a "Fark" that reduces the cost.
-- Term deposit (2026-10-07): the user enters principal + rate + days; the expected net return is derived (withholding rate per account). At maturity the real amount is entered; the difference is income or expense.
-- Account template (2026-10-08): placeholder is a manual setting per category (not derived from children). Every member gets a cash account. The start wizard asks for bank accounts, cards and loans. Allowance between members = expense for the giver, income for the receiver (two records). "Kupon & Hediye Çeki" is income (discount coupon, gift balance). Brand → category defaults are part of the template. Existing groups get it by migration.
+## Decisions (2026-10-08, product owner)
+- Users know accounting. The UI uses real accounting terms and follows accounting standards.
+- v1 is desktop only.
+- Convenience flows are hidden, not deleted: quick entry, installment, loan, deposit, FX exchange, investment, plans, start wizard, directory. Rebuild them later on `journal-post`.
+- Every account has a currency (also income and expense). The owner member is optional on every account and is a label only.
+- The group and its members stay. Screens show one shared ledger.
+- Account code on every account. The template uses Tek Düzen Hesap Planı style codes. The user can change them.
+- FX line: the server fetches the day rate when the rate is missing. A user-given rate wins.
+- Not now: Num (document number), reconcile state.
 
 ## Phases
 | Phase | Content | Status |
 |---|---|---|
-| F1 Quick entry v2 | 5 buttons (Income · Expense · Transfer · Debt · ATM) + "Other" link. ATM uses the wallet automatically. Undo toast after save. Direction = colour + icon + sign. | Done 2026-10-07 |
-| F2 Expense options | Installment and split inside Expense (equal split, 3+ people, the extra cent stays with me), note/receipt | Done 2026-10-07 |
-| F3 Directory (Rehber) | person · brand · business; brand ↔ business many-to-many; brand default category; People page → Directory | Done 2026-10-07 |
-| F4 Plan + Upcoming | `plans` table (debt due, card due, installment); one list on Home, overdue first; a real record closes the plan | Done 2026-10-07 |
-| F5 Cash advance + loan | ATM withdraw from card (fee = expense); Debt → borrowed from bank (net vs agreed amount, gap = expense) | Done 2026-10-07 |
-| F6 Term deposit | Transfer → term account; maturity in Upcoming; renewed / returned / partial | Done 2026-10-07 |
-| F7 Account template | Category tree + `template_key`, brand defaults, wallet per member, start wizard `/baslangic` | Done 2026-10-08 |
-| Later | Deposit-for-father, FX and stock flows redesign | |
-| v2 backlog | Real estate and vehicle assets (own subtype, value change record) | |
+| F0 Cleanup | Rules, docs, glossary. Menu: Hesap Planı · Yevmiye · Raporlar · Ayarlar. Hide convenience routes. | Done 2026-10-08 |
+| F1 Schema | Currency on every account (income/expense get the base currency). Owner optional. `accounts.code` unique per group. Template codes. | |
+| F2 `journal-post` | One generic function: create, update, delete an entry from a line list. Balance check, row locks, rate lookup. | |
+| F3 Chart of Accounts | Tree table: code · name · type · currency · balance (with subtree). Add, edit, move, archive. Placeholder. | |
+| F4 General Journal | All entries by date with their lines. Inline multi-line entry form: account search (code or name), debit, credit, memo. Live difference. Keyboard entry. | |
+| F5 Account Register | One account's lines with the other account and a running balance. Two-line entry inline. A split opens the journal form. | |
+| F6 Reports | Trial balance, balance sheet, income statement. Date range. Base currency. | |
+| Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
-Each phase ends with: migration + deploy, `npm run lint && npm run build`, a Playwright screenshot.
+Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

@@ -42,8 +42,8 @@ Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warni
 5. If unsure of library syntax, check current docs with context7. Versions are new (react-router 8, tailwind 4, vite 8, i18next 26) and can differ from training data.
 6. Open every UI change with the playwright MCP and take a screenshot. Screenshots go to `.playwright-mcp/` (gitignored).
 
-## Status (2026-10-07)
-UX roadmap F1–F6 done ([ROADMAP](ROADMAP.md)).
+## Status (2026-10-08)
+Ledger-core roadmap in progress ([ROADMAP](ROADMAP.md)). The UX roadmap flows are hidden.
 All phases run on the dev project and passed end-to-end tests: quick expense/income, edit/delete, accounts/categories, transfer, debts, multi-currency (average cost, FX gain/loss), installments, investments, reports, attachments, period lock.
 
 Edge Functions: onboarding-create-group, onboarding-join-group, invite-create, group-update, profile-update, avatar-upload, transaction-create/update/delete, account-create/update/delete, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
@@ -77,5 +77,5 @@ End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (wit
 - Loan: Debt → Borrowed → "Bank loan" = `loan-create` (opens a `loan` account + `loan_settings`; lines: deposit, fee = agreed − deposit, cost = total − agreed, credit loan = total). Installments are transfers to the loan account; view `loan_due_status` derives the next installment for Upcoming. Deleting the loan record archives the account (blocked if payments exist).
 - Term deposit: Transfer → "+ New term deposit" = `deposit-open` (account subtype `deposit` + `deposit_settings`: principal, annual rate, days, withholding). Upcoming shows maturity and the expected net return (`expectedReturn`, display only). `deposit-settle`: `return` (real amount; difference = income "Vadeli getiri" or expense "Vadeli bozma kesintisi"; account closes) or `renew` (net return, optional withdrawal, new rate/days). Deleting a settle record restores the previous period (`prev`).
 - Expense options: installment (`installment-create`; first due date derives from `credit_card_settings`, else +1 month) and split (`split: [{name, amount?|percent?}]` on `transaction-create`/`installment-create`, `_shared/split.ts`): my share = expense, each person = receivable line; blanks and I share the rest equally, the extra cent stays with me.
-- Shell: mobile has 6 bottom tabs + an "Add" button; desktop has a left sidebar (`AppShell`). Routes: `/`, `/islemler`, `/hesaplar`, `/rehber`, `/raporlar`, `/ayarlar` (+ `/ayarlar/taksitler|yatirimlar`).
+- Shell: desktop only, left sidebar (`AppShell`). Routes: `/hesaplar` (Chart of Accounts, start page), `/yevmiye`, `/raporlar`, `/ayarlar`. Hidden-flow pages stay in `src/pages` without a route.
 - Account tree: `accounts.parent_id` (any depth). DB trigger `accounts_parent_chk`: same group/type; for a balance-sheet account, same owner + currency; no cycles. View `account_tree_balances` gives balances including the subtree. `account-create` (`parent_id`, `type` for categories), `account-update` (move with `parent_id`), `account-delete` (hard delete if the subtree has no movements/installments/investments, else archive).

@@ -1,4 +1,4 @@
-// Fails when UI text or ux docs use a term that docs/GLOSSARY.md lists under "Do not use".
+// Fails when UI text uses a term that docs/GLOSSARY.md lists under "Do not use".
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -21,23 +21,18 @@ const allowed = ticks(glossary.match(/^Allowed phrases.*$/m)?.[0] ?? '').map(low
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const pattern = new RegExp(`(?<!\\p{L})(${[...banned].map(esc).join('|')})`, 'gu')
 
-// Sources: string literals in tr.ts, and every ux doc outside the archive.
+// Sources: string literals in tr.ts, outside the namespaces of hidden flows. docs/ux is paused and not checked.
+const HIDDEN = new Set(['dashboard', 'setup', 'home', 'entry', 'directory', 'people', 'upcoming', 'installments',
+  'investments', 'attachments'])
 const sources = []
 const tr = fs.readFileSync(path.join(root, 'web/src/i18n/tr.ts'), 'utf8')
+let ns = ''
 tr.split('\n').forEach((l, i) => {
+  ns = l.match(/^ {2}(\w+): \{/)?.[1] ?? ns
+  if (HIDDEN.has(ns)) return
   const text = [...l.matchAll(/'([^']*)'/g)].map((m) => m[1]).join(' ')
   if (text) sources.push({ file: 'web/src/i18n/tr.ts', line: i + 1, text })
 })
-const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
-  const p = path.join(dir, d.name)
-  if (d.isDirectory()) return d.name === 'arsiv' ? [] : walk(p)
-  if (d.name === 'gelen-kutusu.md') return [] // raw words of the product owner
-  return d.name.endsWith('.md') ? [p] : []
-})
-for (const f of walk(path.join(root, 'docs/ux'))) {
-  fs.readFileSync(f, 'utf8').split('\n').forEach((text, i) =>
-    sources.push({ file: path.relative(root, f).replaceAll('\\', '/'), line: i + 1, text }))
-}
 
 let hits = 0
 for (const s of sources) {

@@ -243,7 +243,7 @@ export function RecentEntries({ membership, exponent, limit }: Props) {
         </CardTitle>
         {!full && (
           <CardAction>
-            <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/islemler" />}>
+            <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/yevmiye" />}>
               {t('dashboard.allEntries')}<ArrowRightIcon data-icon="inline-end" />
             </Button>
           </CardAction>

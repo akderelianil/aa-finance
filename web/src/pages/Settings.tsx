@@ -2,7 +2,6 @@ import { SettingsIcon } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
 import { AvatarPicker } from '@/components/AvatarPicker'
 import type { Membership } from '@/auth/useMembership'
 import { PageHeader } from '@/components/PageHeader'
@@ -149,14 +148,6 @@ export default function Settings({ membership }: { membership: Membership }) {
               </>
             )}
           </FieldGroup>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>{t('settings.more')}</CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <Button variant="outline" nativeButton={false} render={<Link to="/rehber" />}>{t('directory.title')}</Button>
-          <Button variant="outline" nativeButton={false} render={<Link to="/ayarlar/taksitler" />}>{t('installments.title')}</Button>
-          <Button variant="outline" nativeButton={false} render={<Link to="/ayarlar/yatirimlar" />}>{t('investments.title')}</Button>
         </CardContent>
       </Card>
     </>

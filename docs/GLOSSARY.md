@@ -5,92 +5,72 @@ status: active
 
 # Glossary
 
-Use these terms only. The Turkish column is the term for UI text (`web/src/i18n/tr.ts`) and for `docs/ux/**`. The user never sees accounting terms.
+Use these terms only. The Turkish column is the term for UI text (`web/src/i18n/tr.ts`). Users know accounting: use the standard Turkish accounting term (Tek Düzen Hesap Planı, GnuCash Turkish).
 
-The "Do not use" column is machine-checked. `cd web && npm run check:terms` fails on each hit in `tr.ts` strings and `docs/ux/**` (not `arsiv/`, not `gelen-kutusu.md`: it keeps the product owner's own words). Each value is a word start, case-insensitive (`kayıt` also catches `kayıtlar`). To add a term, add a row here. To change a term, ask the product owner first.
+The "Do not use" column is machine-checked. `cd web && npm run check:terms` fails on each hit in `tr.ts` strings, except the namespaces of hidden flows (list in `web/scripts/check-terms.mjs`). Each value is a word start, case-insensitive. To add a term, add a row here. To change a term, ask the product owner first.
 
-Allowed phrases (the check skips them): `Kayıt ol`.
+Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış yap`, `Girişe dön`.
 
-## Product concepts
+## Ledger
 
-| English | Türkçe (UI / ux docs) | Do not use | Meaning |
+| English | Türkçe (UI) | Do not use | Meaning |
 |---|---|---|---|
-| Transaction (code: Movement) | İşlem | `hareket`, `kayıt`, `kaydı`, `kayda` | A real, completed money event. The only thing that becomes a journal entry. Verb: `Kaydet` / `Kaydedildi`. |
-| Quick Entry | Hızlı işlem | | The "what happened?" entry screen. |
-| Account | Hesap | `kategori`, `özkaynak` | Every node in the account tree: cash, bank, card, loan, deposit, investment, expense, income. |
-| Expense / income account | Gider hesabı / Gelir hesabı | | An account in the expense or income branch. The Quick Entry field label. |
+| Chart of Accounts | Hesap Planı | `hesap ağacı` | The account tree of the group. |
+| Account | Hesap | `kategori` | A node in the Chart of Accounts. |
+| Account code | Hesap kodu | | Tek Düzen style code, unique in the group (100, 102, 770.01). |
+| Account type | Hesap türü | | Varlık · Yabancı Kaynak · Özkaynak · Gelir · Gider. |
+| Asset / Liability / Equity | Varlık / Yabancı Kaynak / Özkaynak | | Balance-sheet account types. |
+| Income / Expense | Gelir / Gider | | Income-statement account types. |
 | Parent / child account | Üst hesap / Alt hesap | | Tree position. |
-| Group account (placeholder) | Grup | | A tree node that sums its children. It takes no transaction. |
-| Opening balances (equity) | Açılış bakiyeleri | | The equity branch. |
-| Wallet | Cüzdan | | The single cash account of a member. |
-| Family (code: group) | Aile / topluluk | | The people who share the books. Kind: Aile or Topluluk. |
-| Member | Üye | | A person in the family. Also "sign up": `Kayıt ol`, "already a member": `Zaten üye misin?`. |
-| Directory | Rehber | `şirket`, `kurum` | Who or where. Kinds: Kişi, Marka, Firma. |
-| Plan | Bekleyen (item), Yaklaşanlar (list) | `plan` | An expected future event. Display only; not a journal entry. A matching transaction closes it. |
-| Name | Ad / Soyad | `isim`, `soyisim` | Person name fields. |
-| Details | Ayrıntılar | `detay` | Extra fields behind a toggle. |
-| Product owner | Ürün sahibi | | The user who defines the product. |
-| Narrative | Anlatım | | One story the product owner tells about a money process. |
-| Flow | Akış (AKS-NNN) | | A documented process in `docs/ux/akislar/`. |
+| Placeholder | Grup hesabı | | Sums its children. Takes no line. |
+| Opening balances | Açılış Bakiyeleri | | Equity account for opening balances. |
+| General Journal | Yevmiye | | The list of all journal entries by date. |
+| Journal entry | Yevmiye kaydı · short: Kayıt | `işlem`, `hareket` | One balanced event: date, description, ≥2 lines. |
+| Line (split) | Satır | | One account side of a journal entry. |
+| Debit / Credit | Borç / Alacak | `giriş`, `çıkış` | Line columns. |
+| Description | Açıklama | | Entry text. |
+| Memo | Not | | Line text. |
+| Imbalance | Fark | | Debit total − credit total of an unsaved entry. |
+| Account Register | Hesap Defteri | `muavin` | One account's lines with the other account and a running balance. |
+| Balance | Bakiye | | Debit − credit, shown with the account type's normal sign. |
+| Currency / base currency | Para birimi / Ana para birimi | `döviz cinsi` | Every account has one. Reports use the base currency. |
+| Exchange rate | Kur | | Line rate to the base currency. |
+| Archive | Arşivle | | The account leaves the tree. History stays. |
 
-## Transaction kinds
-
-| English | Türkçe | Do not use |
-|---|---|---|
-| Income / Expense | Gelir / Gider | |
-| Transfer (between own accounts) | Transfer · button: `Transfer et` | `aktar`, `virman` |
-| Debt: borrowed / lent | Borç aldım / Borç verdim | |
-| Debt: got paid back / paid back | Tahsil ettim / Borcumu ödedim | `ödeş`, `alacak` |
-| Debts page | Borçlar | |
-| Write off a debt | Borç silme · action: `Borcu sil` | `bağışla` |
-| Overdue (plan) | Gecikti | `gecikmiş` |
-| Split | Paylaştır | |
-| Installment | Taksit | |
-| Cash advance | Nakit avans | |
-| Loan | Kredi | |
-| Time deposit | Vadeli hesap | |
-| Custody investment | Emanet yatırım | |
-| Fee (bank, ATM, broker, loan) | Masraf | `komisyon`, `kesinti` |
-| Withholding tax | Stopaj | |
-
-## Totals and reports
+## Reports
 
 | English | Türkçe | Do not use |
 |---|---|---|
-| Assets / Liabilities | Varlıklar / Borçlar | `sahip olduklarım` |
-| Net worth | Net varlık | `net değer` |
-| Income − expense | Net | |
-| Line columns (debit / credit) | Giriş / Çıkış | |
+| Trial Balance | Mizan | |
+| Balance Sheet | Bilanço | |
+| Income Statement | Gelir Tablosu | `kâr zarar` |
+| Net income | Dönem net kârı / zararı | |
+
+## Group
+
+| English | Türkçe | Meaning |
+|---|---|---|
+| Group | Aile / topluluk | The people who share the books. |
+| Member | Üye | A person in the group. "Sign up": `Kayıt ol`. |
+| Owner (account) | Sahibi | Optional member label on an account. |
 
 ## Actions
 
-| English | Türkçe | Use when |
-|---|---|---|
-| Delete | Sil | The item is gone. |
-| Remove (archive) | Kaldır · do not use `arşivle` | The item leaves the list. History stays. |
-| Cancel | Vazgeç | Close a form without saving. |
-| Close (plan) | Kapat | The plan is no longer needed. |
-| Paid (card, loan plan) | Ödedim | Yaklaşanlar row action. |
-| Maturity (deposit plan) | Vade sonu | Yaklaşanlar row action. |
-| Options menu | Seçenekler | A row's action menu. |
-
-## Exception patterns
-
-| English | Türkçe | Use when |
-|---|---|---|
-| Undo | Geri al | "I tapped wrong just now." |
-| Correct | Düzelt | Event is right, a field is wrong. |
-| Refund | İade | Money really came back (reverse transaction). |
-| Difference | Fark | Bank paid or charged a different amount; the gap is income or expense. |
-| Partial | Kısmi | Only part of the amount happened; the rest stays open in the plan. |
-| Closure | Kapanış | End of a plan: completed, closed or overdue. |
+| English | Türkçe |
+|---|---|
+| Save | Kaydet |
+| Cancel | Vazgeç |
+| Delete | Sil |
+| Edit | Düzenle |
+| Add line | Satır ekle |
+| Options menu | Seçenekler |
 
 ## Engineering terms (code and EN docs only)
 
 | Term | Meaning |
 |---|---|
-| Journal entry | DB record of a transaction (`journal_entries`), ≥2 lines, debit = credit. |
-| Line | One side of a journal entry (`journal_lines`). |
-| `base_amount` | Line amount in the group base currency. |
+| `journal_entries` / `journal_lines` | GnuCash transactions / splits. |
+| `base_amount` | Line amount in the group base currency. Entries balance on it. |
 | Minor unit | Money as int64 (kuruş, cent). Never float. |
-| Template category | A category from the account template; code finds it by `template_key`, not by name. |
+| `template_key` | Stable id of a template account. Code finds a fixed account by it, never by name. |
+| Hidden flow | A convenience flow (quick entry, installment, loan, ...) whose UI is hidden since 2026-10-08. |

@@ -1,25 +1,29 @@
 # aa-finance
 
-Family personal-finance app with double-entry bookkeeping. Docs index: [docs/README.md](docs/README.md). Terms: [docs/GLOSSARY.md](docs/GLOSSARY.md).
+Professional personal-finance app with double-entry bookkeeping, modeled on GnuCash. Users know accounting and want detailed tracking. Docs index: [docs/README.md](docs/README.md). Terms: [docs/GLOSSARY.md](docs/GLOSSARY.md). Plan: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Stack
 - Supabase (PostgreSQL + Auth + RLS + Storage), project ref `ckwigjohcdsfqglmmzdq` (eu-central-1). Dev project only.
-- Business logic: TypeScript Supabase Edge Functions. Writes use a direct Postgres connection in one transaction and lock the affected account rows with `SELECT ... FOR UPDATE` (average-cost race).
-- Frontend: React + Vite + TypeScript + shadcn/ui + Tailwind, mobile-first PWA, hosted on Cloudflare.
+- Business logic: TypeScript Supabase Edge Functions. Writes use a direct Postgres connection in one transaction and lock the affected account rows with `SELECT ... FOR UPDATE`.
+- Frontend: React + Vite + TypeScript + shadcn/ui + Tailwind, hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
 - Package manager: npm (pnpm.exe is blocked by Application Control). Supabase CLI: `npx supabase`. Windows/PowerShell.
 
-## Rules
-- Every record is double-entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
+## Product rules
+- Ledger core first: Chart of Accounts, General Journal, Account Register, Reports. Judge every feature against this core.
+- Follow accounting standards. The UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). Account codes follow the Turkish Tek Düzen Hesap Planı style.
+- Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
+- Every account has a currency. Lines on an account are in the account currency. A missing rate is fetched by the server; a user-given rate wins.
+- A journal entry is a completed event only. Plans and reminders are not entries.
+- Convenience flows (quick entry, installment, loan, deposit, FX, investment, plans, wizard, directory) are hidden. Their code stays. Rebuild them later on `journal-post`.
+- Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions.
+
+## Engineering rules
 - Money: int64 minor units (`bigint`/string in TS; never float). Rates and quantities: `numeric` → string.
 - Never edit an applied migration. Add a new one in `supabase/migrations`.
-- The server derives every derivable value (rate, TRY amount, gain/loss, account creation). It is optional in the request; a user-given value wins.
 - Access: everyone in a group reads; only the `journal_entries.member_id` owner edits or deletes (RLS + function).
 - Supabase MCP is read-only. Change the schema with a migration + CLI.
 - Secrets and the service_role key never go to the frontend or the repo. Read tokens from the root `.env` (template `.env.example`, loading: [DEVELOPMENT](docs/DEVELOPMENT.md#secrets-env)). Never print values.
-- UI: for lazy, non-technical users. Minimum fields, no accounting terms.
-- A record is a completed event only. Future or estimated events are not records (an installment purchase records the full amount as expense + card debt). Plans and reminders are display only. All entry is manual first; integrations come later.
-- Scope: cash advance and loan are in v1 (decided 2026-10-07). Out of scope: AI/auto-fill, bank import/integration, native/phone notifications (in-app list only), bills/subscriptions (later).
 
 ## Docs and agents
-- Language: user-facing docs (`docs/ux/**`) in Turkish; everything else in English.
+- Language: English for docs and code. UI text: Turkish and English in `web/src/i18n/`. `docs/ux/**` (Turkish) is paused reference.
 - Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`.

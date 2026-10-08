@@ -13,7 +13,7 @@ export function GroupHeader({ group }: { group: Membership['group'] }) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" tooltip={group.name} render={<NavLink to="/" />}>
+        <SidebarMenuButton size="lg" tooltip={group.name} render={<NavLink to="/hesaplar" />}>
           <Avatar className="rounded-lg after:rounded-lg">
             <AvatarImage src={avatarSrc(group.avatar_url)} alt="" className="rounded-lg" />
             <AvatarFallback className="rounded-lg bg-primary text-primary-foreground"><Icon className="size-4" /></AvatarFallback>
