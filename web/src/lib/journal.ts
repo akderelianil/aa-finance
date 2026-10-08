@@ -7,7 +7,7 @@ export type JournalLine = {
 }
 export type JournalEntry = {
   id: string; entry_date: string; description: string; member_id: string; source_type: string | null
-  created_at: string; journal_lines: JournalLine[]
+  created_at: string; journal_lines: JournalLine[]; tags: { tag: { name: string } }[]
 }
 
 export function useJournalEntries(from: string, to: string) {
@@ -15,7 +15,7 @@ export function useJournalEntries(from: string, to: string) {
     queryKey: ['ledger', 'journal', from, to],
     queryFn: async () => {
       let q = supabase.from('journal_entries')
-        .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
+        .select('id, entry_date, description, member_id, source_type, created_at, tags:entry_tags(tag:tags(name)), journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
         .is('deleted_at', null)
         .order('entry_date').order('created_at')
         .limit(2000)
@@ -34,7 +34,7 @@ export function useJournalEntries(from: string, to: string) {
 export type DraftLine = {
   key: number; accountId: string; memo: string; debit: string; credit: string; rate: string; base: string; contactId: string
 }
-export type Draft = { entryId?: string; date: string; description: string; lines: DraftLine[] }
+export type Draft = { entryId?: string; date: string; description: string; tags: string[]; lines: DraftLine[] }
 
 let nextKey = 1
 export const emptyLine = (side?: 'debit' | 'credit', amount?: string): DraftLine => ({
@@ -47,7 +47,7 @@ export function draftContact(lines: DraftLine[]): string {
   const ids = new Set(lines.map((l) => l.contactId).filter(Boolean))
   return ids.size === 0 ? '' : ids.size === 1 ? [...ids][0] : 'mixed'
 }
-export const newDraft = (): Draft => ({ date: today(), description: '', lines: [emptyLine(), emptyLine()] })
+export const newDraft = (): Draft => ({ date: today(), description: '', tags: [], lines: [emptyLine(), emptyLine()] })
 
 // Saved entry → form draft. A foreign line keeps its booked base amount.
 export function entryToDraft(e: JournalEntry, base: string, exponents: Map<string, number>): Draft {
@@ -59,6 +59,7 @@ export function entryToDraft(e: JournalEntry, base: string, exponents: Map<strin
     entryId: e.id,
     date: e.entry_date,
     description: e.description,
+    tags: e.tags.map((x) => x.tag.name).sort(),
     lines: e.journal_lines.map((l) => {
       const amount = dec(Number(l.amount), l.currency)
       return {
@@ -82,7 +83,7 @@ export function useAccountEntries(accountId: string | undefined) {
       const entries: JournalEntry[] = []
       for (let i = 0; i < entryIds.length; i += 200) {
         const { data, error } = await supabase.from('journal_entries')
-          .select('id, entry_date, description, member_id, source_type, created_at, journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
+          .select('id, entry_date, description, member_id, source_type, created_at, tags:entry_tags(tag:tags(name)), journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
           .in('id', entryIds.slice(i, i + 200))
           .is('deleted_at', null)
         if (error) throw error

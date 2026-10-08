@@ -13,6 +13,7 @@ import { draftContact, emptyLine, today, type Draft, type DraftLine } from '@/li
 import { formatAmount, parseDecimalInput, toMinor, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
+import { TagsField } from '@/components/entry/Fields'
 import { ContactPicker } from './ContactPicker'
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
   accounts: AccountNode[] // postable
   byId: Map<string, AccountNode>
   baseCurrency: string
+  groupId: string
   exponents: Map<string, number>
   onSaved: () => void
   onCancel: () => void
@@ -30,7 +32,7 @@ type Props = {
 // The Rehber field tags every line with one contact; an entry with several contacts keeps them until it is changed.
 // A foreign-currency line shows the rate (day rate suggested) and its base amount; the user can type either.
 // Totals and the imbalance are live; the entry saves only when balanced. Ctrl+Enter saves.
-export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, exponents, onSaved, onCancel }: Props) {
+export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, groupId, exponents, onSaved, onCancel }: Props) {
   const { t, i18n } = useTranslation()
   const baseExp = exponents.get(baseCurrency) ?? 2
   const expOf = (cur: string) => exponents.get(cur) ?? 2
@@ -93,6 +95,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
       entry_id: draft.entryId,
       date: draft.date,
       description: draft.description.trim(),
+      tags: draft.tags,
       lines: filled.map((l) => {
         const cur = byId.get(l.accountId)?.currency ?? baseCurrency
         const side = l.debit ? 'debit' : 'credit'
@@ -152,6 +155,10 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, e
           />
         </label>
         {draft.entryId && <span className="pb-2 text-sm font-medium text-primary">{t('gj.editing')}</span>}
+      </div>
+
+      <div className="mb-3">
+        <TagsField value={draft.tags} onChange={(tags) => onChange({ ...draft, tags })} groupId={groupId} />
       </div>
 
       <table className="w-full text-sm">

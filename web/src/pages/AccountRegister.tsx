@@ -79,7 +79,7 @@ export default function AccountRegister({ membership }: { membership: Membership
   })
 
   const newEntry = () => setDraft({
-    date: today(), description: '', lines: [{ ...emptyLine(), accountId: account!.id }, emptyLine()],
+    date: today(), description: '', tags: [], lines: [{ ...emptyLine(), accountId: account!.id }, emptyLine()],
   })
 
   if (accounts.isLoading) return <p className="text-muted-foreground">{t('ledger.loading')}</p>
@@ -112,7 +112,7 @@ export default function AccountRegister({ membership }: { membership: Membership
       {draft && (
         <JournalEditor
           key={draft.entryId ?? 'new'}
-          draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} exponents={exponents}
+          draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} groupId={membership.group.id} exponents={exponents}
           onCancel={() => setDraft(null)}
           onSaved={() => { setDraft(null); refresh() }}
         />
@@ -160,6 +160,9 @@ export default function AccountRegister({ membership }: { membership: Membership
                   <td className="font-mono tabular-nums">{new Date(r.entry.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
                   <td>
                     {r.entry.description}
+                    {r.entry.tags.map((x) => (
+                      <span key={x.tag.name} className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">#{x.tag.name}</span>
+                    ))}
                     {lineContacts(r.entry.journal_lines, contactById).map((n) => (
                       <span key={n} className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{n}</span>
                     ))}

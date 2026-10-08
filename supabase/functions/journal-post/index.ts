@@ -1,14 +1,16 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql, type Tx } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, insertLines, loadMember, loadOwnedEntry, parseAmount, postRawEntry, softDeleteEntry,
+  assertNotLocked, entryDate, insertLines, loadMember, loadOwnedEntry, parseAmount, parseTags, postRawEntry, setEntryTags,
+  softDeleteEntry,
   type RawLine,
 } from '../_shared/entries.ts'
 import { dayRate, parseRate, saveRate, toBase } from '../_shared/fx.ts'
 
 // General Journal write: create, update or delete one journal entry from a line list (GnuCash splits).
 // Request: { action: 'create' | 'update' | 'delete', entry_id?, date?, description?,
-//            lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo?, contact_id? }] }
+//            tags?: string[], lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo?, contact_id? }] }
+// tags: names; new names open as group tags. On update, omitted tags keep the current ones.
 // contact_id tags a line with a Rehber contact of the group (receivable/payable balance, who was paid).
 // amount is in the account currency. For a foreign-currency line the base amount comes from base_amount, else
 // from rate, else from the day rate (saved rate, TCMB, last saved). Total debit = total credit in base_amount.
@@ -49,15 +51,17 @@ serve(async (req, user) => {
     assertNotLocked(m.lock_date, date)
     const description = body.description ? requireString(body.description, 'description', 200) : ''
     const lines = await parseLines(tx, m, date, body.lines)
+    const tags = parseTags(body.tags)
 
     if (existing) {
       await tx`update journal_entries set entry_date = ${date}, description = ${description}, updated_at = now()
                where id = ${existing}`
       await tx`delete from journal_lines where entry_id = ${existing}`
       await insertLines(tx, existing, lines)
+      if (body.tags !== undefined) await setEntryTags(tx, m.group_id, existing, tags)
       return existing
     }
-    return await postRawEntry(tx, m, { date, description, lines })
+    return await postRawEntry(tx, m, { date, description, lines, tags })
   })
 
   return { entry_id: entryId }

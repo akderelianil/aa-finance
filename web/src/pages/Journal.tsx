@@ -84,7 +84,7 @@ export default function Journal({ membership }: { membership: Membership }) {
       {draft && accounts.data && (
         <JournalEditor
           key={draft.entryId ?? 'new'}
-          draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} exponents={exponents}
+          draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} groupId={membership.group.id} exponents={exponents}
           onCancel={() => setDraft(null)}
           onSaved={() => { setDraft(draft.entryId ? null : newDraft()); refresh() }}
         />
@@ -133,6 +133,9 @@ export default function Journal({ membership }: { membership: Membership }) {
                       {e.description || <span className="text-muted-foreground italic">{t('gj.noDescription')}</span>}
                       {lineContacts(e.journal_lines, contactById).map((n) => (
                         <span key={n} className="ml-3 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">{n}</span>
+                      ))}
+                      {e.tags.map((x) => (
+                        <span key={x.tag.name} className="ml-3 rounded-full bg-secondary px-1.5 py-0.5 text-xs font-normal text-secondary-foreground">#{x.tag.name}</span>
                       ))}
                       <span className="ml-3 text-xs font-normal text-muted-foreground">{memberName.get(e.member_id)}</span>
                     </td>
