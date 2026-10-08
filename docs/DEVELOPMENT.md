@@ -46,7 +46,7 @@ Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warni
 Ledger-core roadmap in progress ([ROADMAP](ROADMAP.md)). The UX roadmap flows are hidden.
 All phases run on the dev project and passed end-to-end tests: quick expense/income, edit/delete, accounts/categories, transfer, debts, multi-currency (average cost, FX gain/loss), installments, investments, reports, attachments, period lock.
 
-Edge Functions: onboarding-create-group, onboarding-join-group, invite-create, group-update, profile-update, avatar-upload, transaction-create/update/delete, account-create/update/delete, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
+Edge Functions (core): journal-post, fx-rate, account-create/update/delete. Hidden flows: onboarding-create-group, onboarding-join-group, invite-create, group-update, profile-update, avatar-upload, transaction-create/update/delete, account-create/update/delete, transfer-create, debt-create, fx-exchange, installment-create/pay, investment-trade/revalue, attachment-create/delete.
 
 End-to-end tests: node scripts (temporary, not in the repo) that use `.env` (with service_role) + `@supabase/supabase-js`, create a confirmed test user and call the functions. Dev test users: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`. Their password is changed temporarily through the admin API during tests.
 

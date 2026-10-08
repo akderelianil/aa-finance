@@ -160,6 +160,7 @@ export type RawLine = {
   base: bigint // grup ana para biriminde (minor)
   rate?: string // 1 satır para birimi = rate ana para birimi (varsayılan 1)
   contactId?: string | null
+  memo?: string | null
 }
 
 type EntryOwner = { group_id: string; member_id: string; base_currency: string }
@@ -208,9 +209,10 @@ export async function postRawEntry(
 export async function insertLines(tx: Tx, entryId: string, lines: RawLine[]) {
   for (const [i, l] of lines.entries()) {
     await tx`
-      insert into journal_lines (id, entry_id, account_id, contact_id, direction, amount, currency, base_amount, fx_rate, position)
+      insert into journal_lines
+        (id, entry_id, account_id, contact_id, direction, amount, currency, base_amount, fx_rate, memo, position)
       values (${uuidv7()}, ${entryId}, ${l.account}, ${l.contactId ?? null}, ${l.dir}, ${l.amount.toString()}, ${l.currency},
-              ${l.base.toString()}, ${l.rate ?? '1'}, ${i})`
+              ${l.base.toString()}, ${l.rate ?? '1'}, ${l.memo ?? null}, ${i})`
   }
 }
 
@@ -265,4 +267,55 @@ export async function lockOwnAccount(tx: Tx, groupId: string, memberId: string, 
     for update`
   if (!acc) throw new HttpError(422, 'account geçersiz', 'invalid_account')
   return acc as { id: string; currency: string; type: 'asset' | 'liability' }
+}
+
+// Soft delete with the links of hidden flows: installment plan, plans, term deposit, loan.
+export async function softDeleteEntry(tx: Tx, entryId: string, memberId: string) {
+  const entry = { id: entryId }
+  const m = { member_id: memberId }
+  // Taksit bağlantıları: alışveriş kaydı silinirse plan kalkar (ödenmiş taksit varsa engel);
+  // ödeme kaydı silinirse taksit yeniden açılır.
+  const [plan] = await tx`select id from installment_plans where purchase_entry_id = ${entry.id}`
+  if (plan) {
+    const [paid] = await tx`select 1 from installments where plan_id = ${plan.id} and payment_entry_id is not null limit 1`
+    if (paid) throw new HttpError(422, 'Ödenmiş taksitleri olan alışveriş silinemez', 'plan_has_payments')
+    await tx`delete from installments where plan_id = ${plan.id}`
+    await tx`delete from installment_plans where id = ${plan.id}`
+  }
+  await tx`update installments set payment_entry_id = null where payment_entry_id = ${entry.id}`
+  // Bu kayıtla doğan plan (borç vadesi) da gider.
+  await tx`delete from plans where source_entry_id = ${entry.id}`
+  // Vadeli hesap: açılış silinirse hesap kalkar; vade sonu kaydı silinirse önceki dönem geri gelir.
+  const [dep] = await tx`
+    select account_id, open_entry_id, prev from deposit_settings
+    where open_entry_id = ${entry.id} or last_settle_entry_id = ${entry.id} for update`
+  if (dep && dep.open_entry_id === entry.id) {
+    const [other] = await tx`
+      select 1 from journal_lines l join journal_entries e on e.id = l.entry_id
+      where l.account_id = ${dep.account_id} and e.deleted_at is null and e.id <> ${entry.id} limit 1`
+    if (other) throw new HttpError(422, 'Hareketi olan vadeli hesabın açılışı silinemez', 'deposit_has_movements')
+    await tx`delete from deposit_settings where account_id = ${dep.account_id}`
+    await tx`update accounts set archived_at = now() where id = ${dep.account_id}`
+  } else if (dep && dep.prev) {
+    const p = dep.prev as Record<string, unknown>
+    await tx`
+      update deposit_settings set principal = ${p.principal as string}, annual_rate = ${p.annual_rate as string},
+        days = ${p.days as number}, start_date = ${p.start_date as string}, maturity_date = ${p.maturity_date as string},
+        last_settle_entry_id = ${(p.last_settle_entry_id as string | null) ?? null}, prev = ${tx.json((p.prev ?? null) as never)},
+        closed_at = null
+      where account_id = ${dep.account_id}`
+    await tx`update accounts set archived_at = null where id = ${dep.account_id}`
+  }
+  // Kredi kaydı silinirse kredi hesabı da gider (başka hareketi varsa silinemez).
+  const [loan] = await tx`select account_id from loan_settings where source_entry_id = ${entry.id}`
+  if (loan) {
+    const [other] = await tx`
+      select 1 from journal_lines l join journal_entries e on e.id = l.entry_id
+      where l.account_id = ${loan.account_id} and e.deleted_at is null and e.id <> ${entry.id} limit 1`
+    if (other) throw new HttpError(422, 'Taksit ödemesi olan kredi silinemez', 'loan_has_payments')
+    await tx`delete from loan_settings where account_id = ${loan.account_id}`
+    await tx`update accounts set archived_at = now() where id = ${loan.account_id}`
+  }
+  await tx`update journal_entries set deleted_at = now(), deleted_by = ${m.member_id}, updated_at = now()
+           where id = ${entry.id}`
 }

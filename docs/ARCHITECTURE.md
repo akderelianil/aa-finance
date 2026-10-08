@@ -10,6 +10,7 @@ status: active
 - **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `contact_balances`, `investment_holdings`, `report_totals`, `report_cash_flow`).
 - **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
+- **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`. It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`. Entries of hidden flows with link tables (installment, deposit, loan, investment) are not editable here.
 - **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
 - **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
 - **Each journal entry belongs to one member** (the member who entered it). The group keeps one shared Chart of Accounts. The account owner (`owner_member_id`) is an optional label on any account type, not a posting rule.
@@ -65,6 +66,7 @@ A receipt with more than one category is one entry with one line per category (`
 - **Buying FX:** the user enters "bought 100 USD, paid 4,000 TRY". Rate = 40, derived.
 - **Card spend abroad:** the user enters the USD/EUR amount. The TRY estimate uses the last rate (`is_estimated=true`). The user can confirm it with the bank's TRY amount.
 - **Spending or selling from an FX account:** use the account's average cost (total base / total amount). The market-value gap goes to the `fx_gain_loss` category automatically.
+- **Day rate** (`dayRate`, also `fx-rate` for the form): the saved rate of the day, else the TCMB indicative rate (ForexBuying, last published day on or before the date; base TRY only; saved to `fx_rates`), else the last saved rate. A user-given rate is saved too.
 - **Period-end revaluation:** one-tap revaluation record for unrealized FX gain/loss (`source_type='fx_revaluation'`).
 
 ## Investments
