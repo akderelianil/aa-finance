@@ -10,7 +10,7 @@ On 2026-10-08 the user reset direction: the app got too complex because early ru
 Target user: niche, professional personal-finance users who KNOW accounting and want detailed tracking. Stay as close to accounting standards as possible (Turkish Tek Düzen Hesap Planı style codes on the template; FX: server fetches day rate when omitted, user may override).
 
 Decisions:
-- Convenience features (installment, loan, deposit, FX, investment, plans, wizards, directory, quick entry) are HIDDEN, code kept; rebuild later on top of one generic journal-post function.
+- Convenience features (installment, loan, deposit, FX, investment, plans, wizards, legacy quick entry) were DELETED on 2026-10-08 (code, 17 Edge Functions, DB tables; git history keeps them). Entry = Gider/Gelir/Transfer sidebar buttons on journal-post. Rebuild later per docs/ux scenario.
 - UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). The CLAUDE.md "no accounting terms" rule is dropped.
 - v1 core scope: Chart of Accounts (tree), General Journal multi-split entry, Account Register (running balance), Reports (Trial Balance, Balance Sheet, Income Statement).
 - v1 is DESKTOP ONLY. No mobile/tablet layouts.
