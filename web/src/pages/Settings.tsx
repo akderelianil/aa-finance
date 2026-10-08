@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AvatarPicker } from '@/components/AvatarPicker'
 import type { Membership } from '@/auth/useMembership'
+import { MemberAccessCard } from '@/components/MemberAccessCard'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
@@ -150,6 +151,7 @@ export default function Settings({ membership }: { membership: Membership }) {
           </FieldGroup>
         </CardContent>
       </Card>
+      {isAdmin && <MemberAccessCard />}
     </>
   )
 }

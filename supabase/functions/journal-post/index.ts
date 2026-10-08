@@ -29,14 +29,14 @@ serve(async (req, user) => {
     await setActor(tx, m.member_id)
 
     if (action === 'delete') {
-      const entry = await loadOwnedEntry(tx, body.entry_id, m)
+      const entry = await loadOwnedEntry(tx, body.entry_id, m, 'delete')
       await softDeleteEntry(tx, entry.id, m.member_id)
       return entry.id
     }
 
     let existing: string | null = null
     if (action === 'update') {
-      const entry = await loadOwnedEntry(tx, body.entry_id, m)
+      const entry = await loadOwnedEntry(tx, body.entry_id, m, 'edit')
       existing = entry.id
     }
 

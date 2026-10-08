@@ -3,8 +3,7 @@ import { setActor, sql } from '../_shared/db.ts'
 import { parseAccountFields } from '../_shared/accounts.ts'
 import { loadMember } from '../_shared/entries.ts'
 
-// Edit an account of the group Chart of Accounts (GnuCash "Edit Account"). Any member can edit a shared account;
-// an account with an owner (owner_member_id) only by its owner.
+// Edit an account of the group Chart of Accounts (GnuCash "Edit Account"). Any member can edit.
 // Request: { account_id, name?, code?, parent_id? (null = root), currency?, subtype?, owner_member_id?,
 //            is_placeholder?, archived? }. A missing field stays.
 // A locked system account (roots, groups, receivable, payable) keeps name, parent, kind, group flag and archive state.
@@ -18,12 +17,9 @@ serve(async (req, user) => {
     const m = await loadMember(tx, user.id)
     await setActor(tx, m.member_id)
     const [a] = await tx`
-      select id, type, subtype, system_key, locked, owner_member_id from accounts
+      select id, type, subtype, system_key, locked from accounts
       where id = ${body.account_id} and group_id = ${m.group_id} for update`
     if (!a) throw new HttpError(404, 'Hesap bulunamadı', 'not_found')
-    if (a.owner_member_id && a.owner_member_id !== m.member_id) {
-      throw new HttpError(403, 'Bu hesabı sadece sahibi değiştirebilir', 'not_owner')
-    }
     const f = await parseAccountFields(tx, m.group_id, a.type as string, body)
     if (a.locked && ['name', 'parent_id', 'subtype', 'is_placeholder', 'archived'].some((k) => body[k] !== undefined)) {
       throw new HttpError(422, 'Sistem hesabı değiştirilemez', 'locked_account')

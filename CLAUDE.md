@@ -20,7 +20,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Engineering rules
 - Money: int64 minor units (`bigint`/string in TS; never float). Rates and quantities: `numeric` → string.
 - Never edit an applied migration. Add a new one in `supabase/migrations`.
-- Access: everyone in a group reads; only the `journal_entries.member_id` owner edits or deletes (RLS + function).
+- Access: everyone in a group reads every entry. The `journal_entries.member_id` owner and the group admin edit and delete; the admin can grant another member `edit` or `delete` on one member's entries (`member_access`, enforced in `journal-post`). The account owner is a label only.
 - Supabase MCP is read-only. Change the schema with a migration + CLI.
 - Secrets and the service_role key never go to the frontend or the repo. Read tokens from the root `.env` (template `.env.example`, loading: [DEVELOPMENT](docs/DEVELOPMENT.md#secrets-env)). Never print values.
 

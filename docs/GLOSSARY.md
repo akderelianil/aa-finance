@@ -53,6 +53,7 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 | Group | Aile / topluluk | The people who share the books. |
 | Member | Üye | A person in the group. "Sign up": `Kayıt ol`. |
 | Owner (account) | Sahibi | Optional member label on an account. |
+| Entry permissions | Kayıt izinleri | Admin setting: what a member may do with another member's entries (view, edit, edit and delete). |
 
 ## Actions
 

@@ -113,17 +113,17 @@ export function useLedgerAccounts() {
   })
 }
 
-export type Member = { id: string; name: string }
+export type Member = { id: string; name: string; role: 'admin' | 'member' }
 
 export function useMembers() {
   return useQuery({
     queryKey: ['ledger', 'members'],
     queryFn: async (): Promise<Member[]> => {
-      const { data, error } = await supabase.from('members').select('id, user_id')
+      const { data, error } = await supabase.from('members').select('id, user_id, role')
       if (error) throw error
       const { data: profiles } = await supabase.from('profiles').select('id, display_name')
       const names = new Map((profiles ?? []).map((p) => [p.id as string, p.display_name as string | null]))
-      return data.map((m) => ({ id: m.id as string, name: names.get(m.user_id as string) ?? '—' }))
+      return data.map((m) => ({ id: m.id as string, name: names.get(m.user_id as string) ?? '—', role: m.role as Member['role'] }))
     },
   })
 }

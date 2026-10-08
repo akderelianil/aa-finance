@@ -28,6 +28,14 @@ export const tr = {
     groupSection: 'Aile / topluluk',
     toggle: 'Menüyü aç/kapat',
   },
+  access: {
+    title: 'Kayıt izinleri',
+    hint: 'Herkes tüm kayıtları görür. Burada bir üyenin başka bir üyenin kayıtlarını düzeltmesine veya silmesine izin verirsin. Yönetici ve kaydı giren her zaman değiştirebilir.',
+    entriesOf: '{{name}} kayıtları',
+    view: 'Sadece görür',
+    edit: 'Düzeltir',
+    delete: 'Düzeltir ve siler',
+  },
   settings: {
     title: 'Ayarlar',
     theme: 'Tema',
@@ -341,7 +349,7 @@ export const tr = {
     invalid_category_name: 'Hesap adı geçersiz.',
     invalid_contact_name: 'Kişi / firma adı geçersiz.',
     period_locked: 'Bu dönem kilitli, kayıt değiştirilemez.',
-    not_owner: 'Bu kaydı yalnız giren üye değiştirebilir.',
+    not_allowed: 'Bu kaydı değiştirme iznin yok.',
     not_found: 'Bulunamadı.',
     unsupported_entry: 'Bu kayıt türü henüz düzenlenemiyor.',
     invalidCredentials: 'E-posta veya şifre hatalı.',

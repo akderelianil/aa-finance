@@ -17,10 +17,11 @@ import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
+import { canModify, useMemberAccess } from '@/lib/access'
 import { cn } from '@/lib/utils'
 
 // General Journal (GnuCash "General Journal"): every entry of the period with its lines, debit/credit in the
-// base currency, and the entry form on top. Only the member who entered an entry edits or deletes it.
+// base currency, and the entry form on top. The owner, the admin and members the admin allowed (member_access) edit or delete it.
 export default function Journal({ membership }: { membership: Membership }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
@@ -33,6 +34,7 @@ export default function Journal({ membership }: { membership: Membership }) {
 
   const accounts = useLedgerAccounts()
   const members = useMembers()
+  const access = useMemberAccess()
   const contacts = useContacts()
   const contactById = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c])), [contacts.data])
   const currencies = useCurrencies()
@@ -123,7 +125,8 @@ export default function Journal({ membership }: { membership: Membership }) {
               <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t('gj.empty')}</td></tr>
             )}
             {visible.map((e) => {
-              const mine = e.member_id === membership.id
+              const canEdit = canModify(membership, access.data ?? [], e.member_id, 'edit')
+              const canDelete = canModify(membership, access.data ?? [], e.member_id, 'delete')
               const editing = draft?.entryId === e.id
               return (
                 <Fragment key={e.id}>
@@ -141,10 +144,10 @@ export default function Journal({ membership }: { membership: Membership }) {
                     </td>
                     <td colSpan={2} />
                     <td className="text-right whitespace-nowrap">
-                      {mine && (
+                      {canEdit && (
                         <span className="invisible group-hover:visible">
                           <Button variant="ghost" size="icon-xs" aria-label={t('ledger.edit')} onClick={() => edit(e)}><PencilIcon /></Button>
-                          <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(e)}><Trash2Icon /></Button>
+                          {canDelete && <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(e)}><Trash2Icon /></Button>}
                         </span>
                       )}
                     </td>

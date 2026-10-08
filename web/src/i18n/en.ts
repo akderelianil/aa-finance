@@ -30,6 +30,14 @@ export const en: Translation = {
     groupSection: 'Family / group',
     toggle: 'Toggle menu',
   },
+  access: {
+    title: 'Entry permissions',
+    hint: 'Everyone sees all entries. Here you let a member edit or delete another member\'s entries. The admin and the member who entered an entry can always change it.',
+    entriesOf: 'Entries of {{name}}',
+    view: 'View only',
+    edit: 'Edit',
+    delete: 'Edit and delete',
+  },
   settings: {
     title: 'Settings',
     theme: 'Theme',
@@ -340,7 +348,7 @@ export const en: Translation = {
     invalid_category_name: 'Category is invalid.',
     invalid_contact_name: 'Contact name is invalid.',
     period_locked: 'This period is locked; entries cannot be changed.',
-    not_owner: 'Only the owner can change this entry.',
+    not_allowed: 'You are not allowed to change this entry.',
     not_found: 'Entry not found.',
     invalid_parent: 'Invalid parent account.',
     parent_archived: 'The parent account was removed.',

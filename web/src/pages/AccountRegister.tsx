@@ -20,6 +20,7 @@ import { emptyLine, entryToDraft, today, useAccountEntries, type Draft, type Jou
 import {
   flattenTree, formatAmount, fullName, shown, useCurrencies, useLedgerAccounts, type AccountNode,
 } from '@/lib/ledger'
+import { canModify, useMemberAccess } from '@/lib/access'
 import { cn } from '@/lib/utils'
 
 // Account Register (GnuCash register): one row per line on the account with the other account, debit, credit
@@ -30,6 +31,7 @@ export default function AccountRegister({ membership }: { membership: Membership
   const queryClient = useQueryClient()
   const base = membership.group.base_currency
   const accounts = useLedgerAccounts()
+  const access = useMemberAccess()
   const currencies = useCurrencies()
   const entries = useAccountEntries(id)
   const contacts = useContacts()
@@ -154,7 +156,8 @@ export default function AccountRegister({ membership }: { membership: Membership
             {entries.isLoading && <tr><td colSpan={8} className="text-center text-muted-foreground">{t('ledger.loading')}</td></tr>}
             {!entries.isLoading && rows.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground">{t('gj.empty')}</td></tr>}
             {rows.map((r) => {
-              const mine = r.entry.member_id === membership.id
+              const canEdit = canModify(membership, access.data ?? [], r.entry.member_id, 'edit')
+              const canDelete = canModify(membership, access.data ?? [], r.entry.member_id, 'delete')
               return (
                 <tr key={r.lineId} className={cn('group', draft?.entryId === r.entry.id && 'bg-primary/10')}>
                   <td className="font-mono tabular-nums">{new Date(r.entry.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
@@ -173,10 +176,10 @@ export default function AccountRegister({ membership }: { membership: Membership
                   <td className="text-right font-mono tabular-nums">{r.credit ? fmt(r.credit) : ''}</td>
                   <td className={cn('text-right font-mono tabular-nums', r.balance < 0 && 'text-destructive')}>{fmt(r.balance)}</td>
                   <td className="text-right whitespace-nowrap">
-                    {mine && (
+                    {canEdit && (
                       <span className="invisible group-hover:visible">
                         <Button variant="ghost" size="icon-xs" aria-label={t('ledger.edit')} onClick={() => setDraft(entryToDraft(r.entry, base, exponents))}><PencilIcon /></Button>
-                        <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(r.entry)}><Trash2Icon /></Button>
+                        {canDelete && <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(r.entry)}><Trash2Icon /></Button>}
                       </span>
                     )}
                   </td>

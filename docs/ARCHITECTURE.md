@@ -12,7 +12,7 @@ status: active
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
 - **`journal-post` is the general write path** (create / update / delete one entry from a line list). Each line: `account_id`, `side`, `amount` (account currency), optional `rate` or `base_amount`, `memo`, `contact_id` (Rehber tag). The entry takes optional `tags` (names; new names open as group tags; on update, omitted `tags` keep the current ones). It locks the line accounts, checks the balance (`unbalanced`) and soft-deletes with `softDeleteEntry`.
 - **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
-- **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
+- **Access:** everyone in a group sees every entry. The owner member (`journal_entries.member_id`) and the group admin edit and delete it. The admin can give another member `edit` or `delete` on one member's entries (table `member_access`, Edge Function `member-access-set`, Settings card "Kayıt izinleri"). No row = view only. Enforced in `journal-post` (`canModify`); the UI only hides buttons.
 - **Each journal entry belongs to one member** (the member who entered it). The group keeps one shared Chart of Accounts. The account owner (`owner_member_id`) is an optional label on any account type, not a posting rule.
 - **Product principle: accounting standards first.** Users know accounting. The UI shows the ledger as it is: Chart of Accounts, General Journal, Account Register, reports. The server derives what it can (rate, base amount); a user-given value wins.
 - AI, auto-fill and bank import are out of scope.
@@ -74,4 +74,4 @@ A receipt with more than one category is one entry with one line per category (s
 - **Later:** bills, subscriptions, budget, period close, reconcile, scheduled entries.
 
 ## Rules the app enforces (the DB does not)
-- Only the record owner edits or deletes. No change before `lock_date`.
+- The record owner, the admin and members with a `member_access` right edit or delete. No change before `lock_date`.

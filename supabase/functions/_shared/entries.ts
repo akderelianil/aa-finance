@@ -34,27 +34,44 @@ export function assertNotLocked(lockDate: string | null, date: string) {
 // Çağıran kullanıcının üyeliği + grup bilgisi.
 export async function loadMember(tx: Tx, userId: string) {
   const [m] = await tx`
-    select m.id as member_id, m.group_id, g.base_currency, g.lock_date::text as lock_date, c.exponent
+    select m.id as member_id, m.group_id, m.role, g.base_currency, g.lock_date::text as lock_date, c.exponent
     from members m
     join groups g on g.id = m.group_id
     join currencies c on c.code = g.base_currency
     where m.user_id = ${userId}`
   if (!m) throw new HttpError(403, 'Bir gruba üye değilsin', 'not_member')
-  return m as { member_id: string; group_id: string; base_currency: string; lock_date: string | null; exponent: number }
+  return m as {
+    member_id: string; group_id: string; role: 'admin' | 'member'; base_currency: string; lock_date: string | null; exponent: number
+  }
 }
 
-// Düzenlenecek/silinecek kayıt: sahibi olmalı, silinmemiş olmalı, dönem kilitli olmamalı. Satırı kilitler.
+export type Need = 'edit' | 'delete'
+
+// Owner and group admin always may; another member needs a member_access row with a high enough level.
+export function canModify(
+  actor: { member_id: string; role: string }, ownerId: string, level: Need | undefined, need: Need,
+): boolean {
+  if (actor.member_id === ownerId || actor.role === 'admin') return true
+  return level === 'delete' || (level === 'edit' && need === 'edit')
+}
+
+// Düzenlenecek/silinecek kayıt: silinmemiş olmalı, dönem kilitli olmamalı, çağıranın hakkı olmalı. Satırı kilitler.
 export async function loadOwnedEntry(
   tx: Tx,
   entryId: unknown,
-  member: { member_id: string; lock_date: string | null },
+  member: { member_id: string; role: string; lock_date: string | null },
+  need: Need,
 ) {
   if (typeof entryId !== 'string') throw new HttpError(422, 'entry_id geçersiz', 'invalid_entry')
   const [e] = await tx`
     select id, member_id, entry_date::text as entry_date, deleted_at from journal_entries
     where id = ${entryId} for update`
   if (!e || e.deleted_at) throw new HttpError(404, 'Kayıt bulunamadı', 'not_found')
-  if (e.member_id !== member.member_id) throw new HttpError(403, 'Bu kaydı sadece sahibi değiştirebilir', 'not_owner')
+  const [acc] = await tx`
+    select level from member_access where member_id = ${member.member_id} and target_member_id = ${e.member_id}`
+  if (!canModify(member, e.member_id, acc?.level, need)) {
+    throw new HttpError(403, 'Bu kaydı değiştirme iznin yok', 'not_allowed')
+  }
   assertNotLocked(member.lock_date, e.entry_date)
   return e as { id: string; member_id: string; entry_date: string }
 }
