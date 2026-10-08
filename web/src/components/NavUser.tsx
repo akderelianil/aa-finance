@@ -55,9 +55,9 @@ export function NavUser({ user }: { user: NavUserInfo }) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <div className="flex flex-col gap-2 px-2 py-1.5">
-              <ThemeToggle />
+            <div className="flex items-center justify-between gap-2 px-2 py-1.5">
               <LanguageSwitcher />
+              <ThemeToggle />
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void supabase.auth.signOut()}>

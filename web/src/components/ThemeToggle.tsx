@@ -1,7 +1,7 @@
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Button } from '@/components/ui/button'
 
 type Theme = 'light' | 'dark' | 'system'
 const KEY = 'theme'
@@ -29,8 +29,11 @@ export function ThemeToggle() {
   const { t } = useTranslation()
   const [theme, setTheme] = useState<Theme>(stored)
 
-  function change(v: string[]) {
-    const next = (v[0] as Theme | undefined) ?? theme
+  const order = ['light', 'dark', 'system'] as const
+  const Icon = { light: SunIcon, dark: MoonIcon, system: MonitorIcon }[theme]
+
+  function cycle() {
+    const next = order[(order.indexOf(theme) + 1) % order.length]
     setTheme(next)
     try {
       if (next === 'system') localStorage.removeItem(KEY)
@@ -40,12 +43,8 @@ export function ThemeToggle() {
   }
 
   return (
-    <ToggleGroup value={[theme]} onValueChange={change} spacing={2} aria-label={t('settings.theme')}>
-      {([['light', SunIcon], ['dark', MoonIcon], ['system', MonitorIcon]] as const).map(([k, Icon]) => (
-        <ToggleGroupItem key={k} value={k} variant="outline" aria-label={t(`settings.theme_${k}`)} title={t(`settings.theme_${k}`)}>
-          <Icon />
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
+    <Button type="button" variant="outline" size="icon" onClick={cycle} aria-label={`${t('settings.theme')}: ${t(`settings.theme_${theme}`)}`} title={t(`settings.theme_${theme}`)}>
+      <Icon />
+    </Button>
   )
 }
