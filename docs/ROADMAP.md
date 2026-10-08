@@ -21,7 +21,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | Phase | Content | Status |
 |---|---|---|
 | F0 Cleanup | Rules, docs, glossary. Menu: Hesap Planı · Yevmiye · Raporlar · Ayarlar. Hide convenience routes. | Done 2026-10-08 |
-| F1 Schema | Currency on every account (income/expense get the base currency). Owner optional. `accounts.code` unique per group. Template codes. | |
+| F1 Schema | Currency on every account (income/expense get the base currency). Owner optional. `accounts.code` unique per group. Template codes. | Done 2026-10-08 |
 | F2 `journal-post` | One generic function: create, update, delete an entry from a line list. Balance check, row locks, rate lookup. | |
 | F3 Chart of Accounts | Tree table: code · name · type · currency · balance (with subtree). Add, edit, move, archive. Placeholder. | |
 | F4 General Journal | All entries by date with their lines. Inline multi-line entry form: account search (code or name), debit, credit, memo. Live difference. Keyboard entry. | |

@@ -12,7 +12,7 @@ status: active
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
 - **Records are editable.** A DB trigger writes every change to `audit_log` (actor = `app.member_id`). Delete = soft delete. Optional `groups.lock_date` locks a period.
 - **Access:** everyone in a group sees everything. Only the owner member (`journal_entries.member_id`) edits or deletes a record.
-- **Each record belongs to one member.** The member whose card or money paid owns the expense or income. No joint accounts. The family report = the sum of members (money in and out of the home). Categories are group-level.
+- **Each journal entry belongs to one member** (the member who entered it). The group keeps one shared Chart of Accounts. The account owner (`owner_member_id`) is an optional label on any account type, not a posting rule.
 - **Product principle: accounting standards first.** Users know accounting. The UI shows the ledger as it is: Chart of Accounts, General Journal, Account Register, reports. The server derives what it can (rate, base amount); a user-given value wins.
 - AI, auto-fill and bank import are out of scope.
 
@@ -28,31 +28,39 @@ The ledger follows the GnuCash SQL model.
 | `accounts.placeholder` | `accounts.is_placeholder` |
 | `accounts.parent_guid` | `accounts.parent_id` |
 
-The DB enforces these rules for every writer (`20261008030000_ledger_integrity.sql`):
+| GnuCash | aa-finance |
+|---|---|
+| account `code` | `accounts.code` (TDHP style, unique per group) |
+| account commodity | `accounts.currency` (every account) |
+
+The DB enforces these rules for every writer (`20261008030000_ledger_integrity.sql`, `20261008060000_ledger_core_accounts.sql`):
 - An entry balances on `base_amount` and has ≥2 lines (deferred trigger).
 - A line cannot post to a placeholder account.
-- A line account is in the entry's group. A balance-sheet line account belongs to the entry member.
-- A line on a balance-sheet account is in that account's currency. A base-currency line has `amount` = `base_amount`.
+- A line account is in the entry's group.
+- A line is in its account's currency. A base-currency line has `amount` = `base_amount`.
 - An account with lines keeps its type and currency, and cannot become a placeholder.
+- A parent has the same group and type, and is not a system account. Owner and currency can differ.
+- Every account has a currency and a code (digits and dots: `1`, `10`, `100`, `100.01`, `770.02.01`).
 
 A receipt with more than one category is one entry with one line per category (`items` in `transaction-create` and `transaction-update`).
 
 ## Account template
-`apply_account_template(group_id)` (`20261008040000_account_template.sql`) is the single source of the starting chart. Onboarding calls it for a new group; the migration ran it for existing groups. It is idempotent.
+`apply_account_template(group_id)` (`20261008060000_ledger_core_accounts.sql`) is the single source of the starting chart. Onboarding calls it first, then creates the system and member accounts. It is idempotent.
 
 | Part | Content |
 |---|---|
-| Categories | 2-level expense and income tree. `is_placeholder` is set per node; after that it is a manual setting. |
-| `template_key` | Stable id of a template category. The user can rename, move or archive it. |
-| Brands | Common brands (`contacts.kind='brand'`) with a default category. An existing brand keeps its own category. |
-| Member accounts | Each member gets "Nakit" (`subtype='cash'`) and "Açılış Bakiyesi" (`opening_balance`) in the base currency. |
+| Balance sheet (TDHP) | `1` Dönen Varlıklar (10 → 100 Kasa, 102 Bankalar; 11 → 118; 13 → 136; 19), `2` Duran Varlıklar (25 → 252, 254, 255), `3` KVYK (30 → 300 Banka Kredileri, 309 Kredi Kartları; 33 → 336), `4` UVYK (40 → 400), `5` Özkaynaklar (50 → 500 Sermaye). All placeholders. |
+| Income | `60` Ücret Gelirleri (600–602), `64` Diğer Olağan Gelir ve Kârlar (640, 642, 645, 646, 649.xx), `67` → `679.xx`. |
+| Expense | `77` → `770` Genel Giderler (`770.01` … `770.99`, sub-levels `770.02.01`), `78` → `780` Finansman Giderleri (`780.01` …). |
+| `template_key` | Stable id of a template node (`b100`, `e770`, `loan_fee`, …). The user can rename, move or archive it. |
+| Brands | Common brands with a default category (hidden Directory flow). |
 
-- Code that posts to a fixed category finds it with `findTemplateCategory(key)`: `loan_fee`, `loan_cost`, `cash_advance_fee`, `deposit_return`, `deposit_break_fee`. Never find it by name.
-- A category name is unique within its type (`findOrCreateCategory` finds by name). Do not add a second "Diğer" under a parent.
-- Balance-sheet accounts have no template tree: a parent must have the same owner and currency. The UI groups them by `subtype`. The start wizard (`/baslangic`) asks for bank accounts, cards and loans.
+- Trigger `accounts_defaults` (insert): a missing currency = base currency; a missing parent = the default group (`account_default_parent`: cash → 100, bank/deposit → 102, investment → 118, receivable → 136, credit card → 309, loan → 300, payable → 336, opening balance → 500, income → 649, expense → 770); a missing code = `account_next_code(parent)`.
+- `account_next_code`: a 1–2 digit parent takes the first free digit (`10` → `101`); else the first free 2-digit suffix (`100` → `100.01`).
+- Code that posts to a fixed account finds it by `template_key` (`findTemplateCategory`), never by name or code.
 
 ## Multi-currency
-- Categories have no currency. A balance-sheet account has one currency.
+- Every account has one currency. Income and expense accounts get the base currency by default.
 - Each line: original amount + currency + base-currency amount (`base_amount`) + rate.
 - **Buying FX:** the user enters "bought 100 USD, paid 4,000 TRY". Rate = 40, derived.
 - **Card spend abroad:** the user enters the USD/EUR amount. The TRY estimate uses the last rate (`is_estimated=true`). The user can confirm it with the bank's TRY amount.

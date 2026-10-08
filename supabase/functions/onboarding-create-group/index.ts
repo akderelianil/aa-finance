@@ -27,8 +27,9 @@ serve(async (req, user) => {
 
     await tx`insert into groups (id, name, base_currency) values (${groupId}, ${groupName}, ${currency})`
     await tx`insert into members (id, group_id, user_id, role) values (${memberId}, ${groupId}, ${user.id}, 'admin')`
-    await createGroupSystemAccounts(tx, groupId)
+    // Template first: system and member accounts go under its groups (trigger accounts_defaults).
     await applyAccountTemplate(tx, groupId)
+    await createGroupSystemAccounts(tx, groupId)
     await createMemberAccounts(tx, groupId, memberId, currency)
   })
 

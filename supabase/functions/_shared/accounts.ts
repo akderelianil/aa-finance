@@ -2,12 +2,12 @@ import { Tx } from './db.ts'
 import { HttpError } from './http.ts'
 import { uuidv7 } from './uuid.ts'
 
-// Grup seviyesindeki sistem kategorileri (kullanıcıya hazır hesap gibi görünmez).
+// Group system accounts (income): 645 and 646 under 64 (codes from trigger accounts_defaults).
 export async function createGroupSystemAccounts(tx: Tx, groupId: string) {
   await tx`
     insert into accounts (id, group_id, type, name, system_key) values
-      (${uuidv7()}, ${groupId}, 'income', 'Kur Farkı', 'fx_gain_loss'),
-      (${uuidv7()}, ${groupId}, 'income', 'Yatırım Kâr/Zarar', 'investment_gain_loss')`
+      (${uuidv7()}, ${groupId}, 'income', 'Kambiyo Kâr/Zararları', 'fx_gain_loss'),
+      (${uuidv7()}, ${groupId}, 'income', 'Menkul Kıymet Satış Kâr/Zararları', 'investment_gain_loss')`
 }
 
 // Hazır kategori ağacı ve marka → kategori eşleşmeleri (migration 20261008040000).
