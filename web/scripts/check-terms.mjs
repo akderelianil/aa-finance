@@ -21,7 +21,7 @@ const allowed = ticks(glossary.match(/^Allowed phrases.*$/m)?.[0] ?? '').map(low
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const pattern = new RegExp(`(?<!\\p{L})(${[...banned].map(esc).join('|')})`, 'gu')
 
-// Sources: string literals in tr.ts, outside the namespaces of hidden flows. docs/ux is paused and not checked.
+// Sources: string literals in tr.ts, outside the namespaces of hidden flows. docs/ux is not checked.
 const HIDDEN = new Set(['dashboard', 'setup', 'home', 'entry', 'directory', 'people', 'upcoming', 'installments',
   'investments', 'attachments'])
 const sources = []

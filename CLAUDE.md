@@ -25,5 +25,5 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Secrets and the service_role key never go to the frontend or the repo. Read tokens from the root `.env` (template `.env.example`, loading: [DEVELOPMENT](docs/DEVELOPMENT.md#secrets-env)). Never print values.
 
 ## Docs and agents
-- Language: English for docs and code. UI text: Turkish and English in `web/src/i18n/`. `docs/ux/**` (Turkish) is paused reference.
+- Language: English for docs and code. UI text: Turkish and English in `web/src/i18n/`. `docs/ux/**` (Turkish) is the simplified flow set, built one scenario at a time, starting with `gider.md`.
 - Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`.
