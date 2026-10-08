@@ -24,7 +24,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | F1 Schema | Currency on every account (income/expense get the base currency). Owner optional. `accounts.code` unique per group. Template codes. | Done 2026-10-08 |
 | F2 `journal-post` | One generic function: create, update, delete an entry from a line list. Balance check, row locks, rate lookup. | Done 2026-10-08 |
 | F3 Chart of Accounts | Tree table: code · name · type · currency · balance (with subtree). Add, edit, move, archive. Placeholder. | Done 2026-10-08 |
-| F4 General Journal | All entries by date with their lines. Inline multi-line entry form: account search (code or name), debit, credit, memo. Live difference. Keyboard entry. | |
+| F4 General Journal | All entries by date with their lines. Inline multi-line entry form: account search (code or name), debit, credit, memo. Live difference. Keyboard entry. | Done 2026-10-08 |
 | F5 Account Register | One account's lines with the other account and a running balance. Two-line entry inline. A split opens the journal form. | |
 | F6 Reports | Trial balance, balance sheet, income statement. Date range. Base currency. | |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
