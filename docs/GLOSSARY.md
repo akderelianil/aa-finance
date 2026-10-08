@@ -65,9 +65,11 @@ Allowed phrases (the check skips them): `Kayıt ol`.
 | English | Türkçe | Use when |
 |---|---|---|
 | Delete | Sil | The item is gone. |
-| Remove (archive) | Kaldır | The item leaves the list. History stays. |
+| Remove (archive) | Kaldır · do not use `arşivle` | The item leaves the list. History stays. |
 | Cancel | Vazgeç | Close a form without saving. |
 | Close (plan) | Kapat | The plan is no longer needed. |
+| Paid (card, loan plan) | Ödedim | Yaklaşanlar row action. |
+| Maturity (deposit plan) | Vade sonu | Yaklaşanlar row action. |
 | Options menu | Seçenekler | A row's action menu. |
 
 ## Exception patterns

@@ -12,11 +12,11 @@ status: active
 - **Hedef:** Ne aldım, toplam ne kadar, bu ay ekstreme kaç taksit düşecek, kaç taksit kaldı. Gider bir kez, doğru günde yazılsın; ekstredeki taksitler yeni gider sayılmasın.
 
 ## Temel ilke (Anlatım 7)
-**Gerçekleşmemiş hiçbir işlem kayıt olmaz.** Taksitli alışveriş **tek bir gerçekleşen olaydır**: ürün alındı, kart borcu doğdu.
+**Gerçekleşmemiş hiçbir olay işlem olmaz.** Taksitli alışveriş **tek bir gerçekleşen olaydır**: ürün alındı, kart borcu doğdu.
 
 Örnek: X mağazası, 10.000 TL ürün, 10 taksit, vade farksız.
-- **Alışveriş anında kayıt (tek):** 10.000 TL **gider** (kategori) + 10.000 TL **kredi kartı borcu**.
-- **Her ay:** banka ekstreye 1.000 TL taksit yazar. Bu **yeni gider değil, kayıt da değil**; yalnız **gösterim/hatırlatma** ("Ekstre taksit takvimi": bu ay 1.000, kalan 9 taksit, kalan 9.000).
+- **Alışveriş anında işlem (tek):** 10.000 TL **gider** (gider hesabı) + 10.000 TL **kredi kartı borcu**.
+- **Her ay:** banka ekstreye 1.000 TL taksit yazar. Bu **yeni gider değil, işlem de değil**; yalnız **gösterim/hatırlatma** ("Ekstre taksit takvimi": bu ay 1.000, kalan 9 taksit, kalan 9.000).
 - **Kart borcunun azalması = gerçekleşen kart ödemesi** (kullanıcı kartı ödediğinde, ödediği tutarla). Taksit "ödendi" diye ayrıca işaretlenmez; takvim, kartın ödemelerinden bağımsızdır.
 
 ## Karar (Anlatım 6, geçerli)
@@ -25,13 +25,13 @@ Taksitli alışveriş **Gider'in bir seçeneği**dir. [AKS-001](AKS-001-kartla-a
 ## Akış
 ```mermaid
 flowchart TD
-  A([Gider akışı: tutar, kime, kategori]) --> B{Daha fazla → Taksitli?}
+  A([Gider akışı: tutar, kime, gider hesabı]) --> B{Daha fazla → Taksitli?}
   B -- hayır --> Z([Tek çekim: AKS-001])
   B -- evet --> C[Kaç taksit? Hangi kart?]
   C --> D([Kaydedilen: tek gider + kart borcu. Taksit takvimi sadece gösterim])
   D --> E[Kart son ödeme Yaklaşanlar'da; takvim Ayarlar → Taksitler'de]
   E --> F{Kullanıcı kartı ödedi mi?}
-  F -- evet --> G([Kart ödemesi kaydı: kart borcu azalır, banka hesabı azalır])
+  F -- evet --> G([Kart ödemesi işlemi: kart borcu azalır, banka hesabı azalır])
   F -- hayır, son ödeme yaklaştı --> H[Yaklaşanlar'da uyarı: uygulama içi]
   G --> I{Taksit takvimi bitti mi?}
   I -- hayır --> E
@@ -39,23 +39,23 @@ flowchart TD
 ```
 
 ## İstisnalar / sapmalar (tüm ihtimaller)
-| Durum | Ne olur (kayıt / gösterim) |
+| Durum | Ne olur (işlem / gösterim) |
 |---|---|
 | **Vade farksız taksit** | Yukarıdaki ana akış. |
-| **Vade farkı / faizli taksit** (ör. 10.000 ürün, toplam 11.200) | Karar yok; ekran yok. Kredide karar var: fark kayıt günü maliyet gideri. [öneri] Aynısı: alışverişte 10.000 gider (kategori) + 1.200 maliyet gideri, kart borcu 11.200. Bugün kullanıcı 11.200'ü tek kategoriye girer (Kalemler taksitle birlikte kapalı). |
-| **İade (tam)** | Mağaza iade eder: gider **ters yazılır** (kategori düşer), kart borcu aynı tutarda azalır. Banka kalan taksitleri iptal eder; takvim kapanır. Ödenmiş taksitlerin karşılığı kart hesabına **alacak** olarak döner (banka bazen karta, bazen hesaba yatırır); gerçekten yatan yer ve tutar elle girilir. |
+| **Vade farkı / faizli taksit** (ör. 10.000 ürün, toplam 11.200) | Karar yok; ekran yok. Kredide karar var: fark işlem günü maliyet gideri. [öneri] Aynısı: alışverişte 10.000 gider (gider hesabı) + 1.200 maliyet gideri, kart borcu 11.200. Bugün kullanıcı 11.200'ü tek gider hesabına girer (Kalemler taksitle birlikte kapalı). |
+| **İade (tam)** | Mağaza iade eder: gider **ters yazılır** (gider hesabı düşer), kart borcu aynı tutarda azalır. Banka kalan taksitleri iptal eder; takvim kapanır. Ödenmiş taksitlerin karşılığı karta **artı bakiye** olarak döner (banka bazen karta, bazen hesaba yatırır); gerçekten yatan yer ve tutar elle girilir. |
 | **İade (kısmi)** | Aynı, iade tutarı kadar. Takvim yeniden hesaplanır (banka genelde son taksitlerden düşer; gerçek ekstre esas, gösterim ona uyar). |
-| **Değişim** | İade + yeni alışveriş yerine tek net hareket (fark öder/alır) mümkün; taksit sayısı değişmişse yeni takvim. |
-| **Erken kapama** (kalan taksitleri tek seferde öde) | Kayıt: yalnız **gerçekleşen kart ödemesi**. Banka kalan faizi siliyorsa ödenen tutar kayıtlı borçtan küçük kalır; fark "banka indirimi" olarak kart borcunu kapatan düzeltme (faiz giderini azaltır). Takvim kapanır. |
-| **Taksit vade farklı / ekstreye farklı yansıdı** | Gösterim bankanın gerçek ekstresine uydurulur; kullanıcı bir taksit tutarını elle düzeltebilmeli. Kayıt etkilenmez (kart borcu zaten toplam). |
+| **Değişim** | İade + yeni alışveriş yerine tek net işlem (fark öder/alır) mümkün; taksit sayısı değişmişse yeni takvim. |
+| **Erken kapama** (kalan taksitleri tek seferde öde) | İşlem: yalnız **gerçekleşen kart ödemesi**. Banka kalan faizi siliyorsa ödenen tutar kart borcundan küçük kalır; fark "banka indirimi" olarak kart borcunu kapatan düzeltme (faiz giderini azaltır). Takvim kapanır. |
+| **Taksit vade farklı / ekstreye farklı yansıdı** | Gösterim bankanın gerçek ekstresine uydurulur; kullanıcı bir taksit tutarını elle düzeltebilmeli. İşlem etkilenmez (kart borcu zaten toplam). |
 | **Ekstre kesim günü** | Kesimden sonraki alışveriş **bir sonraki ekstreye** düşer, ilk taksit bazen sonraki ay görünür. Kart başına kesim günü ve son ödeme günü bilgisi; takvim buradan türetilir. Kullanıcı tarihi değiştirebilir. |
 | **Son ödeme tarihi** | "Yaklaşanlar"da görünür (uygulama içi). Geçerse "gecikmiş" görünür. |
-| **Kartı kısmen / asgari ödedi** | Kart borcu yalnız ödenen kadar azalır; kalan devreder. Bankanın yazdığı **akdi/gecikme faizi** ekstrede gerçekleşince **gider** olarak elle kaydedilir. Taksit takvimi etkilenmez. |
-| **Geç ödeme** | Gecikme faizi/ücreti gerçekleşince gider. Önceden tahmini kayıt yok. |
-| **Taksit ertelendi / yapılandırıldı** | Bankanın yeni planı gerçekleşince: kart borcu → kredi/yapılandırma kaydına dönüşür (bkz. [AKS-009](AKS-009-kredi.md)). Eski takvim kapanır. |
+| **Kartı kısmen / asgari ödedi** | Kart borcu yalnız ödenen kadar azalır; kalan devreder. Bankanın yazdığı **akdi/gecikme faizi** ekstrede gerçekleşince **gider** olarak elle girilir. Taksit takvimi etkilenmez. |
+| **Geç ödeme** | Gecikme faizi/ücreti gerçekleşince gider. Önceden tahmini işlem yok. |
+| **Taksit ertelendi / yapılandırıldı** | Bankanın yeni ödeme takvimi gerçekleşince: kart borcu → kredi/yapılandırma işlemine dönüşür (bkz. [AKS-009](AKS-009-kredi.md)). Eski takvim kapanır. |
 | **Geçmişte alınmış, sürmekte olan taksit** (açılış) | Gider geçmişte yazılmıştır, bugün yalnız **kalan kart borcu** girilir (açılış bakiyesi), takvim "kalan N taksit" ile başlar. Geçmiş gideri tekrar yazmak raporu bozar. |
 | **Kart kapandı / yenilendi** | Borç sürer; kart "kapalı ama borcu var" görünür. Takvim aynı kartta kalır. |
-| **Paylaştır + taksit** | Alışverişin tamamı gider/kart borcu olur; arkadaş payı [AKS-004](AKS-004-hesap-bolusme.md)'teki gibi alacak olarak yazılır. Arkadaş ödemesi taksit takvimine bağlı değildir. |
+| **Paylaştır + taksit** | Alışverişin tamamı gider/kart borcu olur; arkadaş payı [AKS-004](AKS-004-hesap-bolusme.md)'teki gibi "bana borçlu" olarak yazılır. Arkadaş ödemesi taksit takvimine bağlı değildir. |
 | **Yabancı para taksit** | Kart borcu TL'ye bankanın kuruyla yansır; gerçekleşen TL ekstreye göre elle düzeltilir (kur farkı). |
 | **Yanlış girdim** | Düzenle/sil: gider ve kart borcu birlikte düzelir; takvim yeniden türetilir. |
 | **Fiş/onay yok, banka tutarı farklı** | Ekstrede çıkan tutar esas (kullanıcı düzeltir). |
@@ -66,7 +66,7 @@ flowchart TD
 - Yanlış anlama riski: kullanıcı "taksit ödedim"i ayrı bir iş sanabilir. Kart ödemesi tek eylem; taksitler yalnız bilgidir.
 
 ## Uygulamadaki karşılığı (şimdi)
-- Alışverişte **tek gider + kart borcu** yazılır; takvim ayrı tablo, kayıt değil. İlkeyle uyumlu. [uygulandı]
+- Alışverişte **tek gider + kart borcu** yazılır; takvim ayrı tablo, işlem değil. İlkeyle uyumlu. [uygulandı]
 - Taksit "ödendi" diye işaretlenmez; kart borcu Transfer → kart ile azalır. [uygulandı]
 - Takvim Ayarlar → Taksitler'de, aya göre toplamlı. Yaklaşanlar'da yok (harita B6).
 - **Uyumsuzluk:** Yaklaşanlar'daki kart son ödeme tutarı kesimdeki kart borcunun tamamıdır; ekstreye düşmemiş taksitleri de içerir (harita B2).

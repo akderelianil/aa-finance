@@ -34,16 +34,16 @@ flowchart TD
 - Sonuç: ayrım ancak **pay mantığıyla** yapılabilir (emanet = toplam portföyün belirli bir payı; kâr/zarar bu paya orantılı). Fon payı (birim) yaklaşımı aday; **henüz karar yok**.
 
 - Para **sürekli giriyor ve çıkıyor** → pay mantığı zorunlu (basit "giren − değer" farkı yanlış kâr verir).
-- Bugün kâr/zarar **aracı kurum uygulamalarından elle** hesaplanıyor; uygulamanın değeri bu manuel işi ortadan kaldırmak.
+- Bugün kâr/zarar **yatırım firmalarının uygulamalarından elle** hesaplanıyor; uygulamanın değeri bu manuel işi ortadan kaldırmak.
 - Mental model: **fon yönetimi** (birim değeri, giriş/çıkışta pay alma/bozma, dönemsel getiri).
 
 ## Karar (Anlatım 6, dolaylı)
-- Mevcut kişiler **Rehber ile birleşiyor**; baba Rehber'de **bireysel kişi** olarak durur (ayrı "emanet sahibi" nesnesi gerekmez, yalnız o kişiye bağlı emanet/pay kaydı). Emanet akışının kendisi için yeni karar yok; sorular açık.
+- Mevcut kişiler **Rehber ile birleşiyor**; baba Rehber'de **bireysel kişi** olarak durur (ayrı "emanet sahibi" nesnesi gerekmez, yalnız o kişiye bağlı emanet/pay bilgisi). Emanet akışının kendisi için yeni karar yok; sorular açık.
 
 ## Çatışmalar
 - Net varlık (mavi) emanet parayı **saymamalı**, ama nakit/yatırım bakiyeleri saymalı.
-- Mevcut model: "Her kayıt tek üyeye aittir"; baba üye mi, kişi mi?
-- Kâr/zarar kime ait? Komisyon/ücret var mı?
+- Mevcut model: "Her işlem tek üyeye aittir"; baba üye mi, kişi mi?
+- Kâr/zarar kime ait? Masraf/ücret var mı?
 - Rapor babaya nasıl gider? Baba uygulamada yok → ekran görüntüsü / paylaşılabilir özet (metin veya görsel) olabilir; format sorusu açık.
 - Karışık portföyde babanın payı para girişi/çıkışında değişir; kâr/zarar payı zamana göre hesaplanmalı (ör. 100 bin girişten sonra yatırım değeri değişti, sonra 50 bin daha girdi).
 
