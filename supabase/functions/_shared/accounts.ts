@@ -43,3 +43,43 @@ export async function saveCardDays(tx: Tx, accountId: string, body: Record<strin
     insert into credit_card_settings (account_id, statement_day, due_day) values (${accountId}, ${statement}, ${due})
     on conflict (account_id) do update set statement_day = excluded.statement_day, due_day = excluded.due_day`
 }
+
+// GnuCash account kinds per type (accounts.subtype). null = the plain type.
+const SUBTYPES: Record<string, string[]> = {
+  asset: ['cash', 'bank', 'deposit', 'investment', 'receivable', 'other'],
+  liability: ['credit_card', 'loan', 'payable', 'other'],
+  equity: [], income: [], expense: [],
+}
+
+// Optional account fields of account-create / account-update. undefined = not given, null = clear.
+export async function parseAccountFields(tx: Tx, groupId: string, type: string, body: Record<string, unknown>) {
+  let code: string | undefined
+  if (body.code !== undefined && body.code !== null && body.code !== '') {
+    code = typeof body.code === 'string' ? body.code.trim() : ''
+    if (!/^[0-9]+(\.[0-9]+)*$/.test(code) || code.length > 30) throw new HttpError(422, 'code geçersiz', 'invalid_account_code')
+    const [dup] = await tx`select 1 from accounts where group_id = ${groupId} and code = ${code} and id <> ${
+      (body.account_id as string | undefined) ?? '00000000-0000-0000-0000-000000000000'}`
+    if (dup) throw new HttpError(409, 'Bu hesap kodu kullanılıyor', 'duplicate_code')
+  }
+  let currency: string | undefined
+  if (body.currency !== undefined && body.currency !== null && body.currency !== '') {
+    currency = typeof body.currency === 'string' ? body.currency.toUpperCase() : ''
+    const [c] = await tx`select 1 from currencies where code = ${currency}`
+    if (!c) throw new HttpError(422, 'currency geçersiz', 'invalid_currency')
+  }
+  let subtype: string | null | undefined
+  if (body.subtype !== undefined) {
+    subtype = body.subtype === null || body.subtype === '' ? null : String(body.subtype)
+    if (subtype !== null && !SUBTYPES[type]?.includes(subtype)) throw new HttpError(422, 'subtype geçersiz', 'invalid_subtype')
+  }
+  let owner: string | null | undefined
+  if (body.owner_member_id !== undefined) {
+    owner = body.owner_member_id === null || body.owner_member_id === '' ? null : String(body.owner_member_id)
+    if (owner !== null) {
+      const valid = /^[0-9a-f-]{36}$/i.test(owner)
+      const [mm] = valid ? await tx`select 1 from members where id = ${owner} and group_id = ${groupId}` : []
+      if (!mm) throw new HttpError(422, 'owner geçersiz', 'invalid_owner')
+    }
+  }
+  return { code, currency, subtype, owner }
+}

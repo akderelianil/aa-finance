@@ -58,6 +58,9 @@ export function serve(
       if (e.code === '23505' && e.constraint_name === 'members_one_group_per_user') {
         return json({ error: 'already_member', message: 'Zaten bir gruba üyesin' }, 409, cors)
       }
+      if (e.code === '23505' && e.constraint_name === 'accounts_code_unique') {
+        return json({ error: 'duplicate_code', message: 'Bu hesap kodu kullanılıyor' }, 409, cors)
+      }
       // Defter kuralı (DB trigger/check, ör. gruplayıcı hesaba kayıt): istemci hatası.
       if (e.code === '23514') return json({ error: 'ledger_rule', message: (err as Error).message }, 422, cors)
       console.error(err)
