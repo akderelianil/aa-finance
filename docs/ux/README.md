@@ -34,4 +34,4 @@ Olgunluk ve geliştirme sırası kararı ürün sahibindedir.
 | 1 | Toplama (anlatımlar) | Aktif |
 | 2 | Damıtma ([harita](harita.md)) | Aktif |
 | 3 | Uyarlama (ekran/navigasyon, mevcut uygulamayla fark) | Aktif: harita §6 bulgular, §8 uyumsuzluklar |
-| 4 | Geliştirme sırası | Onaylandı: [ROADMAP](../ROADMAP.md) (F1-F7 bitti, 2026-10-08) |
+| 4 | Geliştirme sırası | Onaylandı: [ROADMAP](../ROADMAP.md) (durduruldu 2026-10-08; çekirdek yol haritası ROADMAP.md) |
