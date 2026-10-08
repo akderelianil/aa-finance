@@ -26,7 +26,7 @@ export function ItemsEditor({ rows, onChange, totalMinor, currency, category }: 
         {rows.map((r, i) => (
           <div key={i} className="flex gap-2">
             <Input
-              aria-label={t('entry.category')} placeholder={t('entry.category')} maxLength={60} autoComplete="off"
+              aria-label={t('entry.category.expense')} placeholder={t('entry.category.expense')} maxLength={60} autoComplete="off"
               list="category-list" value={r.category} onChange={(e) => set(i, { category: e.target.value })}
             />
             <Input
@@ -47,7 +47,7 @@ export function ItemsEditor({ rows, onChange, totalMinor, currency, category }: 
       {totalMinor > 0 && (
         <FieldDescription>
           {rest > 0
-            ? t('entry.items.rest', { amount: formatMinor(rest, currency, i18n.language), category: category || t('entry.category') })
+            ? t('entry.items.rest', { amount: formatMinor(rest, currency, i18n.language), category: category || t('entry.category.expense') })
             : t('errors.items_exceed_total')}
         </FieldDescription>
       )}

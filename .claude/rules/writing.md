@@ -19,6 +19,7 @@ Single source for how this project writes text. Goal: short text, few tokens, on
 - Keep procedure sentences ≤20 words and descriptive sentences ≤25 words.
 - Use the active voice. Remove filler words.
 - Use one term for one concept. Take the term from the glossary. Do not use synonyms.
+- A new UI concept needs a glossary row first (term + "Do not use" synonyms). `npm run check:terms` enforces the list.
 - Prefer a table or a list to a paragraph.
 - State the current truth only. Git keeps the history. Do not keep decision logs in a live doc.
 

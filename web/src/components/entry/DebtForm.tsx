@@ -19,11 +19,10 @@ import { chipClass, decimal, today, useAfterSave, useMyAccounts, type EntryPrese
 import { formatMinor } from '@/lib/money'
 import { supabase } from '@/lib/supabase'
 
-type Mode = 'borrow' | 'lend' | 'settle'
-type Payer = 'they' | 'me'
+type Mode = 'borrow' | 'lend' | 'collect' | 'repay'
 type BalanceRow = { net_base_amount: number; contact: { name: string } | null }
 
-// Borç tek düğme: Aldım / Verdim / Ödeşme. Ödeşmede yön kişinin bakiyesinden gelir, değiştirilebilir.
+// Borç dört fiil: Borç aldım / Borç verdim / Tahsil ettim / Borcumu ödedim. Geri ödemede kişinin bakiyesi görünür.
 // Görünen: tutar, kim, hesap · tarih çipleri. "Daha fazla": vade tarihi, etiket.
 export function DebtForm({ membership, preset, onDone }: {
   membership: Membership
@@ -35,7 +34,6 @@ export function DebtForm({ membership, preset, onDone }: {
   const currency = membership.group.base_currency
   const accounts = useMyAccounts(membership)
   const [mode, setMode] = useState<Mode>(preset?.mode ?? 'borrow')
-  const [payer, setPayer] = useState<Payer | null>(null)
   const [contact, setContact] = useState(preset?.contact ?? '')
   const [accountId, setAccountId] = useState('')
   const [amount, setAmount] = useState(preset?.amount ?? '')
@@ -75,13 +73,12 @@ export function DebtForm({ membership, preset, onDone }: {
   })
 
   const net = balances.data?.get(contact.trim()) ?? 0
-  const effectivePayer: Payer = payer ?? (net < 0 ? 'me' : 'they')
-  const action = mode === 'borrow' ? 'borrow' : mode === 'lend' ? 'lend' : effectivePayer === 'they' ? 'collect' : 'repay'
+  const repayment = mode === 'collect' || mode === 'repay'
 
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('debt-create', {
-      action, contact_name: contact.trim(), account_id: accountId || undefined, amount: decimal(amount), date,
-      due_date: mode !== 'settle' && dueOpen && due ? due : undefined, tags: tagsOpen ? tags : [],
+      action: mode, contact_name: contact.trim(), account_id: accountId || undefined, amount: decimal(amount), date,
+      due_date: !repayment && dueOpen && due ? due : undefined, tags: tagsOpen ? tags : [],
     }),
     onSuccess: (r) => { afterSave(r.entry_id); onDone?.() },
   })
@@ -96,10 +93,10 @@ export function DebtForm({ membership, preset, onDone }: {
   const modes = (
     <>
       <ToggleGroup
-        value={[mode]} spacing={2} className="grid w-full grid-cols-3" aria-label={t('entry.kind.debt')}
+        value={[mode]} spacing={2} className="grid w-full grid-cols-2" aria-label={t('entry.kind.debt')}
         onValueChange={(v) => { if (v[0]) setMode(v[0] as Mode) }}
       >
-        {(['borrow', 'lend', 'settle'] as const).map((m) => (
+        {(['borrow', 'lend', 'collect', 'repay'] as const).map((m) => (
           <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`entry.debt.${m}`)}</ToggleGroupItem>
         ))}
       </ToggleGroup>
@@ -131,31 +128,19 @@ export function DebtForm({ membership, preset, onDone }: {
           <InputGroupInput
             id="debt-contact" required maxLength={100} autoComplete="off" list="debt-contact-list"
             placeholder={t('entry.debt.who')} aria-label={t('entry.debt.who')}
-            value={contact} onChange={(e) => { setContact(e.target.value); setPayer(null) }}
+            value={contact} onChange={(e) => setContact(e.target.value)}
           />
         </InputGroup>
         <datalist id="debt-contact-list">
           {contacts.data?.map((n) => <option key={n} value={n} />)}
         </datalist>
-        {mode === 'settle' && contact.trim() && balances.data && (
+        {repayment && contact.trim() && balances.data && (
           <FieldDescription>
             {net === 0 ? t('entry.debt.even')
               : t(net > 0 ? 'entry.debt.theyOwe' : 'entry.debt.iOwe', { amount: formatMinor(Math.abs(net), currency, i18n.language) })}
           </FieldDescription>
         )}
       </Field>
-      {mode === 'settle' && (
-        <ToggleGroup
-          value={[effectivePayer]} spacing={2} className="grid w-full grid-cols-2" aria-label={t('entry.debt.settle')}
-          onValueChange={(v) => { if (v[0]) setPayer(v[0] as Payer) }}
-        >
-          {(['they', 'me'] as const).map((p) => (
-            <ToggleGroupItem key={p} value={p} variant="outline" size="sm">
-              {t(p === 'they' ? 'entry.debt.theyPaid' : 'entry.debt.iPaid')}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      )}
       <MetaRow>
         {accountOptions.length > 1 && (
           <OptionSelect value={accountId} onChange={setAccountId} options={accountOptions} label={t('entry.debt.accountOptional')} className={chipClass} />
@@ -165,11 +150,11 @@ export function DebtForm({ membership, preset, onDone }: {
       </MetaRow>
       {more && (
         <OptionChips>
-          {mode !== 'settle' && <Toggle variant="outline" size="sm" pressed={dueOpen} onPressedChange={setDueOpen}>{t('entry.debt.dueToggle')}</Toggle>}
+          {!repayment && <Toggle variant="outline" size="sm" pressed={dueOpen} onPressedChange={setDueOpen}>{t('entry.debt.dueToggle')}</Toggle>}
           <Toggle variant="outline" size="sm" pressed={tagsOpen} onPressedChange={setTagsOpen}>{t('entry.tags.toggle')}</Toggle>
         </OptionChips>
       )}
-      {mode !== 'settle' && dueOpen && (
+      {!repayment && dueOpen && (
         <Field>
           <FieldLabel htmlFor="debt-due">{t('entry.debt.due')}</FieldLabel>
           <Input id="debt-due" type="date" min={date} value={due} onChange={(e) => setDue(e.target.value)} />

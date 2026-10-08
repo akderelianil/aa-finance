@@ -15,7 +15,7 @@ Quick start and fixes for repeated mistakes. Decisions: [ARCHITECTURE](ARCHITECT
 | Lint (oxlint) | `cd web && npm run lint` |
 | Supabase CLI | `npx supabase ...` (pnpm is blocked) |
 
-Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warning, build clean).
+Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warning, build clean). After a UI text or `docs/ux` change, also run `npm run check:terms` ([GLOSSARY](GLOSSARY.md)).
 
 ## Machine pitfalls (Windows)
 - **No pnpm:** Application Control blocks it. Use npm.

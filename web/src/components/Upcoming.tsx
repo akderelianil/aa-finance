@@ -36,6 +36,7 @@ type Item = {
   amount: number // minor, pozitif
   cardId?: string
   contact?: string
+  owed?: boolean // debt: true = kişi bana borçlu
   planId?: string
 }
 
@@ -118,12 +119,12 @@ export function Upcoming({ membership }: { membership: Membership }) {
       planned.add(p.contact_id)
       items.push({ key: `plan-${p.id}`, kind: 'debt', title: n.name,
         detail: t(n.net > 0 ? 'upcoming.theyOwe' : 'upcoming.iOwe'), date: p.due_date, amount: Math.abs(n.net),
-        contact: n.name, planId: p.id })
+        contact: n.name, owed: n.net > 0, planId: p.id })
     }
     for (const [id, n] of net) {
       if (n.net === 0 || planned.has(id)) continue
       items.push({ key: `bal-${id}`, kind: 'debt', title: n.name, detail: t(n.net > 0 ? 'upcoming.theyOwe' : 'upcoming.iOwe'),
-        date: null, amount: Math.abs(n.net), contact: n.name })
+        date: null, amount: Math.abs(n.net), contact: n.name, owed: n.net > 0 })
     }
     items.sort((a, b) => (a.date ?? '9999') .localeCompare(b.date ?? '9999') || a.title.localeCompare(b.title))
   }
@@ -186,9 +187,9 @@ export function Upcoming({ membership }: { membership: Membership }) {
                       ? openPreset({ kind: 'deposit', accountId: it.cardId! })
                       : it.kind !== 'debt'
                       ? openPreset({ kind: 'transfer', to: it.cardId, amount: decimal(it.amount) })
-                      : openPreset({ kind: 'debt', mode: 'settle', contact: it.contact!, amount: decimal(it.amount) })}
+                      : openPreset({ kind: 'debt', mode: it.owed ? 'collect' : 'repay', contact: it.contact!, amount: decimal(it.amount) })}
                   >
-                    {t(it.kind === 'deposit' ? 'upcoming.depositAction' : it.kind !== 'debt' ? 'upcoming.payCard' : 'upcoming.settle')}
+                    {t(it.kind === 'deposit' ? 'upcoming.depositAction' : it.kind !== 'debt' ? 'upcoming.payCard' : it.owed ? 'entry.debt.collect' : 'entry.debt.repay')}
                   </Button>
                 </div>
               </li>

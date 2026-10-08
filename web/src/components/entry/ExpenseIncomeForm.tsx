@@ -160,7 +160,7 @@ export function ExpenseIncomeForm({
         <InputGroupAddon><LayoutGridIcon /></InputGroupAddon>
         <InputGroupInput
           id="category" required maxLength={60} autoComplete="off" list="category-list"
-          placeholder={t('entry.category')} aria-label={t('entry.category')}
+          placeholder={t(`entry.category.${kind}`)} aria-label={t(`entry.category.${kind}`)}
           value={category} onChange={(e) => { setCategory(e.target.value); setAutoCategory(false) }}
         />
         <datalist id="category-list">
@@ -172,7 +172,7 @@ export function ExpenseIncomeForm({
       <MetaRow>
         {!editing && !installment && accountOptions.length > 1 && (
           // Boş = otomatik (nakit hesap)
-          <OptionSelect value={accountId} onChange={setAccountId} options={accountOptions} label={t('accounts.account')} className={chipClass} />
+          <OptionSelect value={accountId} onChange={setAccountId} options={accountOptions} label={t(`entry.from.${kind}`)} className={chipClass} />
         )}
         <DateChip value={date} onChange={setDate} />
         <MoreChip open={more} onChange={setMore} />

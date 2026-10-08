@@ -32,7 +32,7 @@ export const itemsPayload = (rows: ItemRow[]) =>
 // Yaklaşanlar satırından açılan hazır doldurulmuş kayıt.
 export type EntryPreset =
   | { kind: 'transfer'; to?: string; amount?: string }
-  | { kind: 'debt'; mode: 'settle'; contact: string; amount?: string }
+  | { kind: 'debt'; mode: 'collect' | 'repay'; contact: string; amount?: string }
   | { kind: 'deposit'; accountId: string }
 
 // Vadeli hesabın beklenen net getirisi (minor): anapara × yıllık oran × gün / 365 × (1 − stopaj). Yalnız gösterim.
