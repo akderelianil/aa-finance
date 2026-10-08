@@ -1,13 +1,11 @@
 import {
-  ArrowLeftRightIcon, BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, SettingsIcon, TrendingDownIcon,
-  TrendingUpIcon,
+  BookOpenIcon, ChartPieIcon, ContactIcon, LayoutDashboardIcon, ListTreeIcon, PlusIcon, SettingsIcon,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import type { Membership } from '@/auth/useMembership'
-import { Separator } from '@/components/ui/separator'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
@@ -26,13 +24,6 @@ const ITEMS = [
   { to: '/rehber', key: 'directory', icon: ContactIcon, end: false },
   { to: '/ayarlar', key: 'settings', icon: SettingsIcon, end: false },
 ] as const
-
-// Quick entry: the icon colour carries the meaning (expense red, income green, transfer blue).
-const QUICK = [
-  { kind: 'expense', icon: TrendingDownIcon, color: 'text-destructive' },
-  { kind: 'income', icon: TrendingUpIcon, color: 'text-success' },
-  { kind: 'transfer', icon: ArrowLeftRightIcon, color: 'text-primary' },
-] as const satisfies readonly { kind: QuickKind; icon: unknown; color: string }[]
 
 // Icon rail: 4rem wide, large icons, labels in tooltips. The trigger expands it to show labels.
 const BUTTON = 'group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center [&_svg]:size-5'
@@ -63,18 +54,18 @@ export function AppShell({ membership }: { membership: Membership }) {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {QUICK.map(({ kind, icon: Icon, color }) => (
-                  <SidebarMenuItem key={kind}>
-                    <SidebarMenuButton tooltip={t(`quick.kind.${kind}`)} onClick={() => setQuick(kind)} className={BUTTON}>
-                      <Icon className={color} />
-                      <span>{t(`quick.kind.${kind}`)}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip={t('nav.quick')} onClick={() => setQuick('expense')}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
+                  >
+                    <PlusIcon />
+                    <span>{t('nav.quick')}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          <Separator className="mx-auto w-8" />
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
