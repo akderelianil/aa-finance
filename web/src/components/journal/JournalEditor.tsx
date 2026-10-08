@@ -10,6 +10,7 @@ import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import { useContacts } from '@/lib/contacts'
 import { draftContact, emptyLine, today, type Draft, type DraftLine } from '@/lib/journal'
+import { scaleMinor } from '@/lib/quick'
 import { formatAmount, parseDecimalInput, toMinor, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
@@ -70,7 +71,8 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
     if (base) return { side, base: toMinor(base, baseExp) }
     const rate = parseDecimalInput(l.rate, 10) ?? dayRate.get(cur)
     if (!rate) return null
-    return { side, base: Math.round(toMinor(amount, expOf(cur)) * Number(rate) * 10 ** baseExp / 10 ** expOf(cur)) }
+    const scaled = scaleMinor(toMinor(amount, expOf(cur)), rate, expOf(cur), baseExp)
+    return scaled === null ? null : { side, base: scaled }
   }
 
   const bases = draft.lines.map(lineBase)

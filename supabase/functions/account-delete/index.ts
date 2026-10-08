@@ -4,7 +4,7 @@ import { loadMember } from '../_shared/entries.ts'
 
 // Delete an account with its subtree. Without lines, installments or investments anywhere in the subtree it is
 // deleted; else the subtree is archived (history stays). Response: { deleted: true } or { archived: true }.
-// Any member can delete (shared Chart of Accounts). System accounts cannot be deleted.
+// Any member can delete a shared account; an account with an owner only its owner. System accounts cannot be deleted.
 serve(async (req, user) => {
   const body = await readBody(req)
   if (typeof body.account_id !== 'string') throw new HttpError(422, 'account_id geçersiz', 'invalid_account')
@@ -24,6 +24,9 @@ serve(async (req, user) => {
         select c.id from accounts c join t on c.parent_id = t.id
       )
       select a2.id, a2.system_key, a2.locked, a2.owner_member_id, a2.type from accounts a2 join t on t.id = a2.id for update of a2`
+    if (tree.some((n) => n.owner_member_id && n.owner_member_id !== m.member_id)) {
+      throw new HttpError(403, 'Bu hesabı sadece sahibi silebilir', 'not_owner')
+    }
     if (tree.some((n) => n.locked)) throw new HttpError(422, 'Sistem hesabı silinemez', 'locked_account')
     if (tree.some((n) => n.system_key)) throw new HttpError(422, 'Sistem hesabı silinemez', 'system_account')
     const ids = tree.map((n) => n.id as string)

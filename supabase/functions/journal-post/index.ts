@@ -68,12 +68,11 @@ async function parseLines(tx: Tx, m: Member, date: string, v: unknown): Promise<
     throw new HttpError(422, 'account geçersiz', 'invalid_account')
   }
 
-  // Lock the line accounts in id order (no deadlock between two writers).
+  // Read the accounts unlocked first: the day-rate lookup below can call TCMB, and no account lock may wait on it.
   const rows = await tx`
     select a.id, a.currency, a.is_placeholder, a.archived_at, c.exponent
     from accounts a join currencies c on c.code = a.currency
-    where a.group_id = ${m.group_id} and a.id = any(${ids as string[]}::uuid[])
-    order by a.id for update of a`
+    where a.group_id = ${m.group_id} and a.id = any(${ids as string[]}::uuid[])`
   const accounts = new Map(rows.map((r) => [r.id as string, r]))
 
   const contactIds = [...new Set(raw.map((l) => l.contact_id).filter((c) => c !== undefined && c !== null && c !== ''))]
@@ -121,6 +120,17 @@ async function parseLines(tx: Tx, m: Member, date: string, v: unknown): Promise<
   }
   if (debit !== credit) {
     throw new HttpError(422, `Borç (${debit}) ve alacak (${credit}) toplamı eşit değil`, 'unbalanced')
+  }
+
+  // Lock the line accounts in id order (no deadlock between two writers), then check they did not change meanwhile.
+  const locked = await tx`
+    select id, currency, is_placeholder, archived_at from accounts
+    where id = any(${ids as string[]}::uuid[]) order by id for update`
+  for (const r of locked) {
+    const a = accounts.get(r.id as string)!
+    if (r.currency !== a.currency || r.is_placeholder || r.archived_at) {
+      throw new HttpError(409, 'Hesap değişti, tekrar dene', 'account_changed')
+    }
   }
   return out
 }

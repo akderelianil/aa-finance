@@ -6,8 +6,7 @@ import { uuidv7 } from './uuid.ts'
 export async function createGroupSystemAccounts(tx: Tx, groupId: string) {
   await tx`
     insert into accounts (id, group_id, type, name, system_key) values
-      (${uuidv7()}, ${groupId}, 'income', 'Kambiyo Kâr/Zararları', 'fx_gain_loss'),
-      (${uuidv7()}, ${groupId}, 'income', 'Menkul Kıymet Satış Kâr/Zararları', 'investment_gain_loss')`
+      (${uuidv7()}, ${groupId}, 'income', 'Kambiyo Kâr/Zararları', 'fx_gain_loss')`
 }
 
 // Hazır kategori ağacı ve marka → kategori eşleşmeleri (migration 20261008040000).

@@ -3,7 +3,7 @@ import type { AccountNode } from './ledger'
 // Quick transactions (Gelir · Gider · Transfer): simple forms that build a journal-post line list.
 // Saved entries are plain journal entries; they are edited in the General Journal editor.
 // Amounts here are minor units (number). Every foreign line gets an explicit base_amount so the entry
-// balances exactly (no rounding difference between lines on the server).
+// balances exactly (no rounding difference between lines on the server). Rate math is exact (bigint), never float.
 
 export type QuickLine = {
   account_id: string
@@ -20,6 +20,19 @@ export type FxCtx = {
   rate: (currency: string) => string | undefined
 }
 
+/** round(a * n / d) for positive integers, half up, exact (the server rounds numeric the same way). */
+export function mulDivRound(a: number, n: bigint, d: bigint): number {
+  return Number((2n * BigInt(a) * n + d) / (2n * d))
+}
+
+/** Minor units of a currency with exponent fromExp → minor units of another (toExp) at `rate` (decimal string). */
+export function scaleMinor(minor: number, rate: string, fromExp: number, toExp: number): number | null {
+  const m = /^(\d+)(?:\.(\d+))?$/.exec(rate)
+  if (!m) return null
+  const num = BigInt(m[1] + (m[2] ?? ''))
+  return mulDivRound(minor, num * 10n ** BigInt(toExp), 10n ** BigInt((m[2] ?? '').length + fromExp))
+}
+
 export const fromMinor = (minor: number, exponent: number) =>
   exponent === 0 ? String(minor) : (minor / 10 ** exponent).toFixed(exponent)
 
@@ -28,7 +41,7 @@ export function toBaseMinor(fx: FxCtx, minor: number, currency: string): number 
   if (currency === fx.base) return minor
   const r = fx.rate(currency)
   if (!r) return null
-  return Math.round(minor * Number(r) * 10 ** fx.exp(fx.base) / 10 ** fx.exp(currency))
+  return scaleMinor(minor, r, fx.exp(currency), fx.exp(fx.base))
 }
 
 /** Minor amount in one currency → the other currency with day rates (a suggestion only). */
@@ -39,7 +52,10 @@ export function convertMinor(fx: FxCtx, minor: number, from: string, to: string)
   if (to === fx.base) return b
   const r = fx.rate(to)
   if (!r) return null
-  return Math.round(b / Number(r) * 10 ** fx.exp(to) / 10 ** fx.exp(fx.base))
+  const m = /^(\d+)(?:\.(\d+))?$/.exec(r)
+  const num = m ? BigInt(m[1] + (m[2] ?? '')) : 0n
+  if (num === 0n) return null
+  return mulDivRound(b, 10n ** BigInt(fx.exp(to) + (m![2] ?? '').length), num * 10n ** BigInt(fx.exp(fx.base)))
 }
 
 function line(fx: FxCtx, acc: AccountNode, side: 'debit' | 'credit', minor: number, base: number, memo?: string): QuickLine {
@@ -85,7 +101,7 @@ export function incomeExpenseLines(
     const total = weights.reduce((a, b) => a + b, 0)
     let left = rest
     foreign.forEach((i, k) => {
-      bases[i] = k === foreign.length - 1 ? left : Math.round(rest * weights[k] / total)
+      bases[i] = k === foreign.length - 1 ? left : mulDivRound(rest, BigInt(weights[k]), BigInt(total))
       left -= bases[i]
     })
     if (bases.some((b) => b <= 0)) return null
@@ -127,7 +143,7 @@ export function transferLines(
   let feeBase = 0
   if (fee > 0) {
     if (!feeAccount) return null
-    feeBase = Math.round(fee * transferBase / amount)
+    feeBase = mulDivRound(fee, BigInt(transferBase), BigInt(amount))
     let feeMinor: number
     if (feeAccount.currency === from.currency) feeMinor = fee
     else if (feeAccount.currency === fx.base) feeMinor = feeBase

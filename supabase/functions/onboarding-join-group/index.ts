@@ -16,14 +16,17 @@ serve(async (req, user) => {
   const last = requireString(body.last_name, 'last_name')
   const birth = requireDate(body.birth_date, 'birth_date')
 
-  const [{ fails }] = await sql`
-    select count(*)::int as fails from invite_attempts
-    where user_id = ${user.id} and at > now() - interval '15 minutes'`
-  if (fails >= MAX_FAILS) throw new HttpError(429, 'Çok fazla yanlış deneme, biraz bekle', 'too_many_attempts')
-
   const memberId = uuidv7()
 
+  // One transaction per user: the advisory lock (until commit) makes parallel guesses count one after the other.
+  // A wrong code is recorded and committed first, and the error is thrown after the commit.
   const groupId = await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(hashtext(${'invite:' + user.id}))`
+    const [{ fails }] = await tx`
+      select count(*)::int as fails from invite_attempts
+      where user_id = ${user.id} and at > now() - interval '15 minutes'`
+    if (fails >= MAX_FAILS) throw new HttpError(429, 'Çok fazla yanlış deneme, biraz bekle', 'too_many_attempts')
+
     await setActor(tx, memberId)
     // Kod yanlış/süresi dolmuş/iptal/limit dolu: hepsi aynı hata (kod tahminini zorlaştırır).
     const [invite] = await tx`
@@ -32,7 +35,10 @@ serve(async (req, user) => {
       where i.code = ${code} and i.revoked_at is null and i.expires_at > now()
         and (i.max_uses is null or i.use_count < i.max_uses)
       for update of i`
-    if (!invite) throw INVALID_CODE
+    if (!invite) {
+      await tx`insert into invite_attempts (user_id) values (${user.id})`
+      return null
+    }
 
     const updated = await tx`
       update profiles set first_name = ${first}, last_name = ${last}, birth_date = ${birth}
@@ -43,11 +49,8 @@ serve(async (req, user) => {
     await createMemberAccounts(tx, invite.group_id, memberId, invite.base_currency)
     await tx`update group_invites set use_count = use_count + 1 where id = ${invite.id}`
     return invite.group_id as string
-  }).catch(async (err) => {
-    // Başarısız denemeyi transaction dışında kaydet (rollback'ten etkilenmesin).
-    if (err === INVALID_CODE) await sql`insert into invite_attempts (user_id) values (${user.id})`
-    throw err
   })
+  if (!groupId) throw INVALID_CODE
 
   return { group_id: groupId, member_id: memberId }
 }, 201)

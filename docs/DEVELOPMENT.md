@@ -45,6 +45,8 @@ Ledger core built and committed: F0–F6, Q1 Quick Transaction, D1 Rehber, S1 Si
 
 Core Edge Functions: journal-post, fx-rate, account-create/update/delete, contact-save, contact-archive.
 
+Unit tests: `npx -y deno test --allow-env supabase/functions/_shared/money_test.ts` (money, rate, date, period lock) and `npm test` in `web/` (exact rate math in `src/lib/quick.ts`).
+
 End-to-end tests: temporary node scripts (not in the repo) that use `.env` (with service_role) + `@supabase/supabase-js`, create a confirmed test user and call the functions. Dev test users: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`.
 
 ## Before release (user tasks)
