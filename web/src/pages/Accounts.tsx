@@ -1,31 +1,35 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
-} from 'lucide-react'
+import { useTable, type ColumnDef, type ExpandedState, type RowSelectionState } from '@tanstack/react-table'
+import { ChevronsDownUpIcon, ChevronsUpDownIcon, LockIcon, PlusIcon, SearchIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
+import { AccountDetail } from '@/components/coa/AccountDetail'
 import { AccountDialog, type AccountTarget } from '@/components/coa/AccountDialog'
+import { RootStrip } from '@/components/coa/RootStrip'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/components/reui/badge'
+import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
+import { DataGridColumnHeader } from '@/components/reui/data-grid/data-grid-column-header'
+import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
+import { DataGridTable, DataGridTableRowExpand } from '@/components/reui/data-grid/data-grid-table'
+import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import {
-  flattenTree, formatAmount, shown, useCurrencies, useLedgerAccounts, useMembers, type AccountNode,
+  flattenTree, formatAmount, shown, useCurrencies, useLedgerAccounts, useMembers, type AccountNode, type AccountType,
 } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
@@ -39,9 +43,11 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const members = useMembers()
   const currencies = useCurrencies()
   const exp = new Map((currencies.data ?? []).map((c) => [c.code, c.exponent]))
-  const fmt = (minor: number, cur: string) => formatAmount(minor, exp.get(cur) ?? 2, i18n.language)
+  const fmt = (minor: number, cur: string) => formatAmount(minor || 0, exp.get(cur) ?? 2, i18n.language)
 
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const [expanded, setExpanded] = useState<ExpandedState>(true)
+  const [selected, setSelected] = useState<RowSelectionState>({})
+  const [rootFilter, setRootFilter] = useState<AccountType | null>(null)
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
   const [target, setTarget] = useState<AccountTarget | null>(null)
@@ -63,27 +69,104 @@ export default function Accounts({ membership }: { membership: Membership }) {
       const hit = !q || n.name.toLocaleLowerCase(i18n.language).includes(q)
       return hit || children.length ? { ...n, children } : null
     }
-    return (accounts.data?.roots ?? []).map(keep).filter((n): n is AccountNode => !!n)
-  }, [accounts.data, search, showArchived, i18n.language])
+    return (accounts.data?.roots ?? [])
+      .filter((r) => !rootFilter || r.type === rootFilter)
+      .map(keep).filter((n): n is AccountNode => !!n)
+  }, [accounts.data, search, showArchived, rootFilter, i18n.language])
 
-  const rows = useMemo(() => {
-    const out: AccountNode[] = []
-    const walk = (nodes: AccountNode[]) => {
-      for (const n of nodes) {
-        out.push(n)
-        if (!collapsed.has(n.id) || search) walk(n.children)
-      }
-    }
-    walk(visible)
-    return out
-  }, [visible, collapsed, search])
+  const selectedNode = useMemo(() => {
+    const id = Object.keys(selected)[0]
+    return id ? flattenTree(accounts.data?.roots ?? []).find((n) => n.id === id) ?? null : null
+  }, [selected, accounts.data])
+  const count = useMemo(() => flattenTree(visible).length, [visible])
+  const baseFmt = (minor: number) => fmt(minor, base)
 
-  const toggle = (id: string) => setCollapsed((s) => {
-    const next = new Set(s)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    return next
+  const columns = useMemo<ColumnDef<DataGridFeatures, AccountNode>[]>(() => [
+    {
+      id: 'name',
+      accessorFn: (n) => n.name,
+      header: ({ column }) => <DataGridColumnHeader title={t('ledger.name')} column={column} />,
+      cell: ({ row }) => {
+        const n = row.original
+        return (
+          <div
+            className={cn('flex items-center gap-1', n.archived_at && 'text-muted-foreground')}
+            onDoubleClick={() => !n.is_placeholder && navigate(`/hesaplar/${n.id}`)}
+          >
+            <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
+            <span className={cn(n.depth === 0 ? 'font-semibold' : 'font-medium', n.is_placeholder && n.depth > 0 && 'italic')}>{n.name}</span>
+            {n.locked && <LockIcon className="size-3 text-muted-foreground" aria-label={t('coa.system')} />}
+            {n.archived_at && <Badge variant="warning-light" size="sm">{t('coa.archived')}</Badge>}
+          </div>
+        )
+      },
+      minSize: 220,
+      enableHiding: false,
+      meta: { skeleton: <Skeleton className="h-4 w-40" /> },
+    },
+    {
+      id: 'kind',
+      accessorFn: (n) => n.subtype ?? n.type,
+      header: ({ column }) => <DataGridColumnHeader title={t('coa.kind')} column={column} />,
+      cell: ({ row: { original: n } }) => (
+        <span className="text-muted-foreground">
+          {n.depth === 0 || n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
+        </span>
+      ),
+      size: 110,
+      meta: { skeleton: <Skeleton className="h-4 w-20" /> },
+    },
+    {
+      id: 'balance',
+      accessorFn: (n) => shown(n.type, n.net),
+      header: ({ column }) => <DataGridColumnHeader title={t('ledger.balance')} column={column} />,
+      cell: ({ row: { original: n } }) => {
+        const v = shown(n.type, n.net)
+        if (n.is_placeholder) return null
+        return (
+          <span className={cn(v < 0 && 'text-destructive')}>
+            {fmt(v, n.currency)} <span className="text-xs text-muted-foreground">{n.currency}</span>
+          </span>
+        )
+      },
+      size: 150,
+      meta: {
+        headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums',
+        skeleton: <Skeleton className="ml-auto h-4 w-24" />,
+      },
+    },
+    {
+      id: 'total',
+      accessorFn: (n) => shown(n.type, n.treeNetBase),
+      header: ({ column }) => <DataGridColumnHeader title={t('ledger.total', { currency: base })} column={column} />,
+      cell: ({ row: { original: n } }) => {
+        const v = shown(n.type, n.treeNetBase)
+        return <span className={cn(v < 0 && 'text-destructive')}>{fmt(v, base)}</span>
+      },
+      size: 150,
+      meta: {
+        headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums',
+        skeleton: <Skeleton className="ml-auto h-4 w-24" />,
+      },
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, base, i18n.language, currencies.data, navigate])
+
+  const table = useTable({
+    features: dataGridFeatures,
+    columns,
+    data: visible,
+    getRowId: (n: AccountNode) => n.id,
+    getSubRows: (n) => n.children,
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    paginateExpandedRows: false,
+    state: { expanded: search ? true : expanded, rowSelection: selected, pagination: { pageIndex: 0, pageSize: 1000 } },
+    onExpandedChange: setExpanded,
+    onRowSelectionChange: setSelected,
   })
+
+  const select = (n: AccountNode) => setSelected({ [n.id]: true })
 
   const archive = useMutation({
     mutationFn: (n: AccountNode) => callFunction('account-update', { account_id: n.id, archived: !n.archived_at }),
@@ -120,116 +203,69 @@ export default function Accounts({ membership }: { membership: Membership }) {
           </div>
         )}
       />
-      <div className="flex items-center gap-3">
-        <Input className="w-72" placeholder={t('coa.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Button variant="outline" size="sm" onClick={() => setCollapsed(new Set())}>
-          <ChevronsUpDownIcon data-icon="inline-start" />{t('coa.expandAll')}
-        </Button>
-        <Button
-          variant="outline" size="sm"
-          onClick={() => setCollapsed(new Set(flattenTree(accounts.data?.roots ?? []).filter((n) => n.children.length).map((n) => n.id)))}
-        >
-          <ChevronsDownUpIcon data-icon="inline-start" />{t('coa.collapseAll')}
-        </Button>
-        <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-          <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(v === true)} />
-          {t('coa.showArchived')}
-        </label>
-      </div>
-
-      <div className="rounded-xl border">
-        <Table className="text-sm [&_td]:py-1.5 [&_th]:h-9">
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('ledger.name')}</TableHead>
-              <TableHead className="w-32">{t('coa.kind')}</TableHead>
-              <TableHead className="w-20">{t('ledger.currency')}</TableHead>
-              <TableHead className="w-36">{t('ledger.owner')}</TableHead>
-              <TableHead className="w-40 text-right">{t('ledger.balance')}</TableHead>
-              <TableHead className="w-40 text-right">{t('ledger.total', { currency: base })}</TableHead>
-              <TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {accounts.isLoading && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('ledger.loading')}</TableCell></TableRow>
-            )}
-            {!accounts.isLoading && rows.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('coa.empty')}</TableCell></TableRow>
-            )}
-            {rows.map((n) => {
-              const top = n.depth === 0
-              const own = shown(n.type, n.net)
-              const total = shown(n.type, n.treeNetBase)
-              return (
-                <TableRow
-                  key={n.id}
-                  className={cn('cursor-default select-none', top && 'bg-muted/40 font-semibold', n.archived_at && 'text-muted-foreground')}
-                  onDoubleClick={() => !n.is_placeholder && navigate(`/hesaplar/${n.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-1" style={{ paddingLeft: `${n.depth * 1.25}rem` }}>
-                      {n.children.length > 0 ? (
-                        <button
-                          type="button" className="rounded p-0.5 text-muted-foreground hover:bg-muted"
-                          aria-label={n.name} onClick={() => toggle(n.id)}
-                        >
-                          {collapsed.has(n.id) && !search ? <ChevronRightIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
-                        </button>
-                      ) : <span className="w-5" />}
-                      <span className={cn(n.is_placeholder && 'italic')}>{n.name}</span>
-                      {n.locked && <LockIcon className="ml-1 size-3 text-muted-foreground" aria-label={t('coa.system')} />}
-                      {n.system_key && <Badge variant="outline" className="ml-2">{t('coa.system')}</Badge>}
-                      {n.archived_at && <Badge variant="secondary" className="ml-2">{t('coa.archived')}</Badge>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {n.depth === 0 || n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
-                  </TableCell>
-                  <TableCell className="font-mono">{n.currency}</TableCell>
-                  <TableCell className="text-muted-foreground">{n.owner_member_id ? memberName.get(n.owner_member_id) : ''}</TableCell>
-                  <TableCell className={cn('text-right font-mono tabular-nums', own < 0 && 'text-destructive')}>
-                    {n.is_placeholder ? '' : fmt(own, n.currency)}
-                  </TableCell>
-                  <TableCell className={cn('text-right font-mono tabular-nums', total < 0 && 'text-destructive')}>
-                    {fmt(total, base)}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('ledger.actions')} />}>
-                        <MoreHorizontalIcon />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          {!n.is_placeholder && (
-                            <DropdownMenuItem onClick={() => navigate(`/hesaplar/${n.id}`)}>{t('coa.openRegister')}</DropdownMenuItem>
-                          )}
-                          {!n.system_key && (
-                            <DropdownMenuItem onClick={() => setTarget({ mode: 'create', parent: n })}>{t('coa.addChild')}</DropdownMenuItem>
-                          )}
-                          {!(n.locked && n.is_placeholder) && (
-                            <DropdownMenuItem onClick={() => setTarget({ mode: 'edit', node: n })}>{t('ledger.edit')}</DropdownMenuItem>
-                          )}
-                        </DropdownMenuGroup>
-                        {!n.system_key && !n.locked && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => archive.mutate(n)}>
-                                {n.archived_at ? t('coa.unarchive') : t('coa.archive')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem variant="destructive" onClick={() => setDeleting(n)}>{t('ledger.delete')}</DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+      <RootStrip roots={accounts.data?.roots ?? []} active={rootFilter} onSelect={setRootFilter} fmt={baseFmt} />
+      <div className="grid grid-cols-[minmax(0,1fr)_22rem] items-start gap-4">
+        <Frame spacing="sm" stacked>
+          <FramePanel className="flex items-center gap-2 p-2">
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="w-64 ps-8" placeholder={t('coa.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(true)}>
+              <ChevronsUpDownIcon data-icon="inline-start" />{t('coa.expandAll')}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded({})}>
+              <ChevronsDownUpIcon data-icon="inline-start" />{t('coa.collapseAll')}
+            </Button>
+            <label className="ml-auto flex items-center gap-2 pe-1 text-sm text-muted-foreground">
+              <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(v === true)} />
+              {t('coa.showArchived')}
+            </label>
+          </FramePanel>
+          <FramePanel className="p-0">
+            <DataGrid
+              table={table}
+              recordCount={count}
+              isLoading={accounts.isLoading}
+              onRowClick={select}
+              tableLayout={{ dense: true, headerBackground: false }}
+              emptyMessage={accounts.isError ? (
+                <Empty>
+                  <EmptyHeader><EmptyTitle>{t('coa.loadError')}</EmptyTitle></EmptyHeader>
+                  <Button variant="outline" size="sm" onClick={() => accounts.refetch()}>{t('coa.retry')}</Button>
+                </Empty>
+              ) : (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>{t('coa.empty')}</EmptyTitle>
+                    <EmptyDescription>{t('coa.search')}</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            >
+              <DataGridContainer>
+                <DataGridScrollArea>
+                  <DataGridTable />
+                </DataGridScrollArea>
+              </DataGridContainer>
+            </DataGrid>
+          </FramePanel>
+          <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{t('coa.accountCount', { count })}</span>
+            <span>{t('coa.amountsIn', { currency: base })}</span>
+          </FrameFooter>
+        </Frame>
+        <AccountDetail
+          node={selectedNode}
+          base={base}
+          ownerName={selectedNode?.owner_member_id ? memberName.get(selectedNode.owner_member_id) : undefined}
+          fmt={fmt}
+          onOpenRegister={(n) => navigate(`/hesaplar/${n.id}`)}
+          onAddChild={(n) => setTarget({ mode: 'create', parent: n })}
+          onEdit={(n) => setTarget({ mode: 'edit', node: n })}
+          onArchive={(n) => archive.mutate(n)}
+          onDelete={setDeleting}
+        />
       </div>
 
       <AccountDialog
