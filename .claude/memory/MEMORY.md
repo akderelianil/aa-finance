@@ -6,3 +6,4 @@
 - [No git remote](project-no-git-remote.md) — commit only, never push
 - [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer, Borç done; next loan (kredi)
 - [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice done; Hesaplar page polish next
+- [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; intermittent journal-post 500
