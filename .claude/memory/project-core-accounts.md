@@ -13,7 +13,7 @@ Done 2026-10-11: onboarding radio choice (`chart`: core | recommended) → `onbo
 
 Done 2026-10-11: "Önerilen hesapları ekle" button on Hesaplar (admin only, hidden once recommended accounts exist) → `account-template-apply`.
 
-Todo: polish Accounts page for end users.
+Done 2026-10-11: Accounts page redesigned on ReUI, see [[project-hesaplar-redesign]].
 
 **Why:** the owner called Hesaplar "very important"; the system must not break if the user edits accounts.
 **How to apply:** new locked accounts go in the template with `locked = true`; recommended ones stay unlocked. See [[project-ux-reset]].

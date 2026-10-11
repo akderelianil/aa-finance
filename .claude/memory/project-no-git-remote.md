@@ -1,11 +1,11 @@
 ---
 name: project-no-git-remote
-description: "aa-finance has no GitHub repo/remote yet (as of 2026-10-08); commit only, never try to push"
+description: "origin is a local path (/mnt/c/Users/anil-akdereli/aa-finance), no GitHub; push only when the user asks"
 metadata:
   type: project
 ---
 
-The aa-finance repo has no remote (no GitHub repo yet, stated 2026-10-08). Commit locally only.
+`origin` points to a local Windows folder (`/mnt/c/Users/anil-akdereli/aa-finance`), not GitHub. On 2026-10-08 the user said "commit et sadece" and rejected a push; on 2026-10-11 they explicitly asked "commit + push".
 
-**Why:** User said "commit et sadece, Github Repo şu an için yok" and rejected a push attempt.
-**How to apply:** Do not run `git push` or offer pushing until the user says a remote exists. See [[feedback-working-style]].
+**Why:** the remote is a local mirror, not a shared repo.
+**How to apply:** commit by default; run `git push` only when the user asks for it in that message. If the push fails, report it, do not work around it. See [[feedback-working-style]].

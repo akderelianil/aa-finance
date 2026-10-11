@@ -3,7 +3,8 @@
 - [Doc & agent system](feedback-doc-system.md) — EN docs, STE, relative links, .claude/rules, agent learning loop
 - [Stack & machine gotchas](project-aa-finance-stack.md) — Supabase + Edge Functions + React; Ubuntu/WSL2 setup; docs/DEVELOPMENT.md
 - [Ledger core pivot (2026-10-08)](project-ledger-core-pivot.md) — GnuCash-style core; convenience flows hidden; desktop only; open calls
-- [No git remote](project-no-git-remote.md) — commit only, never push
+- [Git remote](project-no-git-remote.md) — origin is a local path; push only when asked
 - [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer, Borç done; next loan (kredi)
-- [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice done; Hesaplar page polish next
+- [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice + Hesaplar polish done
+- [Hesaplar redesign (2026-10-11)](project-hesaplar-redesign.md) — ReUI tree grid, person fold, MCP via browser auth
 - [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; intermittent journal-post 500

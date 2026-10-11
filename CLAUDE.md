@@ -5,7 +5,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Stack
 - Supabase (PostgreSQL + Auth + RLS + Storage), project ref `ckwigjohcdsfqglmmzdq` (eu-central-1). Dev project only.
 - Business logic: TypeScript Supabase Edge Functions. Writes use a direct Postgres connection in one transaction and lock the affected account rows with `SELECT ... FOR UPDATE`.
-- Frontend: React + Vite + TypeScript + shadcn/ui + Tailwind, hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
+- Frontend: React + Vite + TypeScript + shadcn/ui + ReUI (`@reui` registry, MCP `reui`) + Tailwind, hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
 - Package manager: npm. Supabase CLI: `npx supabase`. Dev environment: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`.
 
 ## Product rules

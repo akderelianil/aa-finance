@@ -32,6 +32,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | S1 Simple chart | Five locked roots; locked groups Nakit, Banka, Yatırım, Duran Varlıklar, Kredi Kartı, Krediler; single accounts Kişilerden Alacaklar and Kişilere Borçlar. New account = name + group. Codes hidden. About 40 free categories. | Done 2026-10-08 |
 | H1 Ana Sayfa | Menu item "Ana Sayfa" (`/anasayfa`, default route). Scope switch Aile/Topluluk · Bireysel, period switch bu ay · bu yıl. Cards (assets, liabilities, net worth, income, expense, net result), expense and income pies, 6-month income/expense bars, group tables. RPC `dashboard_totals`, `dashboard_monthly`. Individual = balance sheet accounts the member owns + income/expense entries the member posted. | Done 2026-10-08 |
 | C1 Cleanup | Hidden flows deleted: legacy quick entry, 17 Edge Functions, pages, unused UI/i18n; migration `20261008110000_drop_hidden_flows` drops their tables. The sidebar button "+ Hızlı Kayıt" opens a dialog with Gider · Gelir · Transfer tabs. | Done 2026-10-08 |
+| S2 Hesaplar UI | Chart of Accounts redesigned on ReUI: two-row KPI strip, tree data-grid, detail panel, right-click menu, same-name accounts of different owners folded with avatars, new account dialog on cascader. | Done 2026-10-11 |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.
