@@ -13,7 +13,7 @@ Checklist (mark done here after each commit):
 - [x] 2 Reports → data-grid
 - [x] 3 MemberAccessCard (drop ui/table; table.tsx deleted)
 - [x] 4 Directory (Rehber)
-- [ ] 5 Dashboard + StatStrip
+- [x] 5 Dashboard + StatStrip
 - [ ] 6 Settings
 - [ ] 7 Auth + onboarding (low priority)
 - [ ] 8 Sweep unused shadcn parts + docs

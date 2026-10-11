@@ -69,6 +69,7 @@ export const en: Translation = {
     savingRate: 'Saving %{{pct}}',
     earnings: 'Income',
     noExpense: 'No expenses in this period.',
+    addEntry: 'Add entry',
     noIncome: 'No income in this period.',
     other: 'Other',
     trend: 'Monthly income and expense',

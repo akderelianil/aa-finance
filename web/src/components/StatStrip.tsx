@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Area, AreaChart } from 'recharts'
-import { Badge } from '@/components/ui/badge'
+import { DataState } from '@/components/DataState'
+import { Badge } from '@/components/reui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer } from '@/components/ui/chart'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,7 +17,7 @@ type StatProps = {
   tone?: Tone
   loading?: boolean
   hint?: string
-  badge?: { text: string; variant: 'success' | 'destructive' | 'secondary' }
+  badge?: { text: string; variant: 'success-light' | 'destructive-light' | 'secondary' }
   spark?: { values: number[]; color: string }
 }
 
@@ -40,11 +41,13 @@ export function Stat({ label, value, tone = 'neutral', loading, hint, badge, spa
 }
 
 // Card that groups three related figures, separated by 1px dividers.
-export function StatStrip({ title, children }: { title: string; children: ReactNode }) {
+export function StatStrip({ title, error, onRetry, children }: { title: string; error?: boolean; onRetry?: () => void; children: ReactNode }) {
   return (
     <Card>
       <CardHeader><CardTitle className="text-sm text-muted-foreground">{title}</CardTitle></CardHeader>
-      <CardContent className="grid grid-cols-3 divide-x">{children}</CardContent>
+      {error ? <CardContent><DataState error onRetry={onRetry} /></CardContent> : (
+        <CardContent className="grid grid-cols-3 divide-x">{children}</CardContent>
+      )}
     </Card>
   )
 }

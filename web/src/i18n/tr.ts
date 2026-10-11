@@ -67,6 +67,7 @@ export const tr = {
     savingRate: 'Tasarruf %{{pct}}',
     earnings: 'Gelirler',
     noExpense: 'Bu dönemde gider yok.',
+    addEntry: 'Kayıt ekle',
     noIncome: 'Bu dönemde gelir yok.',
     other: 'Diğer',
     trend: 'Aylık gelir ve gider',

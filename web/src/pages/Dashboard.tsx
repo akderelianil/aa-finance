@@ -1,18 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router'
 import { useTranslation } from 'react-i18next'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { Membership } from '@/auth/useMembership'
 import { PageHeader } from '@/components/PageHeader'
-import { FormError } from '@/components/PageShell'
+import { DataState } from '@/components/DataState'
 import { CompositionBar, Stat, StatStrip } from '@/components/StatStrip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart'
-import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { topSlices } from '@/lib/chart'
-import { errorMessage } from '@/lib/errors'
 import { formatAmount, shown, useCurrencies, useLedgerAccounts, type AccountType } from '@/lib/ledger'
 import { cumulativeNet, periodNet, rollUp, type ReportNode, type Totals } from '@/lib/reports'
 import { supabase } from '@/lib/supabase'
@@ -109,7 +109,9 @@ export default function Dashboard({ membership }: { membership: Membership }) {
   }
 
   const loading = accounts.isLoading || totals.isLoading
-  const error = accounts.error ?? totals.error ?? monthly.error
+  const error = !!(accounts.error ?? totals.error)
+  const retry = () => { void accounts.refetch(); void totals.refetch() }
+  const addEntry = <Button size="sm" nativeButton={false} render={<Link to="/yevmiye" />}>{t('dash.addEntry')}</Button>
   const rate = stats.income > 0 ? Math.round((stats.net / stats.income) * 100) : null
   const periodLabel = period === 'month'
     ? new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(now)
@@ -138,15 +140,14 @@ export default function Dashboard({ membership }: { membership: Membership }) {
         )}
       />
       {scope === 'me' && <p className="-mt-2 text-xs text-muted-foreground">{t('dash.individualHint')}</p>}
-      <FormError message={error ? errorMessage(t, error) : null} />
 
-      <StatStrip title={t('dash.balanceSheet')}>
-        <Stat label={t('dash.assets')} value={money(stats.assets)} loading={loading} hint={t('dash.asOfToday')} />
-        <Stat label={t('dash.liabilities')} value={money(stats.liabilities)} loading={loading} hint={t('dash.asOfToday')} />
+      <StatStrip title={t('dash.balanceSheet')} error={error} onRetry={retry}>
         <Stat
           label={t('dash.netWorth')} value={money(stats.netWorth)} loading={loading} hint={t('dash.asOfToday')}
           tone={stats.netWorth < 0 ? 'danger' : 'neutral'}
         />
+        <Stat label={t('dash.assets')} value={money(stats.assets)} loading={loading} hint={t('dash.asOfToday')} />
+        <Stat label={t('dash.liabilities')} value={money(stats.liabilities)} loading={loading} hint={t('dash.asOfToday')} />
         <div className="col-span-3 border-t pt-4">
           {!loading && (
             <CompositionBar
@@ -159,14 +160,14 @@ export default function Dashboard({ membership }: { membership: Membership }) {
           )}
         </div>
       </StatStrip>
-      <StatStrip title={t('dash.periodSummary')}>
+      <StatStrip title={t('dash.periodSummary')} error={error} onRetry={retry}>
         <Stat label={t('dash.income')} value={money(stats.income)} loading={loading} hint={periodLabel} spark={{ values: trend.map((m) => m.income), color: 'var(--chart-2)' }} />
         <Stat label={t('dash.expense')} value={money(stats.expense)} loading={loading} hint={periodLabel} spark={{ values: trend.map((m) => m.expense), color: 'var(--chart-4)' }} />
         <Stat
           label={t('dash.netResult')} value={money(stats.net)} loading={loading}
           tone={stats.net < 0 ? 'danger' : 'neutral'}
           spark={{ values: trend.map((m) => m.income - m.expense), color: 'var(--primary)' }}
-          badge={rate === null ? undefined : { text: t('dash.savingRate', { pct: rate }), variant: rate < 0 ? 'destructive' : 'success' }}
+          badge={rate === null ? undefined : { text: t('dash.savingRate', { pct: rate }), variant: rate < 0 ? 'destructive-light' : 'success-light' }}
         />
       </StatStrip>
 
@@ -177,7 +178,7 @@ export default function Dashboard({ membership }: { membership: Membership }) {
             <CardDescription>{t('dash.trendHint')}</CardDescription>
           </CardHeader>
           <CardContent>
-            {monthly.isLoading ? <Skeleton className="h-64 w-full" /> : (
+            {monthly.isLoading ? <Skeleton className="h-64 w-full" /> : monthly.error ? <DataState error onRetry={() => void monthly.refetch()} /> : (
               <ChartContainer config={trendConfig} className="h-64 w-full">
                 <BarChart data={trend}>
                   <CartesianGrid vertical={false} />
@@ -193,17 +194,17 @@ export default function Dashboard({ membership }: { membership: Membership }) {
           </CardContent>
         </Card>
         <RankedBars
-          title={t('dash.topExpenses')} description={periodLabel} total={stats.expense} money={money} empty={t('dash.noExpense')} loading={loading}
+          title={t('dash.topExpenses')} description={periodLabel} total={stats.expense} money={money} empty={t('dash.noExpense')} loading={loading} error={error} onRetry={retry} action={addEntry}
           color="var(--chart-4)"
           rows={stats.topExpense.map((c) => ({ id: c.id, name: c.name, value: c.value }))}
         />
       </section>
 
       <section className="grid grid-cols-3 gap-4">
-        <RankedBars title={t('dash.assetGroups')} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} rows={stats.assetGroups} color="var(--primary)" />
-        <RankedBars title={t('dash.liabilityGroups')} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} rows={stats.liabilityGroups} color="var(--chart-4)" />
+        <RankedBars title={t('dash.assetGroups')} total={stats.assets} money={money} empty={t('dash.noData')} loading={loading} error={error} onRetry={retry} action={addEntry} rows={stats.assetGroups} color="var(--primary)" />
+        <RankedBars title={t('dash.liabilityGroups')} total={stats.liabilities} money={money} empty={t('dash.noData')} loading={loading} error={error} onRetry={retry} action={addEntry} rows={stats.liabilityGroups} color="var(--chart-4)" />
         <RankedBars
-          title={t('dash.earnings')} description={periodLabel} total={stats.income} money={money} empty={t('dash.noIncome')} loading={loading}
+          title={t('dash.earnings')} description={periodLabel} total={stats.income} money={money} empty={t('dash.noIncome')} loading={loading} error={error} onRetry={retry} action={addEntry}
           color="var(--chart-2)"
           rows={stats.incomeSlices.map((s) => ({ id: s.name, name: s.name, value: s.value }))}
         />
@@ -213,7 +214,7 @@ export default function Dashboard({ membership }: { membership: Membership }) {
 }
 
 // Ranked bars: name, amount and share on one line, a bar in the series colour underneath. No table, no grid lines.
-function RankedBars({ title, description, rows, total, money, empty, loading, color }: {
+function RankedBars({ title, description, rows, total, money, empty, loading, error, onRetry, action, color }: {
   title: string
   description?: string
   rows: { id: string; name: string; value: number }[]
@@ -221,6 +222,9 @@ function RankedBars({ title, description, rows, total, money, empty, loading, co
   money: (v: number) => string
   empty: string
   loading?: boolean
+  error?: boolean
+  onRetry?: () => void
+  action?: ReactNode
   color: string
 }) {
   return (
@@ -230,8 +234,8 @@ function RankedBars({ title, description, rows, total, money, empty, loading, co
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="h-32 w-full" /> : rows.length === 0 ? (
-          <Empty className="py-6"><EmptyHeader><EmptyDescription>{empty}</EmptyDescription></EmptyHeader></Empty>
+        {loading || error || rows.length === 0 ? (
+          <DataState loading={loading} error={error} onRetry={onRetry} rows={3} empty={{ title: empty, action }} />
         ) : (
           <ul className="flex flex-col gap-3">
             {rows.map((r) => {
