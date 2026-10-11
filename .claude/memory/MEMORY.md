@@ -9,3 +9,4 @@
 - [Hesaplar redesign (2026-10-11)](project-hesaplar-redesign.md) — ReUI tree grid, person fold, MCP via browser auth
 - [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; intermittent journal-post 500
 - [Yevmiye redesign (2026-10-11)](project-yevmiye-redesign.md) — data-grid + icon chooser + defensive entry forms; term bans
+- [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request, never by slash command

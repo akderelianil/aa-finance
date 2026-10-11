@@ -5,7 +5,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Stack
 - Supabase (PostgreSQL + Auth + RLS + Storage), project ref `ckwigjohcdsfqglmmzdq` (eu-central-1). Dev project only.
 - Business logic: TypeScript Supabase Edge Functions. Writes use a direct Postgres connection in one transaction and lock the affected account rows with `SELECT ... FOR UPDATE`.
-- Frontend: React + Vite + TypeScript + shadcn/ui + ReUI (`@reui` registry, MCP `reui`) + Tailwind, hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
+- Frontend: React + Vite + TypeScript + Tailwind, UI base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI), hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
 - Package manager: npm. Supabase CLI: `npx supabase`. Dev environment: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`.
 
 ## Product rules
@@ -26,7 +26,8 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 
 ## Docs and agents
 - Language: English for docs and code. UI text: Turkish and English in `web/src/i18n/`. `docs/ux/**` (Turkish) is the simplified flow set, built one scenario at a time, starting with `gider.md`.
-- Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`.
+- Writing rules: `.claude/rules/writing.md`. Agent rules (ownership, handoff, learning loop): `.claude/rules/agents.md`. UI rules: `.claude/rules/ui.md`.
+- Skills load automatically from the request; the user does not type slash commands. Any `web/` UI work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first and follow their workflow (ReUI MCP search, real API, audit). Browser check: `playwright-cli`. Code review or audit requests: `ponytail-review` / `ponytail-audit`.
 
 ## graphify
 

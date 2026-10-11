@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-Stack (decided 2026-10-07): Supabase `ckwigjohcdsfqglmmzdq` (dev only) + TypeScript Edge Functions + React/Vite/shadcn desktop app, Cloudflare Pages later. Decisions: `docs/ARCHITECTURE.md`; commands, secrets, status, release tasks: `docs/DEVELOPMENT.md` (read at session start). Product state: [[project-ledger-core-pivot]].
+Stack (decided 2026-10-07): Supabase `ckwigjohcdsfqglmmzdq` (dev only) + TypeScript Edge Functions + React/Vite desktop app on ReUI (shadcn Base UI underneath, shadcn MCP/skill removed 2026-10-11), Cloudflare Pages later. Decisions: `docs/ARCHITECTURE.md`; commands, secrets, status, release tasks: `docs/DEVELOPMENT.md` (read at session start). Product state: [[project-ledger-core-pivot]].
 
 Gotchas not worth rediscovering:
 - Dev is Ubuntu on WSL2 since 2026-10-08, bash only (no Windows/PowerShell). Work in `~/aa-finance`, never `/mnt/c`. Use npm / `npx supabase`.

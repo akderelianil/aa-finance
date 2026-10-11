@@ -6,7 +6,7 @@ status: active
 # Architecture
 
 ## Decisions
-- **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite/shadcn desktop web app on Cloudflare. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
+- **Stack:** Supabase (PostgreSQL + Auth + RLS + Storage) + TypeScript Edge Functions (business logic, direct Postgres connection, one transaction) + React/Vite desktop web app on Cloudflare, UI base ReUI on shadcn Base UI. Migrations: Supabase CLI (`supabase/migrations`). The app or function generates UUID v7. Sign-in: email + password (Google later). Storage: Supabase Storage (R2 later, for backups).
 - **API contract:** Edge Functions (`supabase/functions/*`) and DB views/functions (`account_balances`, `account_tree_balances`, `account_period_totals(from, to)`, `contact_ledger_balances`; `report_totals`, `report_cash_flow`).
 - **Double entry is mandatory:** each record has ≥2 lines; total debit = total credit in the base currency. The DB uses a deferred constraint trigger; the app validates too.
 - **Write = Edge Function. Read = direct, through RLS.** Clients cannot write to tables.
