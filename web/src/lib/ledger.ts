@@ -41,6 +41,8 @@ export type AccountNode = Account & {
   net: number
   /** Subtree net (debit − credit), base currency, minor units. */
   treeNetBase: number
+  /** Display-only row that folds same-named accounts of different owners; its children are those accounts. */
+  personGroup?: boolean
 }
 
 /** Debit-normal types show debit − credit; the others show credit − debit (GnuCash "credit accounts"). */
@@ -80,6 +82,41 @@ export function buildAccountTree(accounts: Account[], net: Map<string, number>, 
   return { roots, byId }
 }
 
+/**
+ * Leaf accounts with the same parent, name, kind and currency but different owners fold into one
+ * display row (children = the owners' accounts), so a family's three wallets read as one "Cüzdan".
+ */
+export function mergePersonAccounts(nodes: AccountNode[]): AccountNode[] {
+  const key = (n: AccountNode) => (n.owner_member_id && !n.is_placeholder && !n.children.length
+    ? [n.parent_id, n.name, n.currency, n.subtype].join('|') : null)
+  const groups = new Map<string, AccountNode[]>()
+  for (const n of nodes) {
+    const k = key(n)
+    if (k) groups.set(k, [...(groups.get(k) ?? []), n])
+  }
+  const out: AccountNode[] = []
+  const done = new Set<string>()
+  for (const n of nodes) {
+    const k = key(n)
+    const g = k ? groups.get(k)! : []
+    if (g.length < 2 || new Set(g.map((x) => x.owner_member_id)).size < 2) {
+      out.push({ ...n, children: mergePersonAccounts(n.children) })
+    } else if (!done.has(k!)) {
+      done.add(k!)
+      out.push({
+        ...n,
+        id: `person-group:${n.parent_id}:${n.name}:${n.currency}`,
+        owner_member_id: null,
+        personGroup: true,
+        net: g.reduce((s, x) => s + x.net, 0),
+        treeNetBase: g.reduce((s, x) => s + x.treeNetBase, 0),
+        children: g.map((c) => ({ ...c, depth: c.depth + 1 })),
+      })
+    }
+  }
+  return out
+}
+
 export const flattenTree = (nodes: AccountNode[]): AccountNode[] => nodes.flatMap((n) => [n, ...flattenTree(n.children)])
 
 /** "Varlık:Banka:Yapıkredi Vadesiz TL" style full name (GnuCash). */
@@ -113,7 +150,7 @@ export function useLedgerAccounts() {
   })
 }
 
-export type Member = { id: string; name: string; role: 'admin' | 'member' }
+export type Member = { id: string; name: string; role: 'admin' | 'member'; avatarPath: string | null }
 
 export function useMembers() {
   return useQuery({
@@ -121,9 +158,15 @@ export function useMembers() {
     queryFn: async (): Promise<Member[]> => {
       const { data, error } = await supabase.from('members').select('id, user_id, role')
       if (error) throw error
-      const { data: profiles } = await supabase.from('profiles').select('id, display_name')
-      const names = new Map((profiles ?? []).map((p) => [p.id as string, p.display_name as string | null]))
-      return data.map((m) => ({ id: m.id as string, name: names.get(m.user_id as string) ?? '—', role: m.role as Member['role'] }))
+      const { data: profiles } = await supabase.from('profiles').select('id, display_name, avatar_url')
+      const byUser = new Map((profiles ?? []).map((p) => [p.id as string, p]))
+      return data.map((m) => {
+        const p = byUser.get(m.user_id as string)
+        return {
+          id: m.id as string, name: (p?.display_name as string | null) ?? '—', role: m.role as Member['role'],
+          avatarPath: (p?.avatar_url as string | null) ?? null,
+        }
+      })
     },
   })
 }

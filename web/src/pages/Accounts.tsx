@@ -1,12 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTable, type ColumnDef, type ExpandedState, type RowSelectionState } from '@tanstack/react-table'
 import { ChevronsDownUpIcon, ChevronsUpDownIcon, LockIcon, PlusIcon, SearchIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
+import { accountActions, type AccountHandlers } from '@/components/coa/accountActions'
 import { AccountDetail } from '@/components/coa/AccountDetail'
 import { AccountDialog, type AccountTarget } from '@/components/coa/AccountDialog'
+import { MemberAvatar, OwnerAvatars } from '@/components/coa/OwnerAvatars'
 import { RootStrip } from '@/components/coa/RootStrip'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
@@ -22,6 +24,9 @@ import { DataGridTable, DataGridTableRowExpand } from '@/components/reui/data-gr
 import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,7 +34,7 @@ import { toast } from '@/components/ui/toast'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
 import {
-  flattenTree, formatAmount, shown, useCurrencies, useLedgerAccounts, useMembers, type AccountNode, type AccountType,
+  flattenTree, formatAmount, mergePersonAccounts, shown, useCurrencies, useLedgerAccounts, useMembers, type AccountNode, type AccountType,
 } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +50,10 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const exp = new Map((currencies.data ?? []).map((c) => [c.code, c.exponent]))
   const fmt = (minor: number, cur: string) => formatAmount(minor || 0, exp.get(cur) ?? 2, i18n.language)
 
-  const [expanded, setExpanded] = useState<ExpandedState>(true)
+  // null = default: every group open except the folded person rows.
+  const [expanded, setExpanded] = useState<ExpandedState | null>(null)
+  const ctxId = useRef<string | null>(null)
+  const [ctxNode, setCtxNode] = useState<AccountNode | null>(null)
   const [selected, setSelected] = useState<RowSelectionState>({})
   const [rootFilter, setRootFilter] = useState<AccountType | null>(null)
   const [search, setSearch] = useState('')
@@ -58,7 +66,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
   // Recommended Gelir/Gider accounts are the unlocked template nodes; the admin can add them later.
   const hasRecommended = flattenTree(accounts.data?.roots ?? []).some((n) => n.template_key && !n.locked)
   const canAddRecommended = membership.role === 'admin' && !!accounts.data && !hasRecommended
-  const memberName = new Map((members.data ?? []).map((m) => [m.id, m.name]))
+  const memberById = useMemo(() => new Map((members.data ?? []).map((m) => [m.id, m])), [members.data])
 
   // Visible roots: archived nodes only on request; a search keeps matches and their ancestors.
   const visible = useMemo(() => {
@@ -69,16 +77,21 @@ export default function Accounts({ membership }: { membership: Membership }) {
       const hit = !q || n.name.toLocaleLowerCase(i18n.language).includes(q)
       return hit || children.length ? { ...n, children } : null
     }
-    return (accounts.data?.roots ?? [])
+    return mergePersonAccounts((accounts.data?.roots ?? [])
       .filter((r) => !rootFilter || r.type === rootFilter)
-      .map(keep).filter((n): n is AccountNode => !!n)
+      .map(keep).filter((n): n is AccountNode => !!n))
   }, [accounts.data, search, showArchived, rootFilter, i18n.language])
 
+  const flat = useMemo(() => flattenTree(visible), [visible])
   const selectedNode = useMemo(() => {
     const id = Object.keys(selected)[0]
-    return id ? flattenTree(accounts.data?.roots ?? []).find((n) => n.id === id) ?? null : null
-  }, [selected, accounts.data])
-  const count = useMemo(() => flattenTree(visible).length, [visible])
+    return id ? flat.find((n) => n.id === id) ?? null : null
+  }, [selected, flat])
+  const count = useMemo(() => flat.filter((n) => !n.personGroup).length, [flat])
+  const openIds = (all: boolean) => Object.fromEntries(
+    flat.filter((n) => n.children.length && (all || !n.personGroup)).map((n) => [n.id, true]),
+  )
+  const effectiveExpanded: ExpandedState = search ? true : expanded ?? openIds(false)
   const baseFmt = (minor: number) => fmt(minor, base)
 
   const columns = useMemo<ColumnDef<DataGridFeatures, AccountNode>[]>(() => [
@@ -88,13 +101,21 @@ export default function Accounts({ membership }: { membership: Membership }) {
       header: ({ column }) => <DataGridColumnHeader title={t('ledger.name')} column={column} />,
       cell: ({ row }) => {
         const n = row.original
+        const person = row.getParentRow()?.original.personGroup ? memberById.get(n.owner_member_id ?? '') : undefined
         return (
           <div
             className={cn('flex items-center gap-1', n.archived_at && 'text-muted-foreground')}
-            onDoubleClick={() => !n.is_placeholder && navigate(`/hesaplar/${n.id}`)}
+            onDoubleClick={() => !n.is_placeholder && !n.personGroup && navigate(`/hesaplar/${n.id}`)}
           >
             <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
-            <span className={cn(n.depth === 0 ? 'font-semibold' : 'font-medium', n.is_placeholder && n.depth > 0 && 'italic')}>{n.name}</span>
+            {person && <MemberAvatar member={person} className="me-1" />}
+            <span className={cn(n.depth === 0 ? 'font-semibold' : 'font-medium', n.is_placeholder && n.depth > 0 && 'italic')}>
+              {person ? person.name : n.name}
+            </span>
+            {!person && !n.personGroup && n.owner_member_id && (
+              <OwnerAvatars accounts={[n]} members={memberById} fmt={fmt} />
+            )}
+            {n.personGroup && <OwnerAvatars accounts={n.children} members={memberById} fmt={fmt} />}
             {n.locked && <LockIcon className="size-3 text-muted-foreground" aria-label={t('coa.system')} />}
             {n.archived_at && <Badge variant="warning-light" size="sm">{t('coa.archived')}</Badge>}
           </div>
@@ -150,7 +171,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
       },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, base, i18n.language, currencies.data, navigate])
+  ], [t, base, i18n.language, currencies.data, navigate, memberById])
 
   const table = useTable({
     features: dataGridFeatures,
@@ -161,12 +182,26 @@ export default function Accounts({ membership }: { membership: Membership }) {
     enableRowSelection: true,
     enableMultiRowSelection: false,
     paginateExpandedRows: false,
-    state: { expanded: search ? true : expanded, rowSelection: selected, pagination: { pageIndex: 0, pageSize: 1000 } },
-    onExpandedChange: setExpanded,
+    state: { expanded: effectiveExpanded, rowSelection: selected, pagination: { pageIndex: 0, pageSize: 1000 } },
+    onExpandedChange: (u) => setExpanded((prev) => (typeof u === 'function' ? u(prev ?? openIds(false)) : u)),
     onRowSelectionChange: setSelected,
   })
 
   const select = (n: AccountNode) => setSelected({ [n.id]: true })
+  const handlers: AccountHandlers = {
+    openRegister: (n) => navigate(`/hesaplar/${n.id}`),
+    addChild: (n) => setTarget({ mode: 'create', parent: n }),
+    edit: (n) => setTarget({ mode: 'edit', node: n }),
+    archive: (n) => archive.mutate(n),
+    remove: setDeleting,
+  }
+  const onContextMenu = (e: React.MouseEvent) => {
+    const id = (e.target as HTMLElement).closest('[data-row-id]')?.getAttribute('data-row-id') ?? null
+    ctxId.current = id
+    const node = id ? flat.find((n) => n.id === id) ?? null : null
+    setCtxNode(node && accountActions(node, handlers, t).length ? node : null)
+    if (node) select(node)
+  }
 
   const archive = useMutation({
     mutationFn: (n: AccountNode) => callFunction('account-update', { account_id: n.id, archived: !n.archived_at }),
@@ -211,7 +246,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
               <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input className="w-64 ps-8" placeholder={t('coa.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setExpanded(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(openIds(true))}>
               <ChevronsUpDownIcon data-icon="inline-start" />{t('coa.expandAll')}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setExpanded({})}>
@@ -223,6 +258,8 @@ export default function Accounts({ membership }: { membership: Membership }) {
             </label>
           </FramePanel>
           <FramePanel className="p-0">
+            <ContextMenu>
+              <ContextMenuTrigger render={<div onContextMenu={onContextMenu} />}>
             <DataGrid
               table={table}
               recordCount={count}
@@ -249,6 +286,18 @@ export default function Accounts({ membership }: { membership: Membership }) {
                 </DataGridScrollArea>
               </DataGridContainer>
             </DataGrid>
+              </ContextMenuTrigger>
+              {ctxNode && (
+                <ContextMenuContent>
+                  {accountActions(ctxNode, handlers, t).map((a) => (
+                    <div key={a.key}>
+                      {a.key === 'archive' && <ContextMenuSeparator />}
+                      <ContextMenuItem variant={a.destructive ? 'destructive' : undefined} onClick={a.onSelect}>{a.label}</ContextMenuItem>
+                    </div>
+                  ))}
+                </ContextMenuContent>
+              )}
+            </ContextMenu>
           </FramePanel>
           <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{t('coa.accountCount', { count })}</span>
@@ -258,13 +307,9 @@ export default function Accounts({ membership }: { membership: Membership }) {
         <AccountDetail
           node={selectedNode}
           base={base}
-          ownerName={selectedNode?.owner_member_id ? memberName.get(selectedNode.owner_member_id) : undefined}
+          members={memberById}
           fmt={fmt}
-          onOpenRegister={(n) => navigate(`/hesaplar/${n.id}`)}
-          onAddChild={(n) => setTarget({ mode: 'create', parent: n })}
-          onEdit={(n) => setTarget({ mode: 'edit', node: n })}
-          onArchive={(n) => archive.mutate(n)}
-          onDelete={setDeleting}
+          actions={selectedNode ? accountActions(selectedNode, handlers, t) : []}
         />
       </div>
 

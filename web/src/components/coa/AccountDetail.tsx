@@ -1,32 +1,30 @@
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { AccountAction } from '@/components/coa/accountActions'
+import { MemberAvatar } from '@/components/coa/OwnerAvatars'
 import { Badge } from '@/components/reui/badge'
 import { Frame, FrameHeader, FramePanel, FrameTitle } from '@/components/reui/frame'
 import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
-import { shown, type AccountNode } from '@/lib/ledger'
+import { shown, type AccountNode, type Member } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
 type Props = {
   node: AccountNode | null
   base: string
-  ownerName?: string
+  members: Map<string, Member>
   fmt: (minor: number, currency: string) => string
-  onOpenRegister: (n: AccountNode) => void
-  onAddChild: (n: AccountNode) => void
-  onEdit: (n: AccountNode) => void
-  onArchive: (n: AccountNode) => void
-  onDelete: (n: AccountNode) => void
+  actions: AccountAction[]
 }
 
 const amountClass = (v: number) => cn('tabular-nums', v < 0 && 'text-destructive')
 
 // Facts, figures and actions of the selected account; children shown as shares of its total.
-export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAddChild, onEdit, onArchive, onDelete }: Props) {
+export function AccountDetail({ node, base, members, fmt, actions }: Props) {
   const { t } = useTranslation()
 
   if (!node) {
@@ -46,12 +44,13 @@ export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAd
 
   const own = shown(node.type, node.net)
   const total = shown(node.type, node.treeNetBase)
-  const group = node.depth === 0 || node.is_placeholder
+  const group = (node.depth === 0 || node.is_placeholder) && !node.personGroup
+  const owner = node.owner_member_id ? members.get(node.owner_member_id) : undefined
   const kids = node.children.filter((c) => !c.archived_at)
   const kidTotals = kids.map((c) => shown(c.type, c.treeNetBase))
   const kidSum = kidTotals.reduce((s, v) => s + Math.abs(v), 0)
-  const canEdit = !(node.locked && node.is_placeholder)
-  const canArchive = !node.system_key && !node.locked
+  const primary = actions.filter((a) => a.key === 'register' || a.key === 'addChild')
+  const more = actions.filter((a) => a.key !== 'register' && a.key !== 'addChild')
 
   return (
     <Frame spacing="sm">
@@ -73,14 +72,18 @@ export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAd
           {!node.is_placeholder && (
             <div className="flex flex-col gap-0.5">
               <dt className="text-xs text-muted-foreground">{t('coa.own')}</dt>
-              <dd className={cn('text-lg font-semibold tracking-tight', amountClass(own))}>{fmt(own, node.currency)} <Cur>{node.currency}</Cur></dd>
+              <dd className={cn('text-lg font-semibold tracking-tight', amountClass(own))}>
+                {fmt(own, node.currency)} <Cur>{node.currency}</Cur>
+              </dd>
             </div>
           )}
           <div className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">
               {node.children.length ? t('coa.withChildren') : t('ledger.balance')}
             </dt>
-            <dd className={cn('text-lg font-semibold tracking-tight', amountClass(total))}>{fmt(total, base)} <Cur>{base}</Cur></dd>
+            <dd className={cn('text-lg font-semibold tracking-tight', amountClass(total))}>
+              {fmt(total, base)} <Cur>{base}</Cur>
+            </dd>
           </div>
         </dl>
 
@@ -89,7 +92,11 @@ export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAd
             {group ? t('coa.placeholder') : node.subtype ? t(`ledger.subtype.${node.subtype}`) : t(`ledger.type.${node.type}`)}
           </Fact>
           <Fact label={t('ledger.currency')}>{node.currency}</Fact>
-          {ownerName && <Fact label={t('ledger.owner')}>{ownerName}</Fact>}
+          {owner && (
+            <Fact label={t('ledger.owner')}>
+              <span className="flex items-center gap-1.5"><MemberAvatar member={owner} />{owner.name}</span>
+            </Fact>
+          )}
         </dl>
 
         {kids.length > 0 && (
@@ -98,16 +105,21 @@ export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAd
             <ul className="flex flex-col gap-2.5">
               {kids.map((c, i) => {
                 const pct = kidSum ? Math.round((Math.abs(kidTotals[i]) / kidSum) * 100) : 0
+                const person = node.personGroup && c.owner_member_id ? members.get(c.owner_member_id) : undefined
+                const label = person?.name ?? c.name
                 return (
                   <li key={c.id} className="flex flex-col gap-1">
-                    <div className="flex items-baseline justify-between gap-2 text-sm">
-                      <span className="truncate">{c.name}</span>
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        {node.personGroup && <MemberAvatar member={person} />}
+                        <span className="truncate">{label}</span>
+                      </span>
                       <span className="shrink-0">
                         <span className={amountClass(kidTotals[i])}>{fmt(kidTotals[i], base)}</span>
                         <span className="ms-2 inline-block w-9 text-end text-xs text-muted-foreground tabular-nums">{pct}%</span>
                       </span>
                     </div>
-                    <Progress value={pct} aria-label={c.name} />
+                    <Progress value={pct} aria-label={label} />
                   </li>
                 )
               })}
@@ -115,34 +127,30 @@ export function AccountDetail({ node, base, ownerName, fmt, onOpenRegister, onAd
           </div>
         )}
 
-        <div className="flex items-center gap-2 border-t pt-4">
-          {!node.is_placeholder && (
-            <Button size="sm" onClick={() => onOpenRegister(node)}>{t('coa.openRegister')}</Button>
-          )}
-          {!node.system_key && (
-            <Button size="sm" variant="outline" onClick={() => onAddChild(node)}>{t('coa.addChild')}</Button>
-          )}
-          {(canEdit || canArchive) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="ml-auto" aria-label={t('ledger.actions')} />}>
-                <MoreHorizontalIcon />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuGroup>
-                  {canEdit && <DropdownMenuItem onClick={() => onEdit(node)}>{t('ledger.edit')}</DropdownMenuItem>}
-                  {canArchive && (
-                    <DropdownMenuItem onClick={() => onArchive(node)}>
-                      {node.archived_at ? t('coa.unarchive') : t('coa.archive')}
-                    </DropdownMenuItem>
-                  )}
-                  {canArchive && (
-                    <DropdownMenuItem variant="destructive" onClick={() => onDelete(node)}>{t('ledger.delete')}</DropdownMenuItem>
-                  )}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+        {actions.length > 0 && (
+          <div className="flex items-center gap-2 border-t pt-4">
+            {primary.map((a) => (
+              <Button key={a.key} size="sm" variant={a.key === 'register' ? 'default' : 'outline'} onClick={a.onSelect}>{a.label}</Button>
+            ))}
+            {more.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="ml-auto" aria-label={t('ledger.actions')} />}>
+                  <MoreHorizontalIcon />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuGroup>
+                    {more.map((a) => (
+                      <div key={a.key}>
+                        {a.key === 'archive' && <DropdownMenuSeparator />}
+                        <DropdownMenuItem variant={a.destructive ? 'destructive' : undefined} onClick={a.onSelect}>{a.label}</DropdownMenuItem>
+                      </div>
+                    ))}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        )}
       </FramePanel>
     </Frame>
   )
