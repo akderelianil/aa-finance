@@ -1,8 +1,9 @@
 import { useMutation, useQueries } from '@tanstack/react-query'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { ChevronRightIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormError } from '@/components/PageShell'
+import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
@@ -43,6 +44,8 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
   const contacts = useContacts()
   const activeContacts = (contacts.data ?? []).filter((c) => !c.archived_at || draft.lines.some((l) => l.contactId === c.id))
   const contact = draftContact(draft.lines)
+  // Progressive disclosure: contact, tags and line memos stay hidden until asked for, or when the entry already has them.
+  const [more, setMore] = useState(() => !!contact || draft.tags.length > 0 || draft.lines.some((l) => l.memo))
 
   const setLine = (key: number, patch: Partial<DraftLine>) =>
     onChange({ ...draft, lines: draft.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) })
@@ -137,7 +140,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
 
   return (
     <div className={cn(!bare && 'rounded-xl border bg-card p-4')} onKeyDown={onKeyDown}>
-      <div className="mb-3 flex items-end gap-3">
+      <div className="mb-4 flex items-end gap-3">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t('ledger.date')}
           <Input type="date" className="h-8 w-40" value={draft.date} max={today()} onChange={(e) => onChange({ ...draft, date: e.target.value })} />
@@ -149,27 +152,13 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
             onChange={(e) => onChange({ ...draft, description: e.target.value })}
           />
         </label>
-        <label className="flex w-56 flex-col gap-1 text-xs text-muted-foreground">
-          {t('directory.field')}
-          <ContactPicker
-            contacts={activeContacts} value={contact === 'mixed' ? '' : contact} aria-label={t('directory.field')}
-            placeholder={contact === 'mixed' ? t('directory.mixed') : undefined}
-            className="rounded-md border border-input text-foreground"
-            onChange={(id) => onChange({ ...draft, lines: draft.lines.map((l) => ({ ...l, contactId: id })) })}
-          />
-        </label>
-        {draft.entryId && <span className="pb-2 text-sm font-medium text-primary">{t('gj.editing')}</span>}
-      </div>
-
-      <div className="mb-3">
-        <TagsField value={draft.tags} onChange={(tags) => onChange({ ...draft, tags })} groupId={groupId} />
       </div>
 
       <table className="w-full text-sm">
         <thead className="text-xs text-muted-foreground">
           <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
-            <th className="w-[34%]">{t('ledger.account')}</th>
-            <th>{t('ledger.memo')}</th>
+            <th className={cn(more && 'w-[34%]')}>{t('ledger.account')}</th>
+            {more && <th>{t('ledger.memo')}</th>}
             <th className="w-36 !text-right">{t('ledger.debit')}</th>
             <th className="w-36 !text-right">{t('ledger.credit')}</th>
             {anyForeign && <th className="w-28 !text-right">{t('ledger.rate')}</th>}
@@ -191,7 +180,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
                     onChange={(id) => setLine(l.key, { accountId: id, rate: '', base: '' })}
                   />
                 </td>
-                <td><Input className="h-8" maxLength={200} value={l.memo} onChange={(e) => setLine(l.key, { memo: e.target.value })} /></td>
+                {more && <td><Input className="h-8" maxLength={200} value={l.memo} onChange={(e) => setLine(l.key, { memo: e.target.value })} /></td>}
                 <td>
                   <div className="relative">
                     <Input
@@ -247,8 +236,8 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
         </tbody>
         <tfoot>
           <tr className="border-t text-sm [&>td]:px-3 [&>td]:pt-2">
-            <td colSpan={2} className="!px-1">
-              <Button type="button" variant="outline" size="sm" onClick={addLine}>
+            <td colSpan={more ? 2 : 1} className="!px-1">
+              <Button type="button" variant="ghost" size="sm" onClick={addLine}>
                 <PlusIcon data-icon="inline-start" />{t('gj.addLine')}
               </Button>
             </td>
@@ -260,12 +249,34 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
         </tfoot>
       </table>
 
-      <div className="mt-3 flex items-center gap-3">
-        <span className={cn('text-sm', diff === 0 ? 'text-muted-foreground' : 'font-medium text-destructive')}>
-          {diff !== 0
-            ? t('gj.imbalance', { amount: fmt(Math.abs(diff)), side: t(diff > 0 ? 'ledger.debit' : 'ledger.credit') })
-            : filled.length > 0 && t('gj.balanced')}
-        </span>
+      <div className="mt-3 flex flex-col gap-3">
+        <Button
+          type="button" variant="ghost" size="sm" className="w-fit" aria-expanded={more}
+          onClick={() => setMore(!more)}
+        >
+          <ChevronRightIcon data-icon="inline-start" className={cn(more && 'rotate-90')} />
+          {t('gj.details')}
+        </Button>
+        {more && (
+          <div className="grid grid-cols-[14rem_minmax(0,1fr)] items-start gap-3">
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {t('directory.field')}
+              <ContactPicker
+                contacts={activeContacts} value={contact === 'mixed' ? '' : contact} aria-label={t('directory.field')}
+                placeholder={contact === 'mixed' ? t('directory.mixed') : undefined}
+                className="rounded-md border border-input text-foreground"
+                onChange={(id) => onChange({ ...draft, lines: draft.lines.map((l) => ({ ...l, contactId: id })) })}
+              />
+            </label>
+            <TagsField value={draft.tags} onChange={(tags) => onChange({ ...draft, tags })} groupId={groupId} />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 border-t pt-3">
+        {filled.length > 0 && (diff === 0
+          ? <Badge variant="success-light">{t('gj.balanced')}</Badge>
+          : <Badge variant="destructive-light">{t('gj.imbalance', { amount: fmt(Math.abs(diff)), side: t(diff > 0 ? 'ledger.debit' : 'ledger.credit') })}</Badge>)}
         <FormError message={save.error ? errorMessage(t, save.error) : null} />
         <div className="ml-auto flex gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>{t('ledger.cancel')}</Button>

@@ -27,6 +27,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { callFunction } from '@/lib/api'
 import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
@@ -100,55 +101,57 @@ export default function Journal({ membership }: { membership: Membership }) {
 
   const columns = useMemo<ColumnDef<DataGridFeatures, JournalEntry>[]>(() => [
     {
+      id: 'member',
+      accessorFn: (e) => memberById.get(e.member_id)?.name ?? '',
+      header: ({ column }) => <DataGridColumnHeader title={t('gj.user')} column={column} />,
+      cell: ({ row }) => {
+        const m = memberById.get(row.original.member_id)
+        return (
+          <div className="flex items-center gap-1">
+            <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
+            <Tooltip>
+              <TooltipTrigger render={<span className="inline-flex" />}><MemberAvatar member={m} /></TooltipTrigger>
+              <TooltipContent>{m?.name ?? t('coa.unknownOwner')}</TooltipContent>
+            </Tooltip>
+          </div>
+        )
+      },
+      size: 90,
+      enableHiding: false,
+      meta: { skeleton: <Skeleton className="size-6 rounded-full" />, expandedContent: (e: JournalEntry) => <Lines entry={e} /> },
+    },
+    {
       id: 'date',
       accessorFn: (e) => e.entry_date,
       header: ({ column }) => <DataGridColumnHeader title={t('ledger.date')} column={column} />,
       cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
-          <span className="tabular-nums">
-            {new Date(row.original.entry_date + 'T00:00:00').toLocaleDateString(i18n.language, { day: '2-digit', month: 'short' })}
-          </span>
-        </div>
+        <span className="tabular-nums">
+          {new Date(row.original.entry_date + 'T00:00:00').toLocaleDateString(i18n.language, { day: '2-digit', month: 'short' })}
+        </span>
       ),
-      size: 110,
-      enableHiding: false,
-      meta: { skeleton: <Skeleton className="h-4 w-16" />, expandedContent: (e: JournalEntry) => <Lines entry={e} /> },
-    },
-    {
-      id: 'description',
-      accessorFn: (e) => e.description,
-      header: ({ column }) => <DataGridColumnHeader title={t('ledger.description')} column={column} />,
-      cell: ({ row: { original: e } }) => {
-        const names = lineContacts(e.journal_lines, contactById)
-        return (
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{e.description || <span className="font-normal text-muted-foreground italic">{t('gj.noDescription')}</span>}</span>
-            {names.map((n) => <Badge key={n} variant="secondary" size="sm">{n}</Badge>)}
-            {e.tags.map((x) => <Badge key={x.tag.name} variant="outline" size="sm">#{x.tag.name}</Badge>)}
-          </div>
-        )
-      },
-      minSize: 220,
-      meta: { skeleton: <Skeleton className="h-4 w-48" /> },
+      size: 100,
+      meta: { skeleton: <Skeleton className="h-4 w-16" /> },
     },
     {
       id: 'accounts',
       accessorFn: (e) => accountsOf(e),
-      header: t('ledger.account'),
-      cell: ({ row: { original: e } }) => <span className="text-muted-foreground">{accountsOf(e)}</span>,
-      enableSorting: false,
-      size: 260,
-      meta: { skeleton: <Skeleton className="h-4 w-40" /> },
-    },
-    {
-      id: 'member',
-      accessorFn: (e) => e.member_id,
-      header: () => null,
-      cell: ({ row: { original: e } }) => <MemberAvatar member={memberById.get(e.member_id)} />,
-      enableSorting: false,
-      size: 48,
-      meta: { skeleton: <Skeleton className="size-6 rounded-full" /> },
+      header: ({ column }) => <DataGridColumnHeader title={t('gj.categoryAccount')} column={column} />,
+      cell: ({ row: { original: e } }) => {
+        const names = lineContacts(e.journal_lines, contactById)
+        const note = e.description || null
+        return (
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate font-medium">{accountsOf(e)}</span>
+            <span className="flex items-center gap-2 text-xs text-muted-foreground">
+              {note ?? <span className="italic">{t('gj.noDescription')}</span>}
+              {names.map((n) => <Badge key={n} variant="secondary" size="sm">{n}</Badge>)}
+              {e.tags.map((x) => <Badge key={x.tag.name} variant="outline" size="sm">#{x.tag.name}</Badge>)}
+            </span>
+          </div>
+        )
+      },
+      minSize: 300,
+      meta: { skeleton: <Skeleton className="h-8 w-56" /> },
     },
     {
       id: 'amount',
@@ -272,7 +275,7 @@ export default function Journal({ membership }: { membership: Membership }) {
       </Frame>
 
       <Dialog open={!!draft} onOpenChange={(o) => { if (!o) setDraft(null) }}>
-        <DialogContent className="sm:max-w-5xl">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>{draft?.entryId ? t('gj.editing') : t('gj.new')}</DialogTitle>
           </DialogHeader>
@@ -314,7 +317,7 @@ export default function Journal({ membership }: { membership: Membership }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="text-xs text-muted-foreground [&>th]:py-1.5 [&>th]:font-medium [&>th]:text-start">
-            <th className="ps-12">{t('ledger.account')}</th>
+            <th className="ps-14">{t('ledger.account')}</th>
             <th>{t('ledger.memo')}</th>
             <th className="w-36 !text-end">{t('ledger.debit')}</th>
             <th className="w-36 !text-end pe-3">{t('ledger.credit')}</th>
@@ -326,7 +329,7 @@ export default function Journal({ membership }: { membership: Membership }) {
             const foreign = l.currency !== base
             return (
               <tr key={l.id} className="[&>td]:py-1">
-                <td className="ps-12">
+                <td className="ps-14">
                   {byId.get(l.account_id)?.name}
                   {foreign && (
                     <span className="ms-2 text-xs text-muted-foreground tabular-nums">
