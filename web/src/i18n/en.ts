@@ -337,6 +337,7 @@ export const en: Translation = {
   },
   reg: {
     other: 'Transfer account',
+    clearRange: 'Clear dates',
     split: '— Split entry —',
     opening: 'Opening balance',
     notFound: 'Account not found.',

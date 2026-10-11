@@ -1,18 +1,28 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
+import { useTable, type ColumnDef } from '@tanstack/react-table'
+import { ArrowLeftIcon, MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
 import { JournalEditor } from '@/components/journal/JournalEditor'
+import { DataState } from '@/components/DataState'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
+import { Badge } from '@/components/reui/badge'
+import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
+import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
+import { DataGridTable } from '@/components/reui/data-grid/data-grid-table'
+import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { callFunction } from '@/lib/api'
 import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
@@ -22,6 +32,11 @@ import {
 } from '@/lib/ledger'
 import { canModify, useMemberAccess } from '@/lib/access'
 import { cn } from '@/lib/utils'
+
+type Row = {
+  id: string; entry?: JournalEntry; opening?: boolean
+  debit: number; credit: number; memo: string | null; other: string; balance: number
+}
 
 // Account Register (GnuCash register): one row per line on the account with the other account, debit, credit
 // and the running balance in the account currency (normal sign of the account type).
@@ -52,11 +67,11 @@ export default function AccountRegister({ membership }: { membership: Membership
   const fmt = (minor: number) => formatAmount(minor, exp, i18n.language)
 
   // Rows with the running balance over all lines; the date range only hides rows (opening = balance before).
-  const { rows, opening } = useMemo(() => {
-    if (!account) return { rows: [], opening: 0 }
+  const rows = useMemo(() => {
+    if (!account) return []
     let balance = 0
     let opening = 0
-    const rows: { entry: JournalEntry; lineId: string; debit: number; credit: number; memo: string | null; other: string; balance: number }[] = []
+    const rows: Row[] = []
     for (const e of entries.data ?? []) {
       for (const l of e.journal_lines.filter((x) => x.account_id === account.id)) {
         const amount = Number(l.amount)
@@ -66,13 +81,14 @@ export default function AccountRegister({ membership }: { membership: Membership
         const others = e.journal_lines.filter((x) => x.account_id !== account.id)
         const o = others.length === 1 ? byId.get(others[0].account_id) : undefined
         rows.push({
-          entry: e, lineId: l.id, memo: l.memo, balance,
+          entry: e, id: l.id, memo: l.memo, balance,
           debit: l.direction === 'debit' ? amount : 0, credit: l.direction === 'credit' ? amount : 0,
           other: o ? o.name : others.length ? t('reg.split') : '',
         })
       }
     }
-    return { rows, opening }
+    if (from) rows.unshift({ id: 'opening', opening: true, debit: 0, credit: 0, memo: null, other: '', balance: opening })
+    return rows
   }, [account, entries.data, from, to, byId, t])
 
   const remove = useMutation({
@@ -84,8 +100,88 @@ export default function AccountRegister({ membership }: { membership: Membership
     date: today(), description: '', tags: [], lines: [{ ...emptyLine(), accountId: account!.id }, emptyLine()],
   })
 
-  if (accounts.isLoading) return <p className="text-muted-foreground">{t('ledger.loading')}</p>
-  if (!account) return <p className="text-muted-foreground">{t('reg.notFound')}</p>
+  const canPost = !!account && !account.is_placeholder && !account.archived_at
+  const num = { headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums' }
+  const columns = useMemo<ColumnDef<DataGridFeatures, Row>[]>(() => [
+    {
+      id: 'date', header: t('ledger.date'), size: 100, enableSorting: false,
+      cell: ({ row: { original: r } }) => (r.opening
+        ? <span className="text-muted-foreground">{t('reg.opening')}</span>
+        : <span className="tabular-nums">{new Date(r.entry!.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</span>),
+      meta: { skeleton: <Skeleton className="h-4 w-16" /> },
+    },
+    {
+      id: 'description', header: t('ledger.description'), minSize: 240, enableSorting: false,
+      cell: ({ row: { original: r } }) => r.opening ? null : (
+        <span className="flex items-center gap-2">
+          <span className="truncate">{r.entry!.description}</span>
+          {lineContacts(r.entry!.journal_lines, contactById).map((n) => <Badge key={n} variant="secondary" size="sm">{n}</Badge>)}
+          {r.entry!.tags.map((x) => <Badge key={x.tag.name} variant="outline" size="sm">#{x.tag.name}</Badge>)}
+        </span>
+      ),
+      meta: { skeleton: <Skeleton className="h-4 w-48" /> },
+    },
+    {
+      id: 'other', header: t('reg.other'), size: 180, enableSorting: false,
+      cell: ({ row: { original: r } }) => <span className={cn('truncate', r.other === t('reg.split') && 'italic text-muted-foreground')}>{r.other}</span>,
+      meta: { skeleton: <Skeleton className="h-4 w-28" /> },
+    },
+    {
+      id: 'memo', header: t('ledger.memo'), size: 160, enableSorting: false,
+      cell: ({ row: { original: r } }) => <span className="truncate text-muted-foreground">{r.memo}</span>,
+      meta: { skeleton: <Skeleton className="h-4 w-24" /> },
+    },
+    {
+      id: 'debit', header: t('ledger.debit'), size: 130, enableSorting: false,
+      cell: ({ row: { original: r } }) => (r.debit ? fmt(r.debit) : ''),
+      meta: { ...num, skeleton: <Skeleton className="ml-auto h-4 w-16" /> },
+    },
+    {
+      id: 'credit', header: t('ledger.credit'), size: 130, enableSorting: false,
+      cell: ({ row: { original: r } }) => (r.credit ? fmt(r.credit) : ''),
+      meta: { ...num, skeleton: <Skeleton className="ml-auto h-4 w-16" /> },
+    },
+    {
+      id: 'balance', header: t('ledger.balance'), size: 150, enableSorting: false,
+      cell: ({ row: { original: r } }) => <span className={cn(r.balance < 0 && 'text-destructive')}>{fmt(r.balance)}</span>,
+      meta: { ...num, skeleton: <Skeleton className="ml-auto h-4 w-20" /> },
+    },
+    {
+      id: 'actions', header: () => null, size: 48, enableSorting: false, enableHiding: false,
+      cell: ({ row: { original: r } }) => {
+        if (!r.entry) return null
+        const canEdit = canModify(membership, access.data ?? [], r.entry.member_id, 'edit')
+        const canDelete = canModify(membership, access.data ?? [], r.entry.member_id, 'delete')
+        if (!canEdit && !canDelete) return null
+        const e = r.entry
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={t('gj.actions')} />}>
+              <MoreHorizontalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && <DropdownMenuItem onClick={() => setDraft(entryToDraft(e, base, exponents))}>{t('ledger.edit')}</DropdownMenuItem>}
+              {canEdit && canDelete && <DropdownMenuSeparator />}
+              {canDelete && <DropdownMenuItem variant="destructive" onClick={() => setDeleting(e)}>{t('ledger.delete')}</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+      meta: { skeleton: <Skeleton className="size-5" /> },
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, i18n.language, exp, contactById, membership, access.data, base, currencies.data, account])
+
+  const table = useTable({
+    features: dataGridFeatures,
+    columns,
+    data: rows,
+    getRowId: (r: Row) => r.id,
+    state: { pagination: { pageIndex: 0, pageSize: 5000 } },
+  })
+
+  if (accounts.isLoading) return <DataState loading />
+  if (!account) return <DataState empty={{ title: t('reg.notFound') }} />
   const total = shown(account.type, account.net)
 
   return (
@@ -104,7 +200,7 @@ export default function AccountRegister({ membership }: { membership: Membership
                 {fmt(total)} <span className="text-sm text-muted-foreground">{account.currency}</span>
               </div>
             </div>
-            {!draft && !account.is_placeholder && !account.archived_at && (
+            {!draft && canPost && (
               <Button onClick={newEntry}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
             )}
           </>
@@ -119,75 +215,47 @@ export default function AccountRegister({ membership }: { membership: Membership
         />
       )}
 
-      <div className="flex items-end gap-3">
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('gj.from')}
-          <Input type="date" className="h-8 w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('gj.to')}
-          <Input type="date" className="h-8 w-40" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-      </div>
-
-      <div className="rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
-            <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-              <th className="w-28">{t('ledger.date')}</th>
-              <th>{t('ledger.description')}</th>
-              <th>{t('reg.other')}</th>
-              <th>{t('ledger.memo')}</th>
-              <th className="w-36 !text-right">{t('ledger.debit')}</th>
-              <th className="w-36 !text-right">{t('ledger.credit')}</th>
-              <th className="w-40 !text-right">{t('ledger.balance')}</th>
-              <th className="w-20" />
-            </tr>
-          </thead>
-          <tbody className="[&>tr]:border-t [&>tr>td]:px-3 [&>tr>td]:py-1.5">
-            {from && (
-              <tr className="bg-muted/20 text-muted-foreground">
-                <td colSpan={6}>{t('reg.opening')}</td>
-                <td className="text-right font-mono tabular-nums">{fmt(opening)}</td>
-                <td />
-              </tr>
+      <Frame spacing="sm" stacked>
+        <FramePanel className="flex items-center gap-2 p-2">
+          <Input type="date" className="w-36" aria-label={t('gj.from')} value={from} onChange={(e) => setFrom(e.target.value)} />
+          <Input type="date" className="w-36" aria-label={t('gj.to')} value={to} onChange={(e) => setTo(e.target.value)} />
+          {(from || to) && (
+            <Button variant="ghost" size="sm" onClick={() => { setFrom(''); setTo('') }}>{t('reg.clearRange')}</Button>
+          )}
+        </FramePanel>
+        <FramePanel className="p-0">
+          <DataGrid
+            table={table}
+            recordCount={rows.length}
+            isLoading={entries.isLoading}
+            tableLayout={{ dense: true, headerBackground: false }}
+            emptyMessage={entries.isError ? (
+              <Empty>
+                <EmptyHeader><EmptyTitle>{t('state.error')}</EmptyTitle></EmptyHeader>
+                <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('state.retry')}</Button>
+              </Empty>
+            ) : (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>{t('gj.empty')}</EmptyTitle>
+                  <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
+                </EmptyHeader>
+                {canPost && !draft && <Button size="sm" onClick={newEntry}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
+              </Empty>
             )}
-            {entries.isLoading && <tr><td colSpan={8} className="text-center text-muted-foreground">{t('ledger.loading')}</td></tr>}
-            {!entries.isLoading && rows.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground">{t('gj.empty')}</td></tr>}
-            {rows.map((r) => {
-              const canEdit = canModify(membership, access.data ?? [], r.entry.member_id, 'edit')
-              const canDelete = canModify(membership, access.data ?? [], r.entry.member_id, 'delete')
-              return (
-                <tr key={r.lineId} className={cn('group', draft?.entryId === r.entry.id && 'bg-primary/10')}>
-                  <td className="font-mono tabular-nums">{new Date(r.entry.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
-                  <td>
-                    {r.entry.description}
-                    {r.entry.tags.map((x) => (
-                      <span key={x.tag.name} className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground">#{x.tag.name}</span>
-                    ))}
-                    {lineContacts(r.entry.journal_lines, contactById).map((n) => (
-                      <span key={n} className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{n}</span>
-                    ))}
-                  </td>
-                  <td className={cn(r.other === t('reg.split') && 'italic text-muted-foreground')}>{r.other}</td>
-                  <td className="text-muted-foreground">{r.memo}</td>
-                  <td className="text-right font-mono tabular-nums">{r.debit ? fmt(r.debit) : ''}</td>
-                  <td className="text-right font-mono tabular-nums">{r.credit ? fmt(r.credit) : ''}</td>
-                  <td className={cn('text-right font-mono tabular-nums', r.balance < 0 && 'text-destructive')}>{fmt(r.balance)}</td>
-                  <td className="text-right whitespace-nowrap">
-                    {canEdit && (
-                      <span className="invisible group-hover:visible">
-                        <Button variant="ghost" size="icon-xs" aria-label={t('ledger.edit')} onClick={() => setDraft(entryToDraft(r.entry, base, exponents))}><PencilIcon /></Button>
-                        {canDelete && <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(r.entry)}><Trash2Icon /></Button>}
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+          >
+            <DataGridContainer>
+              <DataGridScrollArea>
+                <DataGridTable />
+              </DataGridScrollArea>
+            </DataGridContainer>
+          </DataGrid>
+        </FramePanel>
+        <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{t('gj.count', { count: rows.filter((r) => !r.opening).length })}</span>
+          <span>{t('ledger.balance')}: <span className="tabular-nums text-foreground">{fmt(total)} {account.currency}</span></span>
+        </FrameFooter>
+      </Frame>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>

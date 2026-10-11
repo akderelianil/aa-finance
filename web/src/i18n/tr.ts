@@ -337,6 +337,7 @@ export const tr = {
     other: 'Karşı hesap',
     split: '— Çok satırlı —',
     opening: 'Devreden bakiye',
+    clearRange: 'Tarihi temizle',
     notFound: 'Hesap bulunamadı.',
   },
   rep: {
