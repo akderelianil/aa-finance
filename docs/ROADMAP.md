@@ -36,6 +36,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | S3 Core accounts | Locked core set (roots, system groups, Kişilerden Alacaklar, Kişilere Borçlar, Banka Ücreti, system accounts). Onboarding choice: core only or core + recommended. Admin adds recommended accounts later on Hesaplar. | Done 2026-10-11 |
 | S2 Hesaplar UI | Chart of Accounts redesigned on ReUI: two-row KPI strip, tree data-grid, detail panel, right-click menu, same-name accounts of different owners folded with avatars, new account dialog on cascader. | Done 2026-10-11 |
 | J2 Yevmiye UI | General Journal on ReUI data-grid: one row per entry, lines on expand, period presets. "Yeni kayıt" chooser (Gider, Gelir, Transfer, Borç, Serbest kayıt). Defensive entry forms with guiding messages. | Done 2026-10-11 |
+| U1 ReUI migration | Register, Reports, Member access, Directory, Dashboard, Settings, Auth and onboarding moved to ReUI: data-grid tables, shared `DataState` (loading, empty with action, error with Retry), Alert and RadioGroup in forms. Unused shadcn parts removed. | Done 2026-10-11 |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

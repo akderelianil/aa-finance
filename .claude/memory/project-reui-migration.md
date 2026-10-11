@@ -1,9 +1,11 @@
 ---
 name: project-reui-migration
-description: "2026-10-11 ReUI migration of remaining old-style screens: item checklist and the clear-between-items routine"
+description: "2026-10-11 ReUI migration of old-style screens: COMPLETE, all items done"
 metadata:
   type: project
 ---
+
+**Status: finished 2026-10-11. No next item; `devam` needs a new task.**
 
 Plan file: `~/.claude/plans/mossy-snuggling-kitten.md`. One item per session, one commit each; after an item say "run /clear, then `devam`". On `devam`: read this note, load `aa-finance-ui` + `reui`, do the next unchecked item.
 
