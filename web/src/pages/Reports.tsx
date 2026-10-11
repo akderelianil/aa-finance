@@ -1,11 +1,20 @@
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { useTable, type ColumnDef } from '@tanstack/react-table'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import type { Membership } from '@/auth/useMembership'
+import { DataState } from '@/components/DataState'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { CompositionBar } from '@/components/StatStrip'
+import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
+import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
+import { DataGridTable } from '@/components/reui/data-grid/data-grid-table'
+import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { today } from '@/lib/journal'
 import { formatAmount, shown, useCurrencies, useLedgerAccounts, type AccountType } from '@/lib/ledger'
@@ -13,6 +22,7 @@ import { cumulativeNet, isEmpty, periodNet, rollUp, usePeriodTotals, type Report
 import { cn } from '@/lib/utils'
 
 type Tab = 'trial' | 'balance' | 'income'
+type Row = { id: string; label: string; depth: number; kind: 'head' | 'strong' | 'group' | 'row' | 'total'; v: number[] }
 
 // Reports in the base currency: Trial Balance (Mizan, cumulative to the end date), Balance Sheet (Bilanço, at the
 // end date) and Income Statement (Gelir Tablosu, for the period).
@@ -38,21 +48,15 @@ export default function Reports({ membership }: { membership: Membership }) {
   const ofType = (...types: AccountType[]) => tree.filter((r) => types.includes(r.node.type))
   const maxDepth = Number(depth)
 
-  // Rows of a tree down to the chosen depth; zero rows are hidden unless asked.
-  function rows(nodes: ReportNode[], render: (r: ReportNode) => ReactNode): ReactNode {
-    return nodes.map((r) => {
-      if ((!showZero && isEmpty(r.totals)) || r.node.depth >= maxDepth) return null
-      return <Fragment key={r.node.id}>{render(r)}{rows(r.children, render)}</Fragment>
-    })
+  // Flat report rows of a tree down to the chosen depth; zero rows are hidden unless asked.
+  function treeRows(nodes: ReportNode[], values: (r: ReportNode) => number[], out: Row[] = []): Row[] {
+    for (const r of nodes) {
+      if ((!showZero && isEmpty(r.totals)) || r.node.depth >= maxDepth) continue
+      out.push({ id: r.node.id, label: r.node.name, depth: r.node.depth, kind: r.node.depth === 0 ? 'strong' : r.children.length ? 'group' : 'row', v: values(r) })
+      treeRows(r.children, values, out)
+    }
+    return out
   }
-  const nameCell = (r: ReportNode) => (
-    <td style={{ paddingLeft: `${0.75 + r.node.depth * 1.25}rem` }} className={cn(r.children.length > 0 && 'font-medium')}>
-      {r.node.name}
-    </td>
-  )
-  const num = (v: number, strong = false) => (
-    <td className={cn('text-right font-mono tabular-nums', v < 0 && 'text-destructive', strong && 'font-semibold')}>{fmt(v)}</td>
-  )
   const sum = (nodes: ReportNode[], f: (x: Totals) => number) => nodes.reduce((s, r) => s + f(r.totals), 0)
 
   const loading = accounts.isLoading || totals.isLoading
@@ -63,21 +67,108 @@ export default function Reports({ membership }: { membership: Membership }) {
   const netIncomeToDate = -sum(income, cumulativeNet) - sum(expense, cumulativeNet)
   const netIncomePeriod = -sum(income, periodNet) - sum(expense, periodNet)
 
-  function section(title: string, nodes: ReportNode[], value: (r: ReportNode) => number, extra?: ReactNode, total?: number) {
-    return (
-      <>
-        <tr className="bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2"><td colSpan={2}>{title}</td></tr>
-        {rows(nodes, (r) => (
-          <tr className="[&>td]:px-3 [&>td]:py-1">{nameCell(r)}{num(value(r), r.node.depth === 0)}</tr>
-        ))}
-        {extra}
-        <tr className="border-t font-semibold [&>td]:px-3 [&>td]:py-2">
-          <td>{t('rep.total', { name: title })}</td>
-          {num(total ?? nodes.reduce((s, r) => s + value(r), 0), true)}
-        </tr>
-      </>
-    )
+  function section(title: string, nodes: ReportNode[], value: (r: ReportNode) => number, extra?: Row[], total?: number): Row[] {
+    return [
+      { id: `h-${title}`, label: title, depth: 0, kind: 'head', v: [] },
+      ...treeRows(nodes, (r) => [value(r)]),
+      ...(extra ?? []),
+      { id: `t-${title}`, label: t('rep.total', { name: title }), depth: 0, kind: 'total', v: [total ?? nodes.reduce((s, r) => s + value(r), 0)] },
+    ]
   }
+
+  const trialRows = (): Row[] => {
+    const d = sum(tree, (x) => x.beforeDebit + x.debit)
+    const c = sum(tree, (x) => x.beforeCredit + x.credit)
+    const db = tree.reduce((s, r) => s + Math.max(cumulativeNet(r.totals), 0), 0)
+    const cb = tree.reduce((s, r) => s + Math.max(-cumulativeNet(r.totals), 0), 0)
+    return [
+      ...treeRows(tree, (r) => {
+        const d = r.totals.beforeDebit + r.totals.debit
+        const c = r.totals.beforeCredit + r.totals.credit
+        return [d, c, Math.max(d - c, 0), Math.max(c - d, 0)]
+      }),
+      { id: 'grand', label: t('rep.grandTotal'), depth: 0, kind: 'total', v: [d, c, db, cb] },
+    ]
+  }
+
+  const assets = ofType('asset')
+  const liabilities = ofType('liability')
+  const equity = ofType('equity')
+  const bsVal = (r: ReportNode) => shown(r.node.type, cumulativeNet(r.totals))
+  const totalAssets = assets.reduce((s, r) => s + bsVal(r), 0)
+  const totalLiab = liabilities.reduce((s, r) => s + bsVal(r), 0)
+  const totalEquity = equity.reduce((s, r) => s + bsVal(r), 0) + netIncomeToDate
+  const isVal = (r: ReportNode) => shown(r.node.type, periodNet(r.totals))
+  const netLabel = (n: number) => t(n >= 0 ? 'rep.netProfit' : 'rep.netLoss')
+
+  const config: Record<Tab, { heads: string[]; rows: () => Row[]; segments: { key: string; label: string; value: number; color: string }[]; foot?: ReactNode }> = {
+    trial: {
+      heads: [t('rep.debitTotal'), t('rep.creditTotal'), t('rep.debitBalance'), t('rep.creditBalance')],
+      rows: trialRows, segments: [],
+    },
+    balance: {
+      heads: [t('ledger.balance')],
+      rows: () => [
+        ...section(t('ledger.typePlural.asset'), assets, bsVal),
+        ...section(t('ledger.typePlural.liability'), liabilities, bsVal),
+        ...section(t('ledger.typePlural.equity'), equity, bsVal,
+          [{ id: 'net', label: netLabel(netIncomeToDate), depth: 1, kind: 'row', v: [netIncomeToDate] }], totalEquity),
+        { id: 'sources', label: t('rep.totalSources'), depth: 0, kind: 'total', v: [totalLiab + totalEquity] },
+      ],
+      segments: [
+        { key: 'l', label: t('ledger.typePlural.liability'), value: totalLiab, color: 'var(--chart-4)' },
+        { key: 'e', label: t('ledger.typePlural.equity'), value: totalEquity, color: 'var(--primary)' },
+      ],
+      foot: totalAssets === totalLiab + totalEquity
+        ? <span>{t('rep.balanced')}</span>
+        : <span className="font-medium text-destructive">{t('rep.unbalanced', { amount: fmt(totalAssets - totalLiab - totalEquity) })}</span>,
+    },
+    income: {
+      heads: [t('ledger.balance')],
+      rows: () => [
+        ...section(t('ledger.typePlural.income'), income, isVal),
+        ...section(t('ledger.typePlural.expense'), expense, isVal),
+        { id: 'net', label: netLabel(netIncomePeriod), depth: 0, kind: 'total', v: [netIncomePeriod] },
+      ],
+      segments: [
+        { key: 'x', label: t('ledger.typePlural.expense'), value: sum(expense, periodNet), color: 'var(--chart-4)' },
+        { key: 'n', label: netLabel(netIncomePeriod), value: netIncomePeriod, color: 'var(--chart-2)' },
+      ],
+    },
+  }
+  const cfg = config[tab]
+  const data = useMemo(() => (loading ? [] : cfg.rows()), [loading, cfg.rows]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const columns = useMemo<ColumnDef<DataGridFeatures, Row>[]>(() => [
+    {
+      id: 'name', header: t('ledger.account'), minSize: 260, enableSorting: false,
+      cell: ({ row: { original: r } }) => (
+        <span style={{ paddingLeft: `${r.depth * 1.25}rem` }} className={cn('truncate', r.kind !== 'row' && 'font-medium', (r.kind === 'head' || r.kind === 'total') && 'font-semibold')}>
+          {r.label}
+        </span>
+      ),
+      meta: { skeleton: <Skeleton className="h-4 w-48" /> },
+    },
+    ...cfg.heads.map((h, i): ColumnDef<DataGridFeatures, Row> => ({
+      id: `v${i}`, header: h, size: 150, enableSorting: false,
+      cell: ({ row: { original: r } }) => {
+        const v = r.v[i]
+        if (v === undefined) return null
+        return <span className={cn(v < 0 && 'text-destructive', r.kind !== 'row' && r.kind !== 'group' && 'font-semibold')}>{fmt(v)}</span>
+      },
+      meta: { headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums', skeleton: <Skeleton className="ml-auto h-4 w-16" /> },
+    })),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, i18n.language, exp, cfg.heads.join('|')])
+
+  const table = useTable({
+    features: dataGridFeatures,
+    columns,
+    data,
+    getRowId: (r: Row) => r.id,
+    state: { pagination: { pageIndex: 0, pageSize: 5000 } },
+  })
+  const failed = accounts.isError || totals.isError
 
   return (
     <>
@@ -113,119 +204,35 @@ export default function Reports({ membership }: { membership: Membership }) {
         </label>
       </div>
 
-      <div className="rounded-xl border">
-        {loading && <p className="p-6 text-center text-muted-foreground">{t('ledger.loading')}</p>}
-
-        {!loading && tab === 'trial' && (
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
-              <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:font-medium">
-                <th className="text-left">{t('ledger.account')}</th>
-                <th className="w-40 text-right">{t('rep.debitTotal')}</th>
-                <th className="w-40 text-right">{t('rep.creditTotal')}</th>
-                <th className="w-40 text-right">{t('rep.debitBalance')}</th>
-                <th className="w-40 text-right">{t('rep.creditBalance')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows(tree, (r) => {
-                const d = r.totals.beforeDebit + r.totals.debit
-                const c = r.totals.beforeCredit + r.totals.credit
-                const strong = r.node.depth === 0
-                return (
-                  <tr className={cn('[&>td]:px-3 [&>td]:py-1', strong && 'border-t bg-muted/20')}>
-                    {nameCell(r)}{num(d, strong)}{num(c, strong)}{num(Math.max(d - c, 0), strong)}{num(Math.max(c - d, 0), strong)}
-                  </tr>
-                )
-              })}
-            </tbody>
-            <tfoot>
-              {(() => {
-                const d = sum(tree, (x) => x.beforeDebit + x.debit)
-                const c = sum(tree, (x) => x.beforeCredit + x.credit)
-                const db = tree.reduce((s, r) => s + Math.max(cumulativeNet(r.totals), 0), 0)
-                const cb = tree.reduce((s, r) => s + Math.max(-cumulativeNet(r.totals), 0), 0)
-                return (
-                  <tr className="border-t bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
-                    <td>{t('rep.grandTotal')}</td>{num(d, true)}{num(c, true)}{num(db, true)}{num(cb, true)}
-                  </tr>
-                )
-              })()}
-            </tfoot>
-          </table>
+      <Frame spacing="sm" stacked>
+        {cfg.segments.length > 0 && !loading && (
+          <FramePanel>
+            <CompositionBar format={fmt} segments={cfg.segments} />
+          </FramePanel>
         )}
-
-        {!loading && tab === 'balance' && (() => {
-          const assets = ofType('asset')
-          const liabilities = ofType('liability')
-          const equity = ofType('equity')
-          const val = (r: ReportNode) => shown(r.node.type, cumulativeNet(r.totals))
-          const totalAssets = assets.reduce((s, r) => s + val(r), 0)
-          const totalLiab = liabilities.reduce((s, r) => s + val(r), 0)
-          const totalEquity = equity.reduce((s, r) => s + val(r), 0) + netIncomeToDate
-          return (
-            <div className="grid grid-cols-2 divide-x">
-              <div className="col-span-2 border-b px-3 py-3">
-                <CompositionBar
-                  format={fmt}
-                  segments={[
-                    { key: 'l', label: t('ledger.typePlural.liability'), value: totalLiab, color: 'var(--chart-4)' },
-                    { key: 'e', label: t('ledger.typePlural.equity'), value: totalEquity, color: 'var(--primary)' },
-                  ]}
-                />
-              </div>
-              <table className="w-full self-start text-sm">
-                <tbody>{section(t('ledger.typePlural.asset'), assets, val)}</tbody>
-              </table>
-              <table className="w-full self-start text-sm">
-                <tbody>
-                  {section(t('ledger.typePlural.liability'), liabilities, val)}
-                  {section(t('ledger.typePlural.equity'), equity, val, (
-                    <tr className="[&>td]:px-3 [&>td]:py-1">
-                      <td className="pl-3 font-medium">{t(netIncomeToDate >= 0 ? 'rep.netProfit' : 'rep.netLoss')}</td>
-                      {num(netIncomeToDate, true)}
-                    </tr>
-                  ), totalEquity)}
-                  <tr className="border-t-2 bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
-                    <td>{t('rep.totalSources')}</td>{num(totalLiab + totalEquity, true)}
-                  </tr>
-                </tbody>
-              </table>
-              <div className="col-span-2 border-t px-3 py-2 text-sm">
-                {totalAssets === totalLiab + totalEquity
-                  ? <span className="text-muted-foreground">{t('rep.balanced')}</span>
-                  : <span className="font-medium text-destructive">{t('rep.unbalanced', { amount: fmt(totalAssets - totalLiab - totalEquity) })}</span>}
-              </div>
-            </div>
-          )
-        })()}
-
-        {!loading && tab === 'income' && (() => {
-          const val = (r: ReportNode) => shown(r.node.type, periodNet(r.totals))
-          return (
-            <>
-              <div className="border-b px-3 py-3">
-                <CompositionBar
-                  format={fmt}
-                  segments={[
-                    { key: 'x', label: t('ledger.typePlural.expense'), value: sum(expense, periodNet), color: 'var(--chart-4)' },
-                    { key: 'n', label: t(netIncomePeriod >= 0 ? 'rep.netProfit' : 'rep.netLoss'), value: netIncomePeriod, color: 'var(--chart-2)' },
-                  ]}
-                />
-              </div>
-            <table className="w-full text-sm">
-              <tbody>
-                {section(t('ledger.typePlural.income'), income, val)}
-                {section(t('ledger.typePlural.expense'), expense, val)}
-                <tr className="border-t-2 bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
-                  <td>{t(netIncomePeriod >= 0 ? 'rep.netProfit' : 'rep.netLoss')}</td>{num(netIncomePeriod, true)}
-                </tr>
-              </tbody>
-            </table>
-            </>
-          )
-        })()}
-      </div>
+        <FramePanel className="p-0">
+          <DataGrid
+            table={table}
+            recordCount={data.length}
+            isLoading={loading}
+            tableLayout={{ dense: true, headerBackground: false, headerSticky: true }}
+            emptyMessage={failed ? (
+              <DataState error onRetry={() => { accounts.refetch(); totals.refetch() }} />
+            ) : (
+              <DataState empty={{ title: t('rep.empty'), hint: t('rep.emptyHint'), action: (
+                <Button size="sm" nativeButton={false} render={<Link to="/yevmiye" />}>{t('gj.new')}</Button>
+              ) }} />
+            )}
+          >
+            <DataGridContainer>
+              <DataGridScrollArea>
+                <DataGridTable />
+              </DataGridScrollArea>
+            </DataGridContainer>
+          </DataGrid>
+        </FramePanel>
+        {cfg.foot && !loading && <FrameFooter className="text-xs text-muted-foreground">{cfg.foot}</FrameFooter>}
+      </Frame>
     </>
   )
 }

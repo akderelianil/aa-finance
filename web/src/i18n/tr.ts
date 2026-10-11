@@ -361,6 +361,8 @@ export const tr = {
     netLoss: 'Dönem net zararı',
     balanced: 'Aktif toplamı pasif toplamına eşit.',
     unbalanced: 'Aktif ve pasif arasında {{amount}} fark var.',
+    empty: 'Bu dönemde kayıt yok.',
+    emptyHint: 'Rapor, yevmiye kayıtlarından oluşur.',
   },
   errors: {
     invalid_contact: 'Rehber kaydı geçersiz.',

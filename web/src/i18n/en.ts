@@ -363,6 +363,8 @@ export const en: Translation = {
     netLoss: 'Net loss',
     balanced: 'Total assets equal total liabilities and equity.',
     unbalanced: 'Assets and liabilities + equity differ by {{amount}}.',
+    empty: 'No entries in this period.',
+    emptyHint: 'Reports are built from journal entries.',
   },
   errors: {
     invalid_contact: 'Contact is invalid.',

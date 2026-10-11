@@ -10,7 +10,7 @@ Plan file: `~/.claude/plans/mossy-snuggling-kitten.md`. One item per session, on
 Checklist (mark done here after each commit):
 - [x] 0 `components/DataState.tsx` + `state.*` i18n
 - [x] 1 AccountRegister → data-grid
-- [ ] 2 Reports → data-grid
+- [x] 2 Reports → data-grid
 - [ ] 3 MemberAccessCard (drop ui/table)
 - [ ] 4 Directory (Rehber)
 - [ ] 5 Dashboard + StatStrip
