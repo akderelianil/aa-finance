@@ -1,6 +1,6 @@
 import { useMutation, useQueries } from '@tanstack/react-query'
 import { ChevronRightIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormError } from '@/components/PageShell'
 import { Badge } from '@/components/reui/badge'
@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
 import { TagsField } from '@/components/journal/TagsField'
 import { ContactPicker } from './ContactPicker'
+import { AmountInput } from './AmountInput'
+import { amountIssue } from '@/lib/entryRules'
 
 type Props = {
   draft: Draft
@@ -88,6 +90,38 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
   const invalid = filled.some((l) => !l.accountId || (!l.debit && !l.credit))
   const ready = filled.length >= 2 && !invalid && diff === 0 && bases.every((b, i) => b || !filled.includes(draft.lines[i]))
 
+  // Defensive checks: say what is missing instead of leaving Save silently disabled.
+  const [attempted, setAttempted] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const lineIssue = (l: DraftLine, i: number) => {
+    if (!filled.includes(l)) return {}
+    const cur = byId.get(l.accountId)?.currency ?? baseCurrency
+    const raw = l.debit || l.credit
+    const amt = !raw.trim() ? t('check.amount_required') : (() => { const k = amountIssue(raw, expOf(cur)); return k ? t(`check.amount_${k}`, { count: expOf(cur) }) : null })()
+    void i
+    return { account: l.accountId ? null : t('check.account'), amount: amt }
+  }
+  const issues = draft.lines.map(lineIssue)
+  const dateError = !draft.date ? t('check.dateRequired') : draft.date > today() ? t('check.dateFuture') : null
+  const reasons = [
+    filled.length < 2 && t('check.lines'),
+    issues.some((x) => x.account) && t('check.lineAccount', { count: issues.filter((x) => x.account).length }),
+    issues.some((x) => x.amount) && t('check.lineAmount', { count: issues.filter((x) => x.amount).length }),
+    diff !== 0 && filled.length >= 2 && t('check.imbalance', { amount: formatAmount(Math.abs(diff), baseExp, i18n.language) }),
+    dateError,
+  ].filter((x): x is string => !!x)
+  const canSave = ready && !dateError
+
+  function submit() {
+    if (save.isPending) return
+    if (!canSave) {
+      setAttempted(true)
+      setTimeout(() => rootRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 50)
+      return
+    }
+    save.mutate()
+  }
+
   function addLine() {
     // GnuCash: a new line proposes the open difference on the other side.
     const amount = diff === 0 ? undefined : formatAmount(Math.abs(diff), baseExp, 'en').replace(/,/g, '')
@@ -123,7 +157,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
   function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
-      if (ready && !save.isPending) save.mutate()
+      submit()
     }
   }
   // Enter in the last amount field adds a line.
@@ -136,14 +170,14 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
 
   const fmt = (minor: number) => formatAmount(minor, baseExp, i18n.language)
   const anyForeign = foreign.length > 0
-  const amountCls = 'h-8 text-right font-mono tabular-nums'
+  const amountCls = 'h-8'
 
   return (
-    <div className={cn(!bare && 'rounded-xl border bg-card p-4')} onKeyDown={onKeyDown}>
+    <div ref={rootRef} className={cn(!bare && 'rounded-xl border bg-card p-4')} onKeyDown={onKeyDown}>
       <div className="mb-4 flex items-end gap-3">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t('ledger.date')}
-          <Input type="date" className="h-8 w-40" value={draft.date} max={today()} onChange={(e) => onChange({ ...draft, date: e.target.value })} />
+          <Input type="date" className="h-8 w-40" value={draft.date} max={today()} aria-invalid={(attempted && !!dateError) || undefined} onChange={(e) => onChange({ ...draft, date: e.target.value })} />
         </label>
         <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
           {t('ledger.description')}
@@ -175,37 +209,33 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
               <tr key={l.key} className="[&>td]:px-1 [&>td]:py-0.5">
                 <td>
                   <AccountPicker
-                    accounts={accounts} value={l.accountId} autoFocus={focusKey === l.key}
+                    accounts={accounts} value={l.accountId} autoFocus={focusKey === l.key} invalid={attempted && !!issues[i].account}
                     aria-label={`${t('ledger.account')} ${i + 1}`}
                     onChange={(id) => setLine(l.key, { accountId: id, rate: '', base: '' })}
                   />
                 </td>
                 {more && <td><Input className="h-8" maxLength={200} value={l.memo} onChange={(e) => setLine(l.key, { memo: e.target.value })} /></td>}
                 <td>
-                  <div className="relative">
-                    <Input
-                      className={amountCls} inputMode="decimal" value={l.debit} aria-label={t('ledger.debit')}
-                      onChange={(e) => setLine(l.key, { debit: e.target.value, credit: '' })} onKeyDown={amountKeys(l)}
-                    />
-                    {isForeign && <span className="pointer-events-none absolute top-2 left-2 text-[10px] text-muted-foreground">{acc.currency}</span>}
-                  </div>
+                  <AmountInput
+                    className={amountCls} value={l.debit} aria-label={t('ledger.debit')} currency={acc?.currency} exponent={expOf(acc?.currency ?? baseCurrency)}
+                    invalid={attempted && !!issues[i].amount && !l.credit}
+                    onChange={(v) => setLine(l.key, { debit: v, credit: '' })} onKeyDown={amountKeys(l)}
+                  />
                 </td>
                 <td>
-                  <div className="relative">
-                    <Input
-                      className={amountCls} inputMode="decimal" value={l.credit} aria-label={t('ledger.credit')}
-                      onChange={(e) => setLine(l.key, { credit: e.target.value, debit: '' })} onKeyDown={amountKeys(l)}
-                    />
-                    {isForeign && <span className="pointer-events-none absolute top-2 left-2 text-[10px] text-muted-foreground">{acc.currency}</span>}
-                  </div>
+                  <AmountInput
+                    className={amountCls} value={l.credit} aria-label={t('ledger.credit')} currency={acc?.currency} exponent={expOf(acc?.currency ?? baseCurrency)}
+                    invalid={attempted && !!issues[i].amount && !l.debit}
+                    onChange={(v) => setLine(l.key, { credit: v, debit: '' })} onKeyDown={amountKeys(l)}
+                  />
                 </td>
                 {anyForeign && (
                   <td>
                     {isForeign && (
-                      <Input
-                        className={amountCls} inputMode="decimal" value={l.rate} aria-label={t('ledger.rate')}
+                      <AmountInput
+                        className={amountCls} tidy={false} exponent={10} value={l.rate} aria-label={t('ledger.rate')}
                         placeholder={dayRate.get(acc.currency) ?? ''}
-                        onChange={(e) => setLine(l.key, { rate: e.target.value, base: '' })}
+                        onChange={(v) => setLine(l.key, { rate: v, base: '' })}
                       />
                     )}
                   </td>
@@ -213,10 +243,10 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
                 {anyForeign && (
                   <td>
                     {isForeign && (
-                      <Input
-                        className={amountCls} inputMode="decimal" value={l.base} aria-label={t('gj.baseAmount', { currency: baseCurrency })}
-                        placeholder={b ? fmt(b.base) : ''}
-                        onChange={(e) => setLine(l.key, { base: e.target.value, rate: '' })}
+                      <AmountInput
+                        className={amountCls} exponent={baseExp} value={l.base} aria-label={t('gj.baseAmount', { currency: baseCurrency })}
+                        currency={baseCurrency} placeholder={b ? fmt(b.base) : ''}
+                        onChange={(v) => setLine(l.key, { base: v, rate: '' })}
                       />
                     )}
                   </td>
@@ -277,10 +307,13 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
         {filled.length > 0 && (diff === 0
           ? <Badge variant="success-light">{t('gj.balanced')}</Badge>
           : <Badge variant="destructive-light">{t('gj.imbalance', { amount: fmt(Math.abs(diff)), side: t(diff > 0 ? 'ledger.debit' : 'ledger.credit') })}</Badge>)}
-        <FormError message={save.error ? errorMessage(t, save.error) : null} />
+        {save.error ? <FormError message={errorMessage(t, save.error)} />
+          : attempted && reasons.length > 0 ? (
+            <ul className="flex flex-col text-sm text-destructive" role="alert">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+          ) : null}
         <div className="ml-auto flex gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>{t('ledger.cancel')}</Button>
-          <Button type="button" disabled={!ready || save.isPending} onClick={() => save.mutate()} title="Ctrl+Enter">
+          <Button type="button" disabled={save.isPending} onClick={submit} title="Ctrl+Enter">
             {save.isPending && <Spinner data-icon="inline-start" />}
             {t('ledger.save')}
           </Button>

@@ -9,12 +9,13 @@ type Props = {
   onChange: (id: string) => void
   placeholder?: string
   className?: string
+  invalid?: boolean
   'aria-label'?: string
 }
 
 // Keyboard Rehber picker, same behavior as AccountPicker: type part of a name, arrows move, Enter or Tab picks.
 // An empty text picks nothing (clears the value); Escape restores the value.
-export function ContactPicker({ contacts, value, onChange, placeholder, className, ...aria }: Props) {
+export function ContactPicker({ contacts, value, onChange, placeholder, className, invalid, ...aria }: Props) {
   const { t, i18n } = useTranslation()
   const selected = contacts.find((c) => c.id === value)
   const [query, setQuery] = useState<string | null>(null)
@@ -64,7 +65,8 @@ export function ContactPicker({ contacts, value, onChange, placeholder, classNam
     <div className={cn('relative', className)}>
       <input
         {...aria}
-        className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm outline-none hover:border-input focus:border-ring focus:bg-background"
+        aria-invalid={invalid || undefined}
+        className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm outline-none hover:border-input focus:border-ring focus:bg-background aria-invalid:border-destructive"
         value={query ?? selected?.name ?? ''}
         placeholder={placeholder ?? t('directory.pick')}
         onFocus={(e) => e.currentTarget.select()}

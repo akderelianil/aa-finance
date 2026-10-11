@@ -8,6 +8,7 @@ type Props = {
   value: string
   onChange: (id: string) => void
   autoFocus?: boolean
+  invalid?: boolean
   className?: string
   'aria-label'?: string
 }
@@ -16,7 +17,7 @@ const label = (a: AccountNode) => a.name
 
 // Keyboard account picker for the journal grid: type part of a name or of its group, arrows move,
 // Enter or Tab picks the highlighted account, Escape restores the value.
-export function AccountPicker({ accounts, value, onChange, autoFocus, className, ...aria }: Props) {
+export function AccountPicker({ accounts, value, onChange, autoFocus, className, invalid, ...aria }: Props) {
   const { t, i18n } = useTranslation()
   const selected = accounts.find((a) => a.id === value)
   const [query, setQuery] = useState<string | null>(null)
@@ -66,8 +67,9 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
     <div className={cn('relative', className)}>
       <input
         {...aria}
+        aria-invalid={invalid || undefined}
         autoFocus={autoFocus}
-        className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm outline-none hover:border-input focus:border-ring focus:bg-background"
+        className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm outline-none hover:border-input focus:border-ring focus:bg-background aria-invalid:border-destructive"
         value={query ?? (selected ? label(selected) : '')}
         placeholder={t('gj.pickAccount')}
         onFocus={(e) => e.currentTarget.select()}

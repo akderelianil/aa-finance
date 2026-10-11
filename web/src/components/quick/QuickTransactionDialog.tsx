@@ -1,9 +1,10 @@
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, UserPlusIcon } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, CircleAlertIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, TriangleAlertIcon, UserPlusIcon } from 'lucide-react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AccountPicker } from '@/components/journal/AccountPicker'
+import { AmountInput } from '@/components/journal/AmountInput'
 import { ContactPicker } from '@/components/journal/ContactPicker'
 import { FormError } from '@/components/PageShell'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
+import { amountIssue, oneYearAgo } from '@/lib/entryRules'
 import { useContactDebt, useContacts, type Contact } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { today } from '@/lib/journal'
@@ -237,18 +239,111 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   const setSplit = (key: number, patch: Partial<SplitDraft>) =>
     setSplits((all) => all.map((s) => (s.key === key ? { ...s, ...patch } : s)))
 
-  const amountCls = 'h-8 text-right font-mono tabular-nums'
-  const showMemo = splits.length > 1 || splits.some((x) => x.memo)
+  // ---- Defensive checks: every blocking problem has a message; warnings never block. ----
+  const [attempted, setAttempted] = useState(false)
+  const [touched, setTouched] = useState<Set<string>>(new Set())
+  const [showFee, setShowFee] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const errs: Record<string, string> = {}
+  const warns: Record<string, string> = {}
+  const amtCheck = (raw: string, cur: string, required = true) => {
+    if (!raw.trim()) return required ? t('check.amount_required') : null
+    const i = amountIssue(raw, expOf(cur))
+    return i ? t(`check.amount_${i}`, { count: expOf(cur) }) : null
+  }
+  const account = t('check.account')
+
+  if (!date) errs.date = t('check.dateRequired')
+  else if (date > today()) errs.date = t('check.dateFuture')
+  else if (date < oneYearAgo()) warns.date = t('check.dateOld')
+
+  const single = kind !== 'transfer' && kind !== 'debt' && splits.length === 1
+  const heroMode = kind === 'transfer' || kind === 'debt' || single
+  if (kind === 'debt') {
+    if (!contactId) errs.person = t('quick.debt.needPerson')
+    if (!money) errs.money = account
+    const e = amtCheck(amount, money?.currency ?? base)
+    if (e) errs.amount = e
+    if (!debtAccount) errs.debtAccount = t('check.noDebtAccount', { kind: t(debtMode === 'borrow' || debtMode === 'pay' ? 'check.payable' : 'check.receivable') })
+    if (debtDiffer && debtCounter === null) errs.counter = t('check.counter')
+  } else if (kind === 'transfer') {
+    if (!from) errs.from = account
+    if (!to) errs.to = account
+    else if (sameAccount) errs.to = t('quick.sameAccount')
+    const e = amtCheck(amount, from?.currency ?? base)
+    if (e) errs.amount = e
+    if (differ && counterMinor === null) errs.counter = t('check.counter')
+    else if (counter) { const c = amtCheck(counter, to?.currency ?? base, false); if (c) errs.counter = c }
+    const fe = amtCheck(fee, from?.currency ?? base, false)
+    if (fe) errs.fee = fe
+    else if (feeMinor > 0 && !feeAccount) errs.feeAccount = t('check.feeAccount')
+    if (badFeeAccount) errs.feeAccount = t('quick.feeCurrency')
+    if (!errs.fee && feeMinor > 0 && amountMinor > 0 && feeMinor >= amountMinor) warns.fee = t('check.feeBig')
+  } else {
+    if (!money) errs.money = account
+    splits.forEach((s, i) => {
+      if (i > 0 && !s.accountId && !s.amount) return
+      if (!s.accountId) errs[`acc${s.key}`] = account
+      const e = amtCheck(s.amount, acc(s.accountId)?.currency ?? base)
+      if (e) errs[`amt${s.key}`] = e
+    })
+    const seen = new Set<string>()
+    for (const s of splits) {
+      if (s.accountId && seen.has(s.accountId)) warns[`acc${s.key}`] = t('check.duplicate')
+      seen.add(s.accountId)
+    }
+    if (mixed && money) {
+      if (moneyAmount) { const e = amtCheck(moneyAmount, money.currency, false); if (e) errs.moneyAmount = e }
+      else if (moneyMinor === null) errs.moneyAmount = t('check.counter')
+    }
+  }
+  // Soft warning: the paying account would go below zero.
+  const payerKey = kind === 'expense' ? 'money' : kind === 'transfer' ? 'from' : kind === 'debt' && !moneyIn(debtMode) ? 'money' : null
+  const payer = payerKey === 'from' ? from : payerKey ? money : undefined
+  const outMinor = kind === 'transfer' ? amountMinor + feeMinor : kind === 'debt' ? debtMinor : money && !mixed ? splitsTotal : moneyMinor ?? 0
+  if (payerKey && payer && payer.type === 'asset' && outMinor > payer.net && !errs[payerKey]) {
+    warns[payerKey] = t('check.lowBalance', { balance: fmt(payer.net, payer.currency), currency: payer.currency })
+  }
+
+  const errorCount = Object.keys(errs).length
+  const blocking = errorCount > 0 || !lines
+  const shown = (key: string) => (attempted || touched.has(key) ? errs[key] : undefined)
+  const fieldProps = (key: string) => ({
+    error: shown(key), warning: errs[key] ? undefined : warns[key],
+    onTouch: () => setTouched((s) => (s.has(key) ? s : new Set(s).add(key))),
+  })
+
+  function submit() {
+    if (save.isPending) return
+    if (blocking) {
+      setAttempted(true)
+      setTimeout(() => rootRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 50)
+      return
+    }
+    save.mutate()
+  }
+
+  const first = splits[0]
+  const heroKey = kind === 'transfer' || kind === 'debt' ? 'amount' : `amt${first.key}`
+  const heroValue = kind === 'transfer' || kind === 'debt' ? amount : first.amount
+  const heroCur = kind === 'transfer' ? from?.currency : kind === 'debt' ? money?.currency : acc(first.accountId)?.currency
+  const setHero = (v: string) => (kind === 'transfer' || kind === 'debt' ? setAmount(v) : setSplit(first.key, { amount: v }))
   const moneyLabel = kind === 'expense' ? t('quick.paidFrom') : t('quick.paidTo')
   const splitLabel = kind === 'expense' ? t('quick.expenseAccount') : t('quick.incomeAccount')
+  const moneyField = (
+    <Field label={moneyLabel} {...fieldProps('money')}>
+      <Picker accounts={balanceSheet} value={moneyId} onChange={setMoneyId} label={moneyLabel} invalid={!!shown('money')} />
+    </Field>
+  )
 
   return (
     <div
+      ref={rootRef}
       className="flex flex-col gap-4"
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && lines && !save.isPending) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault()
-          save.mutate()
+          submit()
         }
       }}
     >
@@ -273,104 +368,148 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
       )}
 
       {kind === 'debt' && (
-        <ToggleGroup
-          value={[debtMode]} spacing={2} className="grid w-full grid-cols-4" aria-label={t('quick.kind.debt')}
-          onValueChange={(v) => { if (v[0]) { setDebtMode(v[0] as DebtMode); setCounter('') } }}
-        >
-          {DEBT_MODES.map((m) => (
-            <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`quick.debt.${m}`)}</ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+        <>
+          <ToggleGroup
+            value={[debtMode]} spacing={2} className="grid w-full grid-cols-4" aria-label={t('quick.kind.debt')}
+            onValueChange={(v) => { if (v[0]) { setDebtMode(v[0] as DebtMode); setCounter('') } }}
+          >
+            {DEBT_MODES.map((m) => (
+              <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`quick.debt.${m}`)}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Field label={t('quick.debt.person')} {...fieldProps('person')}>
+            <ContactPicker
+              contacts={activeContacts} value={contactId} onChange={changeContact} aria-label={t('directory.field')} invalid={!!shown('person')}
+              className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
+            />
+          </Field>
+          {errs.debtAccount && <p className="text-sm text-destructive" role="alert">{errs.debtAccount}</p>}
+        </>
       )}
 
-      <div className="flex items-end gap-3">
-        <Field label={t('ledger.date')}>
-          <Input type="date" className="h-8 w-40" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
-        </Field>
-        <Field label={t('ledger.description')} className="flex-1">
-          <Input className="h-8" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
-      </div>
-      {(kind === 'debt' || showContact || contactId) ? (
-        <Field label={kind === 'debt' ? t('quick.debt.person') : t('directory.field')} className="w-72">
-          <ContactPicker
-            contacts={activeContacts} value={contactId} onChange={changeContact} aria-label={t('directory.field')}
-            className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
+      {heroMode && (
+        <Field label={t('quick.amount')} hint={t('check.amountHint')} {...fieldProps(heroKey)}>
+          <AmountInput
+            hero autoFocus value={heroValue} currency={heroCur ?? base} exponent={expOf(heroCur ?? base)}
+            invalid={!!shown(heroKey)} placeholder="0,00" onChange={setHero}
           />
         </Field>
-      ) : (
-        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setShowContact(true)}>
-          <UserPlusIcon data-icon="inline-start" />{t('quick.addContact')}
-        </Button>
       )}
 
-      {kind === 'debt' ? (
+      {kind === 'transfer' && (
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+          <Field label={t('quick.from')} {...fieldProps('from')}>
+            <Picker accounts={fromList} value={fromId} onChange={setFromId} label={t('quick.from')} invalid={!!shown('from')} />
+          </Field>
+          <ArrowRightIcon className="mt-7 size-4 text-muted-foreground" aria-hidden />
+          <Field label={t('quick.to')} {...fieldProps('to')}>
+            <Picker accounts={toList} value={toId} onChange={setToId} label={t('quick.to')} invalid={!!shown('to')} />
+          </Field>
+        </div>
+      )}
+
+      {kind === 'transfer' && differ && to && (
+        <Field label={t('quick.counterAmount', { currency: to.currency })} hint={t('check.counterHint')} {...fieldProps('counter')}>
+          <AmountInput
+            className="w-56" value={counter} currency={to.currency} exponent={expOf(to.currency)} invalid={!!shown('counter')}
+            placeholder={counterSuggest ? fmt(counterSuggest, to.currency) : ''} onChange={setCounter}
+          />
+        </Field>
+      )}
+
+      {kind === 'transfer' && (showFee || fee ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t('quick.fee')} {...fieldProps('fee')}>
+            <AmountInput value={fee} currency={from?.currency ?? base} exponent={expOf(from?.currency ?? base)} invalid={!!shown('fee')} onChange={setFee} />
+          </Field>
+          <Field label={t('quick.feeAccount')} {...fieldProps('feeAccount')}>
+            <Picker accounts={expenses} value={feeAccount?.id ?? ''} onChange={setFeeAccountId} label={t('quick.feeAccount')} invalid={!!shown('feeAccount')} />
+          </Field>
+        </div>
+      ) : (
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setShowFee(true)}>
+          <PlusIcon data-icon="inline-start" />{t('quick.addFee')}
+        </Button>
+      ))}
+
+      {kind === 'debt' && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}>
-              <Picker
-                accounts={moneyAccounts} value={moneyId} onChange={setMoneyId} autoFocus
-                label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}
-              />
-            </Field>
-            <Field label={t('quick.amount')}>
-              <AmountInput className={amountCls} value={amount} currency={money?.currency} base={base} onChange={setAmount} />
-            </Field>
-          </div>
+          <Field label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')} {...fieldProps('money')}>
+            <Picker
+              accounts={moneyAccounts} value={moneyId} onChange={setMoneyId} invalid={!!shown('money')}
+              label={moneyIn(debtMode) ? t('quick.debt.receivedIn') : t('quick.debt.givenFrom')}
+            />
+          </Field>
           {contactId && debtOpen.data !== undefined && (
             <p className="text-sm text-muted-foreground">
               {t(debtAccount?.subtype === 'payable' ? 'quick.debt.openPayable' : 'quick.debt.openReceivable')}
               {': '}
-              <span className="font-mono tabular-nums">{fmt(debtOpen.data, base)} {base}</span>
+              <span className="tabular-nums">{fmt(debtOpen.data, base)} {base}</span>
             </p>
           )}
+          {overpay && <p className="text-sm text-muted-foreground">{t('quick.debt.overpay', { amount: fmt(debtOpen.data ?? 0, base), currency: base })}</p>}
           {debtDiffer && debtAccount && (
-            <Field label={t('quick.debt.debtAmount', { currency: debtAccount.currency })} className="w-1/2 pr-1.5">
+            <Field label={t('quick.debt.debtAmount', { currency: debtAccount.currency })} hint={t('check.counterHint')} {...fieldProps('counter')}>
               <AmountInput
-                className={amountCls} value={counter} currency={debtAccount.currency} base={base}
-                placeholder={debtSuggest ? fmt(debtSuggest, debtAccount.currency) : ''}
-                onChange={setCounter}
+                className="w-56" value={counter} currency={debtAccount.currency} exponent={expOf(debtAccount.currency)} invalid={!!shown('counter')}
+                placeholder={debtSuggest ? fmt(debtSuggest, debtAccount.currency) : ''} onChange={setCounter}
               />
             </Field>
           )}
         </>
-      ) : kind !== 'transfer' ? (
-        <>
-          <Field label={moneyLabel}>
-            <Picker accounts={balanceSheet} value={moneyId} onChange={setMoneyId} label={moneyLabel} autoFocus />
-          </Field>
+      )}
 
+      {kind !== 'transfer' && kind !== 'debt' && (single ? (
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+          {kind === 'expense' ? moneyField : (
+            <Field label={splitLabel} {...fieldProps(`acc${first.key}`)}>
+              <Picker accounts={categories} value={first.accountId} label={splitLabel} invalid={!!shown(`acc${first.key}`)} onChange={(id) => setSplit(first.key, { accountId: id })} />
+            </Field>
+          )}
+          <ArrowRightIcon className="mt-7 size-4 text-muted-foreground" aria-hidden />
+          {kind === 'expense' ? (
+            <Field label={splitLabel} {...fieldProps(`acc${first.key}`)}>
+              <Picker accounts={categories} value={first.accountId} label={splitLabel} invalid={!!shown(`acc${first.key}`)} onChange={(id) => setSplit(first.key, { accountId: id })} />
+            </Field>
+          ) : moneyField}
+        </div>
+      ) : (
+        <>
+          {moneyField}
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground">
               <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
-                <th className={showMemo ? 'w-[45%]' : undefined}>{splitLabel}</th>
-                {showMemo && <th>{t('ledger.memo')}</th>}
-                <th className="w-40 !text-right">{t('quick.amount')}</th>
+                <th className="w-[40%]">{splitLabel}</th>
+                <th>{t('ledger.memo')}</th>
+                <th className="w-44 !text-right">{t('quick.amount')}</th>
                 <th className="w-8" />
               </tr>
             </thead>
             <tbody>
               {splits.map((s, i) => {
                 const a = acc(s.accountId)
+                const accErr = shown(`acc${s.key}`)
+                const amtErr = shown(`amt${s.key}`)
                 return (
-                  <tr key={s.key} className="[&>td]:px-1 [&>td]:py-0.5">
+                  <tr key={s.key} className="align-top [&>td]:px-1 [&>td]:py-0.5">
                     <td>
                       <Picker
-                        accounts={categories} value={s.accountId} label={`${splitLabel} ${i + 1}`}
+                        accounts={categories} value={s.accountId} label={`${splitLabel} ${i + 1}`} invalid={!!accErr}
                         onChange={(id) => setSplit(s.key, { accountId: id })}
                       />
+                      <Msg error={accErr} warning={warns[`acc${s.key}`]} />
                     </td>
-                    {showMemo && <td><Input className="h-8" maxLength={200} value={s.memo} onChange={(e) => setSplit(s.key, { memo: e.target.value })} /></td>}
+                    <td><Input maxLength={200} value={s.memo} onChange={(e) => setSplit(s.key, { memo: e.target.value })} /></td>
                     <td>
                       <AmountInput
-                        className={amountCls} value={s.amount} currency={a?.currency} base={base} aria-label={t('quick.amount')}
-                        onChange={(v) => setSplit(s.key, { amount: v })}
+                        value={s.amount} currency={a?.currency ?? base} exponent={expOf(a?.currency ?? base)} aria-label={t('quick.amount')}
+                        invalid={!!amtErr} onChange={(v) => setSplit(s.key, { amount: v })}
                       />
+                      <Msg error={amtErr} />
                     </td>
                     <td>
                       <Button
                         type="button" variant="ghost" size="icon-sm" aria-label={t('gj.removeLine')} tabIndex={-1}
-                        disabled={splits.length <= 1}
                         onClick={() => setSplits((all) => all.filter((x) => x.key !== s.key))}
                       >
                         <Trash2Icon />
@@ -380,67 +519,53 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
                 )
               })}
             </tbody>
-            <tfoot>
-              <tr className="border-t [&>td]:px-1 [&>td]:pt-2">
-                <td colSpan={showMemo ? 2 : 1}>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setSplits((all) => [...all, emptySplit()])}>
-                    <PlusIcon data-icon="inline-start" />{t('quick.addAccount')}
-                  </Button>
-                </td>
-                <td className="px-3 text-right font-mono font-semibold tabular-nums">
-                  {!mixed && money && splits.length > 1 && fmt(splitsTotal, money.currency)}
-                </td>
-                <td />
-              </tr>
-            </tfoot>
           </table>
-
-          {mixed && money && (
-            <Field label={kind === 'expense' ? t('quick.moneyOut', { currency: money.currency }) : t('quick.moneyIn', { currency: money.currency })}>
-              <AmountInput
-                className={`${amountCls} w-48`} value={moneyAmount} currency={money.currency} base={base}
-                placeholder={moneySuggest !== null ? fmt(moneySuggest, money.currency) : ''}
-                onChange={setMoneyAmount}
-              />
-            </Field>
-          )}
+          {!mixed && money && <p className="text-end text-sm text-muted-foreground">{t('quick.total')}: <span className="font-medium text-foreground tabular-nums">{fmt(splitsTotal, money.currency)} {money.currency}</span></p>}
         </>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t('quick.from')}>
-              <Picker accounts={fromList} value={fromId} onChange={setFromId} label={t('quick.from')} autoFocus />
-            </Field>
-            <Field label={t('quick.to')}>
-              <Picker accounts={toList} value={toId} onChange={setToId} label={t('quick.to')} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t('quick.amount')}>
-              <AmountInput className={amountCls} value={amount} currency={from?.currency} base={base} onChange={setAmount} />
-            </Field>
-            {differ && to && (
-              <Field label={t('quick.counterAmount', { currency: to.currency })}>
-                <AmountInput
-                  className={amountCls} value={counter} currency={to.currency} base={base}
-                  placeholder={counterSuggest ? fmt(counterSuggest, to.currency) : ''}
-                  onChange={setCounter}
-                />
-              </Field>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label={t('quick.fee')}>
-              <AmountInput className={amountCls} value={fee} currency={from?.currency} base={base} onChange={setFee} />
-            </Field>
-            <Field label={t('quick.feeAccount')}>
-              <Picker accounts={expenses} value={feeAccount?.id ?? ''} onChange={setFeeAccountId} label={t('quick.feeAccount')} />
-            </Field>
-          </div>
-        </>
+      ))}
+      {kind !== 'transfer' && kind !== 'debt' && (
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setSplits((all) => [...all, emptySplit()])}>
+          <PlusIcon data-icon="inline-start" />{single ? t('quick.split') : t('quick.addAccount')}
+        </Button>
       )}
 
-      {lines && (
+      {mixed && money && (
+        <Field
+          label={kind === 'expense' ? t('quick.moneyOut', { currency: money.currency }) : t('quick.moneyIn', { currency: money.currency })}
+          hint={t('check.counterHint')} {...fieldProps('moneyAmount')}
+        >
+          <AmountInput
+            className="w-56" value={moneyAmount} currency={money.currency} exponent={expOf(money.currency)} invalid={!!shown('moneyAmount')}
+            placeholder={moneySuggest !== null ? fmt(moneySuggest, money.currency) : ''} onChange={setMoneyAmount}
+          />
+        </Field>
+      )}
+
+      <div className="flex items-start gap-3">
+        <Field label={t('ledger.date')} {...fieldProps('date')}>
+          <Input type="date" className="w-40" value={date} max={today()} aria-invalid={!!shown('date') || undefined} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field
+          label={t('ledger.description')} className="flex-1"
+          hint={description.length >= 160 ? `${description.length}/200` : undefined}
+        >
+          <Input maxLength={200} value={description} placeholder={t(`quick.example.${kind}`)} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+      </div>
+      {kind !== 'debt' && (showContact || contactId ? (
+        <Field label={t('directory.field')} className="w-72">
+          <ContactPicker
+            contacts={activeContacts} value={contactId} onChange={changeContact} aria-label={t('directory.field')}
+            className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
+          />
+        </Field>
+      ) : (
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setShowContact(true)}>
+          <UserPlusIcon data-icon="inline-start" />{t('quick.addContact')}
+        </Button>
+      ))}
+
+      {lines && !errorCount && (
         <div className="flex flex-col gap-2">
           <Button type="button" variant="ghost" size="sm" className="w-fit" aria-expanded={showBooking} onClick={() => setShowBooking(!showBooking)}>
             <ChevronRightIcon data-icon="inline-start" className={showBooking ? 'rotate-90' : undefined} />
@@ -450,17 +575,12 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <FormError
-          message={save.error ? errorMessage(t, save.error)
-            : kind === 'debt' && !contactId ? t('quick.debt.needPerson')
-              : overpay ? t('quick.debt.overpay', { amount: fmt(debtOpen.data ?? 0, base), currency: base })
-              : sameAccount ? t('quick.sameAccount')
-              : badFeeAccount ? t('quick.feeCurrency') : null}
-        />
+      <div className="flex items-center gap-3 border-t pt-3">
+        {save.error ? <FormError message={errorMessage(t, save.error)} />
+          : attempted && errorCount > 0 ? <p className="text-sm text-destructive" role="alert">{t('check.missing', { count: errorCount })}</p> : null}
         <div className="ml-auto flex gap-2">
           <Button type="button" variant="outline" onClick={onClose}>{t('ledger.cancel')}</Button>
-          <Button type="button" disabled={!lines || save.isPending} onClick={() => save.mutate()} title="Ctrl+Enter">
+          <Button type="button" disabled={save.isPending} onClick={submit} title="Ctrl+Enter">
             {save.isPending && <Spinner data-icon="inline-start" />}
             {t('ledger.save')}
           </Button>
@@ -470,37 +590,36 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   )
 }
 
-function Field({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
+// One labelled field with its message under it: an error (red), else a warning (muted, with an icon), else a hint.
+function Field({ label, className, children, error, warning, hint, onTouch }: {
+  label: string; className?: string; children: ReactNode; error?: string; warning?: string; hint?: string; onTouch?: () => void
+}) {
   return (
-    <label className={`flex flex-col gap-1 text-xs text-muted-foreground ${className ?? ''}`}>
-      {label}
-      {children}
-    </label>
+    <div className={`flex min-w-0 flex-col gap-1 ${className ?? ''}`} onBlurCapture={onTouch}>
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        {label}
+        {children}
+      </label>
+      <Msg error={error} warning={warning} hint={hint} />
+    </div>
   )
 }
 
-function Picker({ accounts, value, onChange, label, autoFocus }: {
-  accounts: AccountNode[]; value: string; onChange: (id: string) => void; label: string; autoFocus?: boolean
+function Msg({ error, warning, hint }: { error?: string; warning?: string; hint?: string }) {
+  if (error) return <p className="flex items-start gap-1 text-xs text-destructive" role="alert"><CircleAlertIcon className="mt-0.5 size-3 shrink-0" />{error}</p>
+  if (warning) return <p className="flex items-start gap-1 text-xs text-muted-foreground"><TriangleAlertIcon className="mt-0.5 size-3 shrink-0" />{warning}</p>
+  if (hint) return <p className="text-xs text-muted-foreground">{hint}</p>
+  return null
+}
+
+function Picker({ accounts, value, onChange, label, invalid }: {
+  accounts: AccountNode[]; value: string; onChange: (id: string) => void; label: string; invalid?: boolean
 }) {
   return (
     <AccountPicker
-      accounts={accounts} value={value} onChange={onChange} autoFocus={autoFocus} aria-label={label}
+      accounts={accounts} value={value} onChange={onChange} invalid={invalid} aria-label={label}
       className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
     />
-  )
-}
-
-function AmountInput({ currency, base, onChange, ...rest }: {
-  value: string; currency?: string; base: string; className?: string; placeholder?: string
-  onChange: (v: string) => void; 'aria-label'?: string
-}) {
-  return (
-    <div className="relative">
-      <Input inputMode="decimal" {...rest} onChange={(e) => onChange(e.target.value)} />
-      {currency && currency !== base && (
-        <span className="pointer-events-none absolute top-2 left-2 text-[10px] text-muted-foreground">{currency}</span>
-      )}
-    </div>
   )
 }
 
