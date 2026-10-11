@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { PlusIcon, Trash2Icon } from 'lucide-react'
+import { ArrowLeftRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, UserPlusIcon } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
@@ -89,6 +89,8 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   const [feeAccountId, setFeeAccountId] = useState('')
   // Borç
   const [debtMode, setDebtMode] = useState<DebtMode>('borrow')
+  const [showBooking, setShowBooking] = useState(false)
+  const [showContact, setShowContact] = useState(false)
 
   const balanceSheet = postable.filter((a) => a.type === 'asset' || a.type === 'liability')
   const categories = postable.filter((a) => a.type === kind)
@@ -236,6 +238,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
     setSplits((all) => all.map((s) => (s.key === key ? { ...s, ...patch } : s)))
 
   const amountCls = 'h-8 text-right font-mono tabular-nums'
+  const showMemo = splits.length > 1 || splits.some((x) => x.memo)
   const moneyLabel = kind === 'expense' ? t('quick.paidFrom') : t('quick.paidTo')
   const splitLabel = kind === 'expense' ? t('quick.expenseAccount') : t('quick.incomeAccount')
 
@@ -251,10 +254,10 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
     >
       <Tabs value={kind} onValueChange={(v) => changeKind(v as Kind)}>
         <TabsList>
-          <TabsTrigger value="income">{t('quick.kind.income')}</TabsTrigger>
-          <TabsTrigger value="expense">{t('quick.kind.expense')}</TabsTrigger>
-          <TabsTrigger value="transfer">{t('quick.kind.transfer')}</TabsTrigger>
-          <TabsTrigger value="debt">{t('quick.kind.debt')}</TabsTrigger>
+          <TabsTrigger value="income"><TrendingUpIcon />{t('quick.kind.income')}</TabsTrigger>
+          <TabsTrigger value="expense"><TrendingDownIcon />{t('quick.kind.expense')}</TabsTrigger>
+          <TabsTrigger value="transfer"><ArrowLeftRightIcon />{t('quick.kind.transfer')}</TabsTrigger>
+          <TabsTrigger value="debt"><HandCoinsIcon />{t('quick.kind.debt')}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -284,16 +287,22 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
         <Field label={t('ledger.date')}>
           <Input type="date" className="h-8 w-40" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Field label={kind === 'debt' ? t('quick.debt.person') : t('directory.field')} className="w-60">
+        <Field label={t('ledger.description')} className="flex-1">
+          <Input className="h-8" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+      </div>
+      {(kind === 'debt' || showContact || contactId) ? (
+        <Field label={kind === 'debt' ? t('quick.debt.person') : t('directory.field')} className="w-72">
           <ContactPicker
             contacts={activeContacts} value={contactId} onChange={changeContact} aria-label={t('directory.field')}
             className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
           />
         </Field>
-        <Field label={t('ledger.description')} className="flex-1">
-          <Input className="h-8" maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} />
-        </Field>
-      </div>
+      ) : (
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setShowContact(true)}>
+          <UserPlusIcon data-icon="inline-start" />{t('quick.addContact')}
+        </Button>
+      )}
 
       {kind === 'debt' ? (
         <>
@@ -334,8 +343,8 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground">
               <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
-                <th className="w-[45%]">{splitLabel}</th>
-                <th>{t('ledger.memo')}</th>
+                <th className={showMemo ? 'w-[45%]' : undefined}>{splitLabel}</th>
+                {showMemo && <th>{t('ledger.memo')}</th>}
                 <th className="w-40 !text-right">{t('quick.amount')}</th>
                 <th className="w-8" />
               </tr>
@@ -351,7 +360,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
                         onChange={(id) => setSplit(s.key, { accountId: id })}
                       />
                     </td>
-                    <td><Input className="h-8" maxLength={200} value={s.memo} onChange={(e) => setSplit(s.key, { memo: e.target.value })} /></td>
+                    {showMemo && <td><Input className="h-8" maxLength={200} value={s.memo} onChange={(e) => setSplit(s.key, { memo: e.target.value })} /></td>}
                     <td>
                       <AmountInput
                         className={amountCls} value={s.amount} currency={a?.currency} base={base} aria-label={t('quick.amount')}
@@ -373,8 +382,8 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
             </tbody>
             <tfoot>
               <tr className="border-t [&>td]:px-1 [&>td]:pt-2">
-                <td colSpan={2}>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setSplits((all) => [...all, emptySplit()])}>
+                <td colSpan={showMemo ? 2 : 1}>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setSplits((all) => [...all, emptySplit()])}>
                     <PlusIcon data-icon="inline-start" />{t('quick.addAccount')}
                   </Button>
                 </td>
@@ -431,7 +440,15 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
         </>
       )}
 
-      {lines && <Preview lines={lines} byId={byId} base={base} fmt={(d, cur) => fmt(toMinor(d, expOf(cur)), cur)} />}
+      {lines && (
+        <div className="flex flex-col gap-2">
+          <Button type="button" variant="ghost" size="sm" className="w-fit" aria-expanded={showBooking} onClick={() => setShowBooking(!showBooking)}>
+            <ChevronRightIcon data-icon="inline-start" className={showBooking ? 'rotate-90' : undefined} />
+            {t('quick.showBooking')}
+          </Button>
+          {showBooking && <Preview lines={lines} byId={byId} base={base} fmt={(d, cur) => fmt(toMinor(d, expOf(cur)), cur)} />}
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
         <FormError

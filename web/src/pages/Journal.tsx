@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { MemberAvatar } from '@/components/coa/OwnerAvatars'
 import { JournalEditor } from '@/components/journal/JournalEditor'
+import { NewEntryChooser, type NewEntryChoice } from '@/components/journal/NewEntryChooser'
+import { QuickTransactionDialog, type QuickKind } from '@/components/quick/QuickTransactionDialog'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import { Badge } from '@/components/reui/badge'
@@ -58,6 +60,8 @@ export default function Journal({ membership }: { membership: Membership }) {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<ExpandedState>({})
   const [draft, setDraft] = useState<Draft | null>(null)
+  const [choosing, setChoosing] = useState(false)
+  const [quick, setQuick] = useState<QuickKind | null>(null)
   const [deleting, setDeleting] = useState<JournalEntry | null>(null)
 
   const accounts = useLedgerAccounts()
@@ -95,6 +99,12 @@ export default function Journal({ membership }: { membership: Membership }) {
     const name = (side: 'debit' | 'credit') => [...new Set(e.journal_lines.filter((l) => l.direction === side).map((l) => byId.get(l.account_id)?.name ?? ''))]
     const [d, c] = [name('debit'), name('credit')]
     return d.length === 1 && c.length === 1 ? `${d[0]} → ${c[0]}` : t('gj.lines', { count: e.journal_lines.length })
+  }
+
+  function choose(c: NewEntryChoice) {
+    setChoosing(false)
+    if (c === 'free') setDraft(newDraft())
+    else setQuick(c)
   }
 
   function edit(e: JournalEntry) { setDraft(entryToDraft(e, base, exponents)) }
@@ -211,7 +221,7 @@ export default function Journal({ membership }: { membership: Membership }) {
     <>
       <PageHeader
         title={t('gj.title')} description={t('gj.subtitle')}
-        actions={<Button onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
+        actions={<Button onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
       />
 
       <Frame spacing="sm" stacked>
@@ -257,7 +267,7 @@ export default function Journal({ membership }: { membership: Membership }) {
                   <EmptyTitle>{t('gj.empty')}</EmptyTitle>
                   <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
                 </EmptyHeader>
-                <Button size="sm" onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
+                <Button size="sm" onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
               </Empty>
             )}
           >
@@ -274,10 +284,12 @@ export default function Journal({ membership }: { membership: Membership }) {
         </FrameFooter>
       </Frame>
 
+      <NewEntryChooser open={choosing} onClose={() => setChoosing(false)} onChoose={choose} />
+      <QuickTransactionDialog kind={quick} onClose={() => setQuick(null)} membership={membership} />
       <Dialog open={!!draft} onOpenChange={(o) => { if (!o) setDraft(null) }}>
         <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{draft?.entryId ? t('gj.editing') : t('gj.new')}</DialogTitle>
+            <DialogTitle>{draft?.entryId ? t('gj.editing') : t('gj.chooser.free')}</DialogTitle>
           </DialogHeader>
           {draft && accounts.data && (
             <JournalEditor
