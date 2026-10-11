@@ -193,6 +193,7 @@ export const tr = {
     loading: 'Yükleniyor…',
   },
   coa: {
+    unknownOwner: 'Bilinmeyen',
     netWorth: 'Net değer',
     amountsIn: 'Tutarlar {{currency}} cinsinden',
     accountCount: '{{count}} hesap',

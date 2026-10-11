@@ -105,8 +105,8 @@ export function AccountDetail({ node, base, members, fmt, actions }: Props) {
             <ul className="flex flex-col gap-2.5">
               {kids.map((c, i) => {
                 const pct = kidSum ? Math.round((Math.abs(kidTotals[i]) / kidSum) * 100) : 0
-                const person = node.personGroup && c.owner_member_id ? members.get(c.owner_member_id) : undefined
-                const label = person?.name ?? c.name
+                const person = node.personGroup ? members.get(c.owner_member_id ?? '') : undefined
+                const label = node.personGroup ? person?.name ?? t('coa.unknownOwner') : c.name
                 return (
                   <li key={c.id} className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-2 text-sm">

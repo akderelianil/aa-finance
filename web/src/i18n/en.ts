@@ -195,6 +195,7 @@ export const en: Translation = {
     loading: 'Loading…',
   },
   coa: {
+    unknownOwner: 'Unknown',
     netWorth: 'Net worth',
     amountsIn: 'Amounts in {{currency}}',
     accountCount: '{{count}} accounts',

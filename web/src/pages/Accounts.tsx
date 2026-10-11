@@ -101,18 +101,19 @@ export default function Accounts({ membership }: { membership: Membership }) {
       header: ({ column }) => <DataGridColumnHeader title={t('ledger.name')} column={column} />,
       cell: ({ row }) => {
         const n = row.original
-        const person = row.getParentRow()?.original.personGroup ? memberById.get(n.owner_member_id ?? '') : undefined
+        const inGroup = !!row.getParentRow()?.original.personGroup
+        const person = memberById.get(n.owner_member_id ?? '')
         return (
           <div
             className={cn('flex items-center gap-1', n.archived_at && 'text-muted-foreground')}
             onDoubleClick={() => !n.is_placeholder && !n.personGroup && navigate(`/hesaplar/${n.id}`)}
           >
             <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
-            {person && <MemberAvatar member={person} className="me-1" />}
+            {inGroup && <MemberAvatar member={person} className="me-1" />}
             <span className={cn(n.depth === 0 ? 'font-semibold' : 'font-medium', n.is_placeholder && n.depth > 0 && 'italic')}>
-              {person ? person.name : n.name}
+              {inGroup ? person?.name ?? t('coa.unknownOwner') : n.name}
             </span>
-            {!person && !n.personGroup && n.owner_member_id && (
+            {!inGroup && !n.personGroup && n.owner_member_id && (
               <OwnerAvatars accounts={[n]} members={memberById} fmt={fmt} />
             )}
             {n.personGroup && <OwnerAvatars accounts={n.children} members={memberById} fmt={fmt} />}

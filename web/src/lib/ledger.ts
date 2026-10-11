@@ -83,11 +83,11 @@ export function buildAccountTree(accounts: Account[], net: Map<string, number>, 
 }
 
 /**
- * Leaf accounts with the same parent, name, kind and currency but different owners fold into one
+ * Leaf accounts with the same parent, name, kind and currency but different owners (no owner counts as one, "unknown") fold into one
  * display row (children = the owners' accounts), so a family's three wallets read as one "Cüzdan".
  */
 export function mergePersonAccounts(nodes: AccountNode[]): AccountNode[] {
-  const key = (n: AccountNode) => (n.owner_member_id && !n.is_placeholder && !n.children.length
+  const key = (n: AccountNode) => (!n.is_placeholder && !n.children.length
     ? [n.parent_id, n.name, n.currency, n.subtype].join('|') : null)
   const groups = new Map<string, AccountNode[]>()
   for (const n of nodes) {
@@ -99,7 +99,7 @@ export function mergePersonAccounts(nodes: AccountNode[]): AccountNode[] {
   for (const n of nodes) {
     const k = key(n)
     const g = k ? groups.get(k)! : []
-    if (g.length < 2 || new Set(g.map((x) => x.owner_member_id)).size < 2) {
+    if (g.length < 2 || new Set(g.map((x) => x.owner_member_id ?? '')).size < 2) {
       out.push({ ...n, children: mergePersonAccounts(n.children) })
     } else if (!done.has(k!)) {
       done.add(k!)
