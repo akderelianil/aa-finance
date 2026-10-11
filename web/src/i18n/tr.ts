@@ -39,6 +39,8 @@ export const tr = {
   },
   settings: {
     title: 'Ayarlar',
+    saved: 'Kaydedildi',
+    adminSection: 'Davet ve dönem kilidi',
     theme: 'Tema',
     language: 'Dil',
     theme_light: 'Açık',

@@ -14,7 +14,7 @@ Checklist (mark done here after each commit):
 - [x] 3 MemberAccessCard (drop ui/table; table.tsx deleted)
 - [x] 4 Directory (Rehber)
 - [x] 5 Dashboard + StatStrip
-- [ ] 6 Settings
+- [x] 6 Settings (save toasts, no-op Save disabled, admin tools card)
 - [ ] 7 Auth + onboarding (low priority)
 - [ ] 8 Sweep unused shadcn parts + docs
 

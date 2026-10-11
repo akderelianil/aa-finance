@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/components/ui/toast'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { initials, uploadAvatar } from '@/lib/avatar'
@@ -18,13 +19,13 @@ import { errorMessage } from '@/lib/errors'
 export default function Settings({ membership }: { membership: Membership }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [copied, setCopied] = useState(false)
   const [lockDate, setLockDate] = useState(membership.group.lock_date ?? '')
   const lock = useMutation({
     mutationFn: () => callFunction('group-update', { lock_date: lockDate || null }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['membership'] }),
+    onSuccess: () => { saved(); return queryClient.invalidateQueries({ queryKey: ['membership'] }) },
   })
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['membership'] })
+  const saved = () => toast.add({ title: t('settings.saved'), timeout: 2000 })
+  const refresh = () => { saved(); return queryClient.invalidateQueries({ queryKey: ['membership'] }) }
   const [firstName, setFirstName] = useState(membership.firstName ?? '')
   const [lastName, setLastName] = useState(membership.lastName ?? '')
   const profile = useMutation({
@@ -41,10 +42,8 @@ export default function Settings({ membership }: { membership: Membership }) {
     mutationFn: () => callFunction<{ code: string; expires_at: string }>('invite-create'),
   })
 
-  async function copy(code: string) {
-    await navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  function copy(code: string) {
+    void navigator.clipboard.writeText(code).then(() => toast.add({ title: t('home.copied'), timeout: 2000 }))
   }
 
   return (
@@ -69,7 +68,7 @@ export default function Settings({ membership }: { membership: Membership }) {
               <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </Field>
             <Button
-              variant="outline" disabled={profile.isPending || !firstName.trim() || !lastName.trim()}
+              variant="outline" disabled={profile.isPending || !firstName.trim() || !lastName.trim() || (firstName.trim() === (membership.firstName ?? '') && lastName.trim() === (membership.lastName ?? ''))}
               onClick={() => profile.mutate({ first_name: firstName.trim(), last_name: lastName.trim() })}
             >
               {t('entry.save')}
@@ -99,7 +98,7 @@ export default function Settings({ membership }: { membership: Membership }) {
                   <FieldLabel htmlFor="group-name">{t('profile.groupName')}</FieldLabel>
                   <div className="flex gap-2">
                     <Input id="group-name" value={groupName} onChange={(e) => setGroupName(e.target.value)} />
-                    <Button variant="outline" disabled={group.isPending || !groupName.trim()} onClick={() => group.mutate({ name: groupName.trim() })}>
+                    <Button variant="outline" disabled={group.isPending || !groupName.trim() || groupName.trim() === membership.group.name} onClick={() => group.mutate({ name: groupName.trim() })}>
                       {t('entry.save')}
                     </Button>
                   </div>
@@ -117,15 +116,21 @@ export default function Settings({ membership }: { membership: Membership }) {
                 <FormError message={group.error ? errorMessage(t, group.error) : null} />
               </>
             )}
-            {isAdmin && (
-              <>
+          </FieldGroup>
+        </CardContent>
+      </Card>
+      {isAdmin && (
+      <Card>
+        <CardHeader><CardTitle>{t('settings.adminSection')}</CardTitle></CardHeader>
+        <CardContent>
+          <FieldGroup>
               <Field>
                 {invite.data ? (
                   <div className="flex flex-col items-center gap-2">
                     <FieldLabel>{t('home.inviteCode')}</FieldLabel>
                     <p className="font-mono text-3xl tracking-[0.3em]">{invite.data.code}</p>
-                    <Button variant="outline" size="sm" onClick={() => void copy(invite.data.code)}>
-                      {copied ? t('home.copied') : t('home.copy')}
+                    <Button variant="outline" size="sm" onClick={() => copy(invite.data.code)}>
+                      t('home.copy')
                     </Button>
                     <FieldDescription>{t('home.inviteHint')}</FieldDescription>
                   </div>
@@ -140,16 +145,15 @@ export default function Settings({ membership }: { membership: Membership }) {
                 <FieldLabel htmlFor="lock-date">{t('home.lockDate')}</FieldLabel>
                 <div className="flex gap-2">
                   <Input id="lock-date" type="date" value={lockDate} onChange={(e) => setLockDate(e.target.value)} />
-                  <Button variant="outline" disabled={lock.isPending} onClick={() => lock.mutate()}>{t('entry.save')}</Button>
+                  <Button variant="outline" disabled={lock.isPending || lockDate === (membership.group.lock_date ?? '')} onClick={() => lock.mutate()}>{t('entry.save')}</Button>
                 </div>
                 <FieldDescription>{t('home.lockHint')}</FieldDescription>
                 <FormError message={lock.error ? errorMessage(t, lock.error) : null} />
               </Field>
-              </>
-            )}
           </FieldGroup>
         </CardContent>
       </Card>
+      )}
       {isAdmin && <MemberAccessCard />}
     </>
   )

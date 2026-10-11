@@ -41,6 +41,8 @@ export const en: Translation = {
   },
   settings: {
     title: 'Settings',
+    saved: 'Saved',
+    adminSection: 'Invites and period lock',
     theme: 'Theme',
     language: 'Language',
     theme_light: 'Light',
