@@ -189,6 +189,16 @@ export default function Accounts({ membership }: { membership: Membership }) {
   })
 
   const select = (n: AccountNode) => setSelected({ [n.id]: true })
+  // A click selects the row and opens or closes its sub-accounts (the chevron still works on its own).
+  const clickRow = (n: AccountNode) => {
+    select(n)
+    if (!n.children.length || search) return
+    setExpanded((prev) => {
+      const cur = prev === true ? openIds(true) : prev ?? openIds(false)
+      const { [n.id]: wasOpen, ...rest } = cur
+      return wasOpen ? rest : { ...rest, [n.id]: true }
+    })
+  }
   const handlers: AccountHandlers = {
     openRegister: (n) => navigate(`/hesaplar/${n.id}`),
     addChild: (n) => setTarget({ mode: 'create', parent: n }),
@@ -265,7 +275,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
               table={table}
               recordCount={count}
               isLoading={accounts.isLoading}
-              onRowClick={select}
+              onRowClick={clickRow}
               tableLayout={{ dense: true, headerBackground: false }}
               emptyMessage={accounts.isError ? (
                 <Empty>
