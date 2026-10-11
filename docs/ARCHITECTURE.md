@@ -46,14 +46,18 @@ The DB enforces these rules for every writer (`20261008030000_ledger_integrity.s
 A receipt with more than one category is one entry with one line per category (split lines in `journal-post`).
 
 ## Account template
-`apply_account_template(group_id)` (`20261008090000_simple_chart.sql`) is the single source of the starting chart. Onboarding calls it first, then creates the system and member accounts. It is idempotent.
+`apply_account_template(group_id, p_recommended)` (`20261011100000_core_accounts.sql`) is the single source of the starting chart. Onboarding calls it first, then creates the system and member accounts. It is idempotent.
+
+**Core** = every locked row: it is always created. `p_recommended = false` creates the core only; `true` (default) adds the recommended Gelir/Gider accounts.
 
 | Part | Content |
 |---|---|
 | Roots (locked) | `1` Varlık, `2` Borç, `3` Özkaynak, `4` Gelir, `5` Gider. |
 | Asset groups (locked) | Nakit (`cash`), Banka (`bank`), Yatırım, Duran Varlıklar, and the single account Kişilerden Alacaklar (`receivable`). |
 | Debt groups (locked) | Kredi Kartı (`credit_card`), Krediler (`loan`), and the single account Kişilere Borçlar (`payable`). |
-| Income, expense | About 40 free categories: nine income accounts; expense groups (Yeme-İçme, Ulaşım, Araç, Konut, Fatura, Sağlık, Kişisel Bakım, Alışveriş, Eğlence & Hobi, Finansman Giderleri) with sub-accounts. |
+| Core expense | Banka Ücreti (`bank_fee`, locked): default fee account of Transfer. |
+| System accounts (locked) | Açılış Bakiyesi (per member), Kambiyo Kâr/Zararları, Menkul Kıymet Satış Kâr/Zararları. `system_key` rows are locked on insert. |
+| Recommended income, expense | About 40 free categories: nine income accounts; expense groups (Yeme-İçme, Ulaşım, Araç, Konut, Fatura, Sağlık, Kişisel Bakım, Alışveriş, Eğlence & Hobi, Finansman Giderleri) with sub-accounts. |
 | `template_key` | Stable id of a template node (`a_bank`, `groceries`, `loan_fee`, …). The user can rename, move or archive a free node. |
 | Brands | Common brands with a default expense account (Rehber). |
 
