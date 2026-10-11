@@ -14,7 +14,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the Edge Function also validates it.
 - Every account has a currency. Lines on an account are in the account currency. A missing rate is fetched by the server; a user-given rate wins.
 - A journal entry is a completed event only. Plans and reminders are not entries.
-- Entry flows are Gider, Gelir, Transfer only (sidebar buttons, dialog, `journal-post`). Installment, loan, deposit, FX, investment, plans and the wizard were deleted on 2026-10-08 (git history). Rebuild later on `journal-post`, one UX scenario at a time.
+- Entry flows are Gider, Gelir, Transfer, Borç (Quick Entry dialog → `journal-post`) and Serbest kayıt (journal editor). Installment, loan, deposit, FX, investment, plans and the wizard were deleted on 2026-10-08 (git history). Rebuild later on `journal-post`, one UX scenario at a time.
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions.
 
 ## Engineering rules

@@ -13,7 +13,7 @@ Read only what the task needs. Follow links for detail.
 | [DEVELOPMENT](DEVELOPMENT.md) | Commands, machine pitfalls, status, known debt | EN |
 | [ROADMAP](ROADMAP.md) | Ledger-core phases and product decisions | EN |
 | [GLOSSARY](GLOSSARY.md) | One term per concept; English ↔ Turkish UI term | EN + TR |
-| [ux/](ux/README.md) | Simplified flow set, one scenario per file (Gider, Gelir, Transfer). Build the next scenario here first. | TR |
+| [ux/](ux/README.md) | Simplified flow set, one scenario per file (Gider, Gelir, Transfer, Borç). Build the next scenario here first. | TR |
 
 Writing and agent rules live in `.claude/rules/` (`writing.md`, `agents.md`). They load automatically when a matching file is edited.
 
