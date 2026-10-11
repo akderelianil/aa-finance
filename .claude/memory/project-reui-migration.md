@@ -16,7 +16,7 @@ Checklist (mark done here after each commit):
 - [x] 5 Dashboard + StatStrip
 - [x] 6 Settings (save toasts, no-op Save disabled, admin tools card)
 - [x] 7 Auth + onboarding (Alert FormError, RadioGroup chart choice)
-- [ ] 8 Sweep unused shadcn parts + docs
+- [x] 8 Sweep unused shadcn parts + docs (only ui/badge was dead; removed)
 
 **Why:** owner wants every screen on the ReUI rules with better UX, low token use per session.
 **How to apply:** see [[feedback-reui-base-auto-skills]]. Out of scope: cascader replacement, journal-post 500.
