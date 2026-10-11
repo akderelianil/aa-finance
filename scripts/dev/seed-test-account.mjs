@@ -59,7 +59,8 @@ async function call(name, body) {
 }
 
 const me = (await user.auth.getUser()).data.user
-const { data: mem } = await admin.from('members').select('group_id').eq('user_id', me.id).maybeSingle()
+const { data: mem } = await admin.from('members').select('id, group_id').eq('user_id', me.id).maybeSingle()
+const memberRow = async () => (await admin.from('members').select('id').eq('user_id', me.id).single()).data.id
 const groupId = mem?.group_id ?? (await call('onboarding-create-group', {
   first_name: 'Demo', last_name: 'Kullanıcı', birth_date: '1990-01-01', base_currency: 'TRY',
   group_name: 'Demo Ailesi', chart: 'recommended',
@@ -71,7 +72,7 @@ const byKey = (k) => rows.find((a) => a.template_key === k)?.id
 const wallet = rows.find((a) => a.name.startsWith('Cüzdan'))?.id
 const opening = rows.find((a) => a.system_key === 'opening_balance')?.id
 const findOrCreate = async (name, type, subtype) =>
-  rows.find((a) => a.name === name)?.id ?? (await call('account-create', { name, type, subtype })).account_id
+  rows.find((a) => a.name === name)?.id ?? (await call('account-create', { name, type, subtype, owner_member_id: await memberRow() })).account_id
 const bank = await findOrCreate('Ziraat Vadesiz', 'asset', 'bank')
 const card = await findOrCreate('Garanti Bonus Kart', 'liability', 'credit_card')
 const A = {

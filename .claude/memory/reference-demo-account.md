@@ -7,6 +7,8 @@ metadata:
 
 `demo@aa-finance.test` (group "Demo Ailesi", recommended chart, 129 entries 2026-07-12 → 2026-10-11). Password: `DEV_TEST_PASSWORD` in root `.env` (never print). Seed/complete: `node scripts/dev/seed-test-account.mjs` (resumable). Keep it when cleaning test users.
 
+Members (same password): demo.elif@ (Elif, spouse: salary, own bank + card) and demo.can@ (Can, student: allowance, cash), seeded by `scripts/dev/seed-demo-members.mjs`.
+
 Seen 2026-10-11: `journal-post` returned an intermittent 500 ("internal") every ~40 calls during seeding; a rerun succeeded. Cause not found (function logs not queried). Check it if users report random failures.
 
 See [[project-core-accounts]].

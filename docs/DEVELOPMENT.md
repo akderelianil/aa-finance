@@ -51,6 +51,8 @@ End-to-end tests: temporary node scripts (not in the repo) that use `.env` (with
 
 Permanent demo account: `demo@aa-finance.test`, group "Demo Ailesi", recommended chart, 129 entries from 2026-07-12 to 2026-10-11 (salary, rent, bills, market, card, ATM, Borç). The password is `DEV_TEST_PASSWORD` in `.env`. Create or complete it with `node scripts/dev/seed-test-account.mjs`; the script is resumable and posts only the missing entries. Keep this account when you delete test users.
 
+Family members of the demo group: `demo.elif@aa-finance.test` (salary, own bank and card, 51 entries) and `demo.can@aa-finance.test` (allowance, cash, 75 entries). They share the admin password. Create or complete them with `node scripts/dev/seed-demo-members.mjs`.
+
 ## Before release (user tasks)
 - Cloudflare Pages: build `cd web && npm run build`, output `web/dist`, vars `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. `public/_redirects` holds the SPA redirect.
 - Edge Function CORS: `npx supabase secrets set ALLOWED_ORIGINS=https://<origin>,http://localhost:5173`. Unset = only local port 5173. The dev project sets 5173 and 5174 (`localhost`, `127.0.0.1`); another Vite port gives "Bağlantı kurulamadı".
