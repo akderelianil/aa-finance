@@ -21,6 +21,7 @@ export default function OnboardingCreate() {
   const [birthDate, setBirthDate] = useState('')
   const [currency, setCurrency] = useState('TRY')
   const [groupName, setGroupName] = useState('')
+  const [chart, setChart] = useState<'recommended' | 'core'>('recommended')
 
   const currencies = useQuery({
     queryKey: ['currencies'],
@@ -38,6 +39,7 @@ export default function OnboardingCreate() {
         last_name: lastName,
         birth_date: birthDate,
         base_currency: currency,
+        chart,
         group_name: groupName.trim() || t('onboarding.defaultGroupName', { lastName: lastName.trim() }),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['membership'] }),
@@ -80,6 +82,21 @@ export default function OnboardingCreate() {
                 </p>
               )}
             </div>
+            <fieldset className="flex flex-col gap-2">
+              <legend className="mb-2 text-sm font-medium">{t('onboarding.chart')}</legend>
+              {(['recommended', 'core'] as const).map((k) => (
+                <label
+                  key={k}
+                  className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                >
+                  <input type="radio" name="chart" className="mt-1 accent-primary" checked={chart === k} onChange={() => setChart(k)} />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">{t(k === 'core' ? 'onboarding.chartCore' : 'onboarding.chartRecommended')}</span>
+                    <span className="text-xs text-muted-foreground">{t(k === 'core' ? 'onboarding.chartCoreDesc' : 'onboarding.chartRecommendedDesc')}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
             <FormError message={create.error ? errorMessage(t, create.error) : null} />
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pt-4">

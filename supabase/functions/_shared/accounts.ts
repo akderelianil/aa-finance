@@ -11,8 +11,8 @@ export async function createGroupSystemAccounts(tx: Tx, groupId: string) {
 }
 
 // Hazır kategori ağacı ve marka → kategori eşleşmeleri (migration 20261008040000).
-export async function applyAccountTemplate(tx: Tx, groupId: string) {
-  await tx`select apply_account_template(${groupId})`
+export async function applyAccountTemplate(tx: Tx, groupId: string, recommended = true) {
+  await tx`select apply_account_template(${groupId}, ${recommended})`
 }
 
 // Yeni üyenin başlangıç hesapları: açılış bakiyesi (Özkaynak altında) ve cüzdan (Nakit grubunun altında); grubun ana para biriminde.

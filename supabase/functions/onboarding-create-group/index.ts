@@ -12,6 +12,10 @@ serve(async (req, user) => {
   const currency = requireString(body.base_currency, 'base_currency', 3).toUpperCase()
   const groupName = body.group_name ? requireString(body.group_name, 'group_name', 100) : `${last} Ailesi`
 
+  // chart: 'core' = locked core accounts only; 'recommended' (default) = core + recommended Gelir/Gider accounts.
+  const chart = body.chart ?? 'recommended'
+  if (chart !== 'core' && chart !== 'recommended') throw new HttpError(422, 'chart geçersiz', 'invalid_chart')
+
   const groupId = uuidv7()
   const memberId = uuidv7()
 
@@ -28,7 +32,7 @@ serve(async (req, user) => {
     await tx`insert into groups (id, name, base_currency) values (${groupId}, ${groupName}, ${currency})`
     await tx`insert into members (id, group_id, user_id, role) values (${memberId}, ${groupId}, ${user.id}, 'admin')`
     // Template first: system and member accounts go under its groups (trigger accounts_defaults).
-    await applyAccountTemplate(tx, groupId)
+    await applyAccountTemplate(tx, groupId, chart === 'recommended')
     await createGroupSystemAccounts(tx, groupId)
     await createMemberAccounts(tx, groupId, memberId, currency)
   })

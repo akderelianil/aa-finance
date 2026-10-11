@@ -5,4 +5,4 @@
 - [Ledger core pivot (2026-10-08)](project-ledger-core-pivot.md) — GnuCash-style core; convenience flows hidden; desktop only; open calls
 - [No git remote](project-no-git-remote.md) — commit only, never push
 - [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer, Borç done; next loan (kredi)
-- [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set done; onboarding 2-option choice next
+- [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice done; Hesaplar page polish next
