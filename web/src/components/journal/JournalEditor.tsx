@@ -27,13 +27,15 @@ type Props = {
   exponents: Map<string, number>
   onSaved: () => void
   onCancel: () => void
+  /** No own border and padding, for use inside a dialog. */
+  bare?: boolean
 }
 
 // General Journal entry form (GnuCash split view): date, description, Rehber, lines (account, memo, debit, credit).
 // The Rehber field tags every line with one contact; an entry with several contacts keeps them until it is changed.
 // A foreign-currency line shows the rate (day rate suggested) and its base amount; the user can type either.
 // Totals and the imbalance are live; the entry saves only when balanced. Ctrl+Enter saves.
-export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, groupId, exponents, onSaved, onCancel }: Props) {
+export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, groupId, exponents, onSaved, onCancel, bare }: Props) {
   const { t, i18n } = useTranslation()
   const baseExp = exponents.get(baseCurrency) ?? 2
   const expOf = (cur: string) => exponents.get(cur) ?? 2
@@ -134,7 +136,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
   const amountCls = 'h-8 text-right font-mono tabular-nums'
 
   return (
-    <div className="rounded-xl border bg-card p-4" onKeyDown={onKeyDown}>
+    <div className={cn(!bare && 'rounded-xl border bg-card p-4')} onKeyDown={onKeyDown}>
       <div className="mb-3 flex items-end gap-3">
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
           {t('ledger.date')}

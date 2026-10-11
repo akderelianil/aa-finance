@@ -1,34 +1,61 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-import { Fragment, useMemo, useState } from 'react'
+import { useTable, type ColumnDef, type ExpandedState } from '@tanstack/react-table'
+import { MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
+import { MemberAvatar } from '@/components/coa/OwnerAvatars'
 import { JournalEditor } from '@/components/journal/JournalEditor'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
+import { Badge } from '@/components/reui/badge'
+import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
+import { DataGridColumnHeader } from '@/components/reui/data-grid/data-grid-column-header'
+import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
+import { DataGridTable, DataGridTableRowExpand } from '@/components/reui/data-grid/data-grid-table'
+import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { callFunction } from '@/lib/api'
 import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
 import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
 import { canModify, useMemberAccess } from '@/lib/access'
-import { cn } from '@/lib/utils'
 
-// General Journal (GnuCash "General Journal"): every entry of the period with its lines, debit/credit in the
-// base currency, and the entry form on top. The owner, the admin and members the admin allowed (member_access) edit or delete it.
+type Period = 'month' | 'lastMonth' | 'year' | 'custom'
+
+const iso = (d: Date) => d.toLocaleDateString('sv')
+function periodRange(p: Exclude<Period, 'custom'>): [string, string] {
+  const n = new Date()
+  if (p === 'month') return [iso(new Date(n.getFullYear(), n.getMonth(), 1)), today()]
+  if (p === 'lastMonth') return [iso(new Date(n.getFullYear(), n.getMonth() - 1, 1)), iso(new Date(n.getFullYear(), n.getMonth(), 0))]
+  return [iso(new Date(n.getFullYear(), 0, 1)), today()]
+}
+
+// General Journal (GnuCash "General Journal"): one row per entry (date, description, accounts, amount).
+// The debit/credit lines open on demand; edit and delete live in the row menu and the form in a dialog.
+// The owner, the admin and members the admin allowed (member_access) edit or delete an entry.
 export default function Journal({ membership }: { membership: Membership }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const base = membership.group.base_currency
-  const [from, setFrom] = useState(`${today().slice(0, 8)}01`)
-  const [to, setTo] = useState(today())
+  const [period, setPeriod] = useState<Period>('month')
+  const [custom, setCustom] = useState<[string, string]>(periodRange('month'))
+  const [from, to] = period === 'custom' ? custom : periodRange(period)
   const [search, setSearch] = useState('')
+  const [expanded, setExpanded] = useState<ExpandedState>({})
   const [draft, setDraft] = useState<Draft | null>(null)
   const [deleting, setDeleting] = useState<JournalEntry | null>(null)
 
@@ -39,38 +66,138 @@ export default function Journal({ membership }: { membership: Membership }) {
   const contactById = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c])), [contacts.data])
   const currencies = useCurrencies()
   const entries = useJournalEntries(from, to)
-  const exponents = new Map((currencies.data ?? []).map((c) => [c.code, c.exponent]))
+  const exponents = useMemo(() => new Map((currencies.data ?? []).map((c) => [c.code, c.exponent])), [currencies.data])
   const baseExp = exponents.get(base) ?? 2
   const byId = useMemo(() => accounts.data?.byId ?? new Map<string, AccountNode>(), [accounts.data])
   const postable = useMemo(
     () => flattenTree(accounts.data?.roots ?? []).filter((a) => !a.is_placeholder && !a.archived_at),
     [accounts.data],
   )
-  const memberName = new Map((members.data ?? []).map((m) => [m.id, m.name]))
+  const memberById = useMemo(() => new Map((members.data ?? []).map((m) => [m.id, m])), [members.data])
   const fmt = (minor: number, cur = base) => formatAmount(minor, exponents.get(cur) ?? 2, i18n.language)
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['ledger'] })
 
+  // Newest first: the user came for what happened last.
   const visible = useMemo(() => {
     const q = search.trim().toLocaleLowerCase(i18n.language)
-    if (!q) return entries.data ?? []
-    return (entries.data ?? []).filter((e) => e.description.toLocaleLowerCase(i18n.language).includes(q)
-      || lineContacts(e.journal_lines, contactById).some((n) => n.toLocaleLowerCase(i18n.language).includes(q))
-      || e.journal_lines.some((l) => {
-        const a = byId.get(l.account_id)
-        return (l.memo ?? '').toLocaleLowerCase(i18n.language).includes(q)
-          || a?.name.toLocaleLowerCase(i18n.language).includes(q)
-      }))
+    const list = [...(entries.data ?? [])].reverse()
+    if (!q) return list
+    const has = (s?: string | null) => (s ?? '').toLocaleLowerCase(i18n.language).includes(q)
+    return list.filter((e) => has(e.description)
+      || lineContacts(e.journal_lines, contactById).some(has)
+      || e.journal_lines.some((l) => has(l.memo) || has(byId.get(l.account_id)?.name)))
   }, [entries.data, search, byId, contactById, i18n.language])
 
-  const totals = visible.reduce((s, e) => {
-    for (const l of e.journal_lines) s[l.direction] += Number(l.base_amount)
-    return s
-  }, { debit: 0, credit: 0 })
+  const volume = visible.reduce((s, e) => s + e.journal_lines.reduce((x, l) => x + (l.direction === 'debit' ? Number(l.base_amount) : 0), 0), 0)
 
-  function edit(e: JournalEntry) {
-    setDraft(entryToDraft(e, base, exponents))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const accountsOf = (e: JournalEntry) => {
+    const name = (side: 'debit' | 'credit') => [...new Set(e.journal_lines.filter((l) => l.direction === side).map((l) => byId.get(l.account_id)?.name ?? ''))]
+    const [d, c] = [name('debit'), name('credit')]
+    return d.length === 1 && c.length === 1 ? `${d[0]} → ${c[0]}` : t('gj.lines', { count: e.journal_lines.length })
   }
+
+  function edit(e: JournalEntry) { setDraft(entryToDraft(e, base, exponents)) }
+
+  const columns = useMemo<ColumnDef<DataGridFeatures, JournalEntry>[]>(() => [
+    {
+      id: 'date',
+      accessorFn: (e) => e.entry_date,
+      header: ({ column }) => <DataGridColumnHeader title={t('ledger.date')} column={column} />,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
+          <span className="tabular-nums">
+            {new Date(row.original.entry_date + 'T00:00:00').toLocaleDateString(i18n.language, { day: '2-digit', month: 'short' })}
+          </span>
+        </div>
+      ),
+      size: 110,
+      enableHiding: false,
+      meta: { skeleton: <Skeleton className="h-4 w-16" />, expandedContent: (e: JournalEntry) => <Lines entry={e} /> },
+    },
+    {
+      id: 'description',
+      accessorFn: (e) => e.description,
+      header: ({ column }) => <DataGridColumnHeader title={t('ledger.description')} column={column} />,
+      cell: ({ row: { original: e } }) => {
+        const names = lineContacts(e.journal_lines, contactById)
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{e.description || <span className="font-normal text-muted-foreground italic">{t('gj.noDescription')}</span>}</span>
+            {names.map((n) => <Badge key={n} variant="secondary" size="sm">{n}</Badge>)}
+            {e.tags.map((x) => <Badge key={x.tag.name} variant="outline" size="sm">#{x.tag.name}</Badge>)}
+          </div>
+        )
+      },
+      minSize: 220,
+      meta: { skeleton: <Skeleton className="h-4 w-48" /> },
+    },
+    {
+      id: 'accounts',
+      accessorFn: (e) => accountsOf(e),
+      header: t('ledger.account'),
+      cell: ({ row: { original: e } }) => <span className="text-muted-foreground">{accountsOf(e)}</span>,
+      enableSorting: false,
+      size: 260,
+      meta: { skeleton: <Skeleton className="h-4 w-40" /> },
+    },
+    {
+      id: 'member',
+      accessorFn: (e) => e.member_id,
+      header: () => null,
+      cell: ({ row: { original: e } }) => <MemberAvatar member={memberById.get(e.member_id)} />,
+      enableSorting: false,
+      size: 48,
+      meta: { skeleton: <Skeleton className="size-6 rounded-full" /> },
+    },
+    {
+      id: 'amount',
+      accessorFn: (e) => e.journal_lines.reduce((s, l) => s + (l.direction === 'debit' ? Number(l.base_amount) : 0), 0),
+      header: ({ column }) => <DataGridColumnHeader title={t('gj.amount', { currency: base })} column={column} />,
+      cell: ({ row }) => fmt(row.getValue<number>('amount')),
+      size: 140,
+      meta: {
+        headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums',
+        skeleton: <Skeleton className="ml-auto h-4 w-20" />,
+      },
+    },
+    {
+      id: 'actions',
+      header: () => null,
+      cell: ({ row: { original: e } }) => {
+        const canEdit = canModify(membership, access.data ?? [], e.member_id, 'edit')
+        const canDelete = canModify(membership, access.data ?? [], e.member_id, 'delete')
+        if (!canEdit && !canDelete) return null
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-xs" aria-label={t('gj.actions')} />}>
+              <MoreHorizontalIcon />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canEdit && <DropdownMenuItem onClick={() => edit(e)}>{t('ledger.edit')}</DropdownMenuItem>}
+              {canEdit && canDelete && <DropdownMenuSeparator />}
+              {canDelete && <DropdownMenuItem variant="destructive" onClick={() => setDeleting(e)}>{t('ledger.delete')}</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+      enableSorting: false,
+      enableHiding: false,
+      size: 48,
+      meta: { skeleton: <Skeleton className="size-5" /> },
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [t, base, i18n.language, exponents, byId, contactById, memberById, membership, access.data])
+
+  const table = useTable({
+    features: dataGridFeatures,
+    columns,
+    data: visible,
+    getRowId: (e: JournalEntry) => e.id,
+    getRowCanExpand: () => true,
+    state: { expanded, pagination: { pageIndex: 0, pageSize: 2000 } },
+    onExpandedChange: setExpanded,
+  })
 
   const remove = useMutation({
     mutationFn: (e: JournalEntry) => callFunction('journal-post', { action: 'delete', entry_id: e.id }),
@@ -81,112 +208,84 @@ export default function Journal({ membership }: { membership: Membership }) {
     <>
       <PageHeader
         title={t('gj.title')} description={t('gj.subtitle')}
-        actions={!draft && <Button onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
+        actions={<Button onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
       />
-      {draft && accounts.data && (
-        <JournalEditor
-          key={draft.entryId ?? 'new'}
-          draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} groupId={membership.group.id} exponents={exponents}
-          onCancel={() => setDraft(null)}
-          onSaved={() => { setDraft(draft.entryId ? null : newDraft()); refresh() }}
-        />
-      )}
 
-      <div className="flex items-end gap-3">
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('gj.from')}
-          <Input type="date" className="h-8 w-40" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          {t('gj.to')}
-          <Input type="date" className="h-8 w-40" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <Input className="h-8 w-72" placeholder={t('gj.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-        <span className="ml-auto text-sm text-muted-foreground">{t('gj.count', { count: visible.length })}</span>
-      </div>
-
-      <div className="rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
-            <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
-              <th className="w-28">{t('ledger.date')}</th>
-              <th>{t('gj.accountOrDescription')}</th>
-              <th>{t('ledger.memo')}</th>
-              <th className="w-40 !text-right">{t('ledger.debit')}</th>
-              <th className="w-40 !text-right">{t('ledger.credit')}</th>
-              <th className="w-20" />
-            </tr>
-          </thead>
-          <tbody>
-            {entries.isLoading && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t('ledger.loading')}</td></tr>
-            )}
-            {!entries.isLoading && visible.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">{t('gj.empty')}</td></tr>
-            )}
-            {visible.map((e) => {
-              const canEdit = canModify(membership, access.data ?? [], e.member_id, 'edit')
-              const canDelete = canModify(membership, access.data ?? [], e.member_id, 'delete')
-              const editing = draft?.entryId === e.id
-              return (
-                <Fragment key={e.id}>
-                  <tr className={cn('group border-t bg-muted/20 [&>td]:px-3 [&>td]:pt-2 [&>td]:pb-1', editing && 'bg-primary/10')}>
-                    <td className="font-mono tabular-nums">{new Date(e.entry_date + 'T00:00:00').toLocaleDateString(i18n.language)}</td>
-                    <td colSpan={2} className="font-medium">
-                      {e.description || <span className="text-muted-foreground italic">{t('gj.noDescription')}</span>}
-                      {lineContacts(e.journal_lines, contactById).map((n) => (
-                        <span key={n} className="ml-3 rounded bg-muted px-1.5 py-0.5 text-xs font-normal">{n}</span>
-                      ))}
-                      {e.tags.map((x) => (
-                        <span key={x.tag.name} className="ml-3 rounded-full bg-secondary px-1.5 py-0.5 text-xs font-normal text-secondary-foreground">#{x.tag.name}</span>
-                      ))}
-                      <span className="ml-3 text-xs font-normal text-muted-foreground">{memberName.get(e.member_id)}</span>
-                    </td>
-                    <td colSpan={2} />
-                    <td className="text-right whitespace-nowrap">
-                      {canEdit && (
-                        <span className="invisible group-hover:visible">
-                          <Button variant="ghost" size="icon-xs" aria-label={t('ledger.edit')} onClick={() => edit(e)}><PencilIcon /></Button>
-                          {canDelete && <Button variant="ghost" size="icon-xs" aria-label={t('ledger.delete')} onClick={() => setDeleting(e)}><Trash2Icon /></Button>}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                  {e.journal_lines.map((l) => {
-                    const a = byId.get(l.account_id)
-                    const cell = (side: 'debit' | 'credit') => l.direction === side ? fmt(Number(l.base_amount)) : ''
-                    return (
-                      <tr key={l.id} className="[&>td]:px-3 [&>td]:py-0.5">
-                        <td />
-                        <td className={cn(l.direction === 'credit' && 'pl-10')}>
-                          {a?.name}
-                          {l.currency !== base && (
-                            <span className="ml-2 font-mono text-xs text-muted-foreground">
-                              {fmt(Number(l.amount), l.currency)} {l.currency} × {Number(l.fx_rate).toLocaleString(i18n.language, { maximumFractionDigits: 6 })}
-                            </span>
-                          )}
-                        </td>
-                        <td className="text-muted-foreground">{l.memo}</td>
-                        <td className="text-right font-mono tabular-nums">{cell('debit')}</td>
-                        <td className="text-right font-mono tabular-nums">{cell('credit')}</td>
-                        <td />
-                      </tr>
-                    )
-                  })}
-                </Fragment>
-              )
+      <Frame spacing="sm" stacked>
+        <FramePanel className="flex items-center gap-2 p-2">
+          <ToggleGroup
+            variant="outline" size="sm" spacing={0} value={[period]}
+            onValueChange={(v) => v[0] && setPeriod(v[0] as Period)}
+          >
+            {(['month', 'lastMonth', 'year', 'custom'] as const).map((p) => (
+              <ToggleGroupItem key={p} value={p}>{t(`gj.period.${p}`)}</ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          {period === 'custom' && (
+            <>
+              <Input type="date" className="w-36" aria-label={t('gj.from')} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} />
+              <Input type="date" className="w-36" aria-label={t('gj.to')} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} />
+            </>
+          )}
+          <div className="relative ml-auto">
+            <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input className="w-72 ps-8" placeholder={t('gj.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        </FramePanel>
+        <FramePanel className="p-0">
+          <DataGrid
+            table={table}
+            recordCount={visible.length}
+            isLoading={entries.isLoading}
+            onRowClick={(e) => setExpanded((prev) => {
+              const cur = prev === true ? {} : prev
+              const { [e.id]: wasOpen, ...rest } = cur
+              return wasOpen ? rest : { ...rest, [e.id]: true }
             })}
-          </tbody>
-          <tfoot>
-            <tr className="border-t bg-muted/40 font-semibold [&>td]:px-3 [&>td]:py-2">
-              <td colSpan={3}>{t('gj.periodTotal')}</td>
-              <td className="text-right font-mono tabular-nums">{formatAmount(totals.debit, baseExp, i18n.language)}</td>
-              <td className="text-right font-mono tabular-nums">{formatAmount(totals.credit, baseExp, i18n.language)}</td>
-              <td />
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+            tableLayout={{ dense: true, headerBackground: false }}
+            emptyMessage={entries.isError ? (
+              <Empty>
+                <EmptyHeader><EmptyTitle>{t('gj.loadError')}</EmptyTitle></EmptyHeader>
+                <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('coa.retry')}</Button>
+              </Empty>
+            ) : (
+              <Empty>
+                <EmptyHeader>
+                  <EmptyTitle>{t('gj.empty')}</EmptyTitle>
+                  <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
+                </EmptyHeader>
+                <Button size="sm" onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
+              </Empty>
+            )}
+          >
+            <DataGridContainer>
+              <DataGridScrollArea>
+                <DataGridTable />
+              </DataGridScrollArea>
+            </DataGridContainer>
+          </DataGrid>
+        </FramePanel>
+        <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{t('gj.count', { count: visible.length })}</span>
+          <span>{t('gj.volume')}: <span className="tabular-nums text-foreground">{formatAmount(volume, baseExp, i18n.language)} {base}</span></span>
+        </FrameFooter>
+      </Frame>
+
+      <Dialog open={!!draft} onOpenChange={(o) => { if (!o) setDraft(null) }}>
+        <DialogContent className="sm:max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{draft?.entryId ? t('gj.editing') : t('gj.new')}</DialogTitle>
+          </DialogHeader>
+          {draft && accounts.data && (
+            <JournalEditor
+              key={draft.entryId ?? 'new'} bare
+              draft={draft} onChange={setDraft} accounts={postable} byId={byId} baseCurrency={base} groupId={membership.group.id} exponents={exponents}
+              onCancel={() => setDraft(null)}
+              onSaved={() => { setDraft(null); refresh() }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
@@ -208,4 +307,42 @@ export default function Journal({ membership }: { membership: Membership }) {
       </AlertDialog>
     </>
   )
+
+  // Detail of one entry: its debit and credit lines. Shown only when the row is open.
+  function Lines({ entry }: { entry: JournalEntry }) {
+    return (
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground [&>th]:py-1.5 [&>th]:font-medium [&>th]:text-start">
+            <th className="ps-12">{t('ledger.account')}</th>
+            <th>{t('ledger.memo')}</th>
+            <th className="w-36 !text-end">{t('ledger.debit')}</th>
+            <th className="w-36 !text-end pe-3">{t('ledger.credit')}</th>
+            <th className="w-12" />
+          </tr>
+        </thead>
+        <tbody className="bg-muted/30">
+          {entry.journal_lines.map((l) => {
+            const foreign = l.currency !== base
+            return (
+              <tr key={l.id} className="[&>td]:py-1">
+                <td className="ps-12">
+                  {byId.get(l.account_id)?.name}
+                  {foreign && (
+                    <span className="ms-2 text-xs text-muted-foreground tabular-nums">
+                      {fmt(Number(l.amount), l.currency)} {l.currency} × {Number(l.fx_rate).toLocaleString(i18n.language, { maximumFractionDigits: 6 })}
+                    </span>
+                  )}
+                </td>
+                <td className="text-muted-foreground">{l.memo}</td>
+                <td className="text-end tabular-nums">{l.direction === 'debit' ? fmt(Number(l.base_amount)) : ''}</td>
+                <td className="pe-3 text-end tabular-nums">{l.direction === 'credit' ? fmt(Number(l.base_amount)) : ''}</td>
+                <td />
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    )
+  }
 }
