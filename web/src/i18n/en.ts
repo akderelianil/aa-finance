@@ -195,8 +195,10 @@ export const en: Translation = {
     loading: 'Loading…',
   },
   coa: {
+    preview: 'Preview',
     unknownOwner: 'Unknown',
-    netWorth: 'Net worth',
+    netAssets: 'Net assets',
+    netIncome: 'Net income',
     amountsIn: 'Amounts in {{currency}}',
     accountCount: '{{count}} accounts',
     selectTitle: 'Select an account',

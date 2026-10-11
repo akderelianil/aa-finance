@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Frame, FramePanel } from '@/components/reui/frame'
-import { ACCOUNT_TYPES, shown, type AccountNode, type AccountType } from '@/lib/ledger'
+import { shown, type AccountNode, type AccountType } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -10,44 +10,59 @@ type Props = {
   fmt: (minor: number) => string
 }
 
-// Net worth plus the five roots in one strip; a root doubles as the tree filter.
+// Two rows of three: assets, debt, net assets; income, expense, net income. A root card doubles as the tree filter.
 export function RootStrip({ roots, active, onSelect, fmt }: Props) {
   const { t } = useTranslation()
   const total = (type: AccountType) => {
     const root = roots.find((r) => r.type === type)
     return root ? shown(root.type, root.treeNetBase) : 0
   }
-  const netWorth = total('asset') - total('liability')
+  const netAssets = total('asset') - total('liability')
+  const netIncome = total('income') - total('expense')
+
+  const rows: { key: string; type?: AccountType; label: string; value: number }[][] = [
+    [
+      ...(['asset', 'liability'] as const).map((type) => ({ key: type, type, label: t(`ledger.type.${type}`), value: total(type) })),
+      { key: 'net-assets', label: t('coa.netAssets'), value: netAssets },
+    ],
+    [
+      ...(['income', 'expense'] as const).map((type) => ({ key: type, type, label: t(`ledger.type.${type}`), value: total(type) })),
+      { key: 'net-income', label: t('coa.netIncome'), value: netIncome },
+    ],
+  ]
 
   return (
     <Frame spacing="sm">
-      <FramePanel className="grid grid-cols-6 divide-x p-0">
-        <div className="flex flex-col gap-0.5 px-4 py-3">
-          <span className="text-xs text-muted-foreground">{t('coa.netWorth')}</span>
-          <span className={cn('text-lg font-semibold tracking-tight tabular-nums', netWorth < 0 && 'text-destructive')}>
-            {fmt(netWorth)}
-          </span>
-        </div>
-        {ACCOUNT_TYPES.map((type) => {
-          const value = total(type)
-          const on = active === type
-          return (
-            <button
-              key={type} type="button" aria-pressed={on}
-              aria-label={t('coa.filterRoot', { name: t(`ledger.type.${type}`) })}
-              onClick={() => onSelect(on ? null : type)}
-              className={cn(
-                'flex flex-col items-start gap-0.5 px-4 py-3 text-start transition-colors hover:bg-muted/50',
-                on && 'bg-muted',
-              )}
-            >
-              <span className="text-xs text-muted-foreground">{t(`ledger.type.${type}`)}</span>
-              <span className={cn('text-lg font-semibold tracking-tight tabular-nums', value < 0 && 'text-destructive')}>
-                {fmt(value)}
-              </span>
-            </button>
-          )
-        })}
+      <FramePanel className="flex flex-col divide-y p-0">
+        {rows.map((row, i) => (
+          <div key={i} className="grid grid-cols-3 divide-x">
+            {row.map((c) => {
+              const body = (
+                <>
+                  <span className="text-xs text-muted-foreground">{c.label}</span>
+                  <span className={cn('text-lg font-semibold tracking-tight tabular-nums', c.value < 0 && 'text-destructive')}>
+                    {fmt(c.value)}
+                  </span>
+                </>
+              )
+              if (!c.type) return <div key={c.key} className="flex flex-col gap-0.5 bg-muted/30 px-4 py-3">{body}</div>
+              const on = active === c.type
+              return (
+                <button
+                  key={c.key} type="button" aria-pressed={on}
+                  aria-label={t('coa.filterRoot', { name: c.label })}
+                  onClick={() => onSelect(on ? null : c.type!)}
+                  className={cn(
+                    'flex flex-col items-start gap-0.5 px-4 py-3 text-start transition-colors hover:bg-muted/50',
+                    on && 'bg-muted',
+                  )}
+                >
+                  {body}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </FramePanel>
     </Frame>
   )
