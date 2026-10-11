@@ -46,8 +46,12 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const [showArchived, setShowArchived] = useState(false)
   const [target, setTarget] = useState<AccountTarget | null>(null)
   const [deleting, setDeleting] = useState<AccountNode | null>(null)
+  const [addingRecommended, setAddingRecommended] = useState(false)
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['ledger'] })
+  // Recommended Gelir/Gider accounts are the unlocked template nodes; the admin can add them later.
+  const hasRecommended = flattenTree(accounts.data?.roots ?? []).some((n) => n.template_key && !n.locked)
+  const canAddRecommended = membership.role === 'admin' && !!accounts.data && !hasRecommended
   const memberName = new Map((members.data ?? []).map((m) => [m.id, m.name]))
 
   // Visible roots: archived nodes only on request; a search keeps matches and their ancestors.
@@ -86,6 +90,14 @@ export default function Accounts({ membership }: { membership: Membership }) {
     onSuccess: refresh,
     onError: (e) => toast.add({ title: errorMessage(t, e), timeout: 4000 }),
   })
+  const addRecommended = useMutation({
+    mutationFn: () => callFunction('account-template-apply', {}),
+    onSuccess: () => {
+      toast.add({ title: t('coa.recommendedAdded'), timeout: 3000 })
+      setAddingRecommended(false)
+      refresh()
+    },
+  })
   const remove = useMutation({
     mutationFn: (n: AccountNode) => callFunction<{ deleted?: boolean; archived?: boolean }>('account-delete', { account_id: n.id }),
     onSuccess: (r) => {
@@ -99,7 +111,14 @@ export default function Accounts({ membership }: { membership: Membership }) {
     <>
       <PageHeader
         title={t('coa.title')} description={t('coa.subtitle')}
-        actions={<Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button>}
+        actions={(
+          <div className="flex items-center gap-2">
+            {canAddRecommended && (
+              <Button variant="outline" onClick={() => setAddingRecommended(true)}>{t('coa.addRecommended')}</Button>
+            )}
+            <Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button>
+          </div>
+        )}
       />
       <div className="flex items-center gap-3">
         <Input className="w-72" placeholder={t('coa.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -222,6 +241,21 @@ export default function Accounts({ membership }: { membership: Membership }) {
         onClose={() => setTarget(null)}
         onSaved={refresh}
       />
+      <AlertDialog open={addingRecommended} onOpenChange={(o) => !o && setAddingRecommended(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('coa.addRecommended')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('coa.addRecommendedDesc')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <FormError message={addRecommended.error ? errorMessage(t, addRecommended.error) : null} />
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); addRecommended.mutate() }} disabled={addRecommended.isPending}>
+              {t('coa.addRecommendedConfirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
