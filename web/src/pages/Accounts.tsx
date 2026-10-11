@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronDownIcon, ChevronRightIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
+  ChevronDownIcon, ChevronRightIcon, ChevronsDownUpIcon, ChevronsUpDownIcon, LockIcon, MoreHorizontalIcon, PlusIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -44,7 +44,6 @@ export default function Accounts({ membership }: { membership: Membership }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [showArchived, setShowArchived] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
   const [target, setTarget] = useState<AccountTarget | null>(null)
   const [deleting, setDeleting] = useState<AccountNode | null>(null)
   const [addingRecommended, setAddingRecommended] = useState(false)
@@ -123,34 +122,29 @@ export default function Accounts({ membership }: { membership: Membership }) {
       />
       <div className="flex items-center gap-3">
         <Input className="w-72" placeholder={t('coa.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Button variant="ghost" size="sm" onClick={() => setCollapsed(new Set())}>
-          {t('coa.expandAll')}
+        <Button variant="outline" size="sm" onClick={() => setCollapsed(new Set())}>
+          <ChevronsUpDownIcon data-icon="inline-start" />{t('coa.expandAll')}
         </Button>
         <Button
-          variant="ghost" size="sm"
+          variant="outline" size="sm"
           onClick={() => setCollapsed(new Set(flattenTree(accounts.data?.roots ?? []).filter((n) => n.children.length).map((n) => n.id)))}
         >
-          {t('coa.collapseAll')}
+          <ChevronsDownUpIcon data-icon="inline-start" />{t('coa.collapseAll')}
         </Button>
-        <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
-          <label className="flex items-center gap-2">
-            <Checkbox checked={showDetails} onCheckedChange={(v) => setShowDetails(v === true)} />
-            {t('coa.showDetails')}
-          </label>
-          <label className="flex items-center gap-2">
-            <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(v === true)} />
-            {t('coa.showArchived')}
-          </label>
-        </div>
+        <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox checked={showArchived} onCheckedChange={(v) => setShowArchived(v === true)} />
+          {t('coa.showArchived')}
+        </label>
       </div>
 
-      <div className="rounded-xl border border-border/50">
-        <Table className="text-sm [&_td]:py-2 [&_th]:h-9 [&_th]:text-xs [&_th]:font-normal [&_th]:text-muted-foreground [&_tr]:border-border/40">
+      <div className="rounded-xl border">
+        <Table className="text-sm [&_td]:py-1.5 [&_th]:h-9">
           <TableHeader>
             <TableRow>
               <TableHead>{t('ledger.name')}</TableHead>
-              {showDetails && <TableHead className="w-32">{t('coa.kind')}</TableHead>}
-              {showDetails && <TableHead className="w-36">{t('ledger.owner')}</TableHead>}
+              <TableHead className="w-32">{t('coa.kind')}</TableHead>
+              <TableHead className="w-20">{t('ledger.currency')}</TableHead>
+              <TableHead className="w-36">{t('ledger.owner')}</TableHead>
               <TableHead className="w-40 text-right">{t('ledger.balance')}</TableHead>
               <TableHead className="w-40 text-right">{t('ledger.total', { currency: base })}</TableHead>
               <TableHead className="w-10" />
@@ -158,10 +152,10 @@ export default function Accounts({ membership }: { membership: Membership }) {
           </TableHeader>
           <TableBody>
             {accounts.isLoading && (
-              <TableRow><TableCell colSpan={showDetails ? 6 : 4} className="text-center text-muted-foreground">{t('ledger.loading')}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('ledger.loading')}</TableCell></TableRow>
             )}
             {!accounts.isLoading && rows.length === 0 && (
-              <TableRow><TableCell colSpan={showDetails ? 6 : 4} className="text-center text-muted-foreground">{t('coa.empty')}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">{t('coa.empty')}</TableCell></TableRow>
             )}
             {rows.map((n) => {
               const top = n.depth === 0
@@ -170,7 +164,7 @@ export default function Accounts({ membership }: { membership: Membership }) {
               return (
                 <TableRow
                   key={n.id}
-                  className={cn('cursor-default select-none', top && 'bg-muted/20 font-semibold', n.archived_at && 'text-muted-foreground')}
+                  className={cn('cursor-default select-none', top && 'bg-muted/40 font-semibold', n.archived_at && 'text-muted-foreground')}
                   onDoubleClick={() => !n.is_placeholder && navigate(`/hesaplar/${n.id}`)}
                 >
                   <TableCell>
@@ -185,23 +179,19 @@ export default function Accounts({ membership }: { membership: Membership }) {
                       ) : <span className="w-5" />}
                       <span className={cn(n.is_placeholder && 'italic')}>{n.name}</span>
                       {n.locked && <LockIcon className="ml-1 size-3 text-muted-foreground" aria-label={t('coa.system')} />}
+                      {n.system_key && <Badge variant="outline" className="ml-2">{t('coa.system')}</Badge>}
                       {n.archived_at && <Badge variant="secondary" className="ml-2">{t('coa.archived')}</Badge>}
                     </div>
                   </TableCell>
-                  {showDetails && (
-                    <TableCell className="text-xs text-muted-foreground">
-                      {n.depth === 0 || n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
-                    </TableCell>
-                  )}
-                  {showDetails && (
-                    <TableCell className="text-xs text-muted-foreground">{n.owner_member_id ? memberName.get(n.owner_member_id) : ''}</TableCell>
-                  )}
-                  <TableCell className={cn('text-right font-mono tabular-nums', own < 0 && 'text-destructive')}>
-                    {!n.is_placeholder && (
-                      <>{fmt(own, n.currency)} <span className="text-xs font-normal text-muted-foreground">{n.currency}</span></>
-                    )}
+                  <TableCell className="text-muted-foreground">
+                    {n.depth === 0 || n.is_placeholder ? t('coa.placeholder') : n.subtype ? t(`ledger.subtype.${n.subtype}`) : t(`ledger.type.${n.type}`)}
                   </TableCell>
-                  <TableCell className={cn('text-right font-mono text-xs tabular-nums', total < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                  <TableCell className="font-mono">{n.currency}</TableCell>
+                  <TableCell className="text-muted-foreground">{n.owner_member_id ? memberName.get(n.owner_member_id) : ''}</TableCell>
+                  <TableCell className={cn('text-right font-mono tabular-nums', own < 0 && 'text-destructive')}>
+                    {n.is_placeholder ? '' : fmt(own, n.currency)}
+                  </TableCell>
+                  <TableCell className={cn('text-right font-mono tabular-nums', total < 0 && 'text-destructive')}>
                     {fmt(total, base)}
                   </TableCell>
                   <TableCell>
