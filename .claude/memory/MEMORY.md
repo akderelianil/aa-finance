@@ -8,3 +8,4 @@
 - [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice + Hesaplar polish done
 - [Hesaplar redesign (2026-10-11)](project-hesaplar-redesign.md) — ReUI tree grid, person fold, MCP via browser auth
 - [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; intermittent journal-post 500
+- [Yevmiye redesign (2026-10-11)](project-yevmiye-redesign.md) — data-grid + icon chooser + defensive entry forms; term bans; open: sub-row alignment
