@@ -1,9 +1,8 @@
 import { useMutation, useQueries, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, CircleAlertIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, TriangleAlertIcon, UserPlusIcon } from 'lucide-react'
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon, UserPlusIcon } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
-import { AccountPicker } from '@/components/journal/AccountPicker'
 import { AmountInput } from '@/components/journal/AmountInput'
 import { ContactPicker } from '@/components/journal/ContactPicker'
 import { FormError } from '@/components/PageShell'
@@ -20,21 +19,19 @@ import { errorMessage } from '@/lib/errors'
 import { today } from '@/lib/journal'
 import { flattenTree, formatAmount, parseDecimalInput, toMinor, useCurrencies, useLedgerAccounts, type AccountNode } from '@/lib/ledger'
 import {
-  convertMinor, incomeExpenseLines, isBank, isCard, isCash, toBaseMinor, transferLines, type FxCtx, type QuickLine,
+  convertMinor, DEBT_MODES, debtLines, debtSubtype, incomeExpenseLines, isBank, isCard, isCash, moneyIn, toBaseMinor, transferLines,
+  type DebtMode, type FxCtx, type QuickLine,
 } from '@/lib/quick'
+import { Field, Msg, Picker, Preview } from './QuickFormParts'
 
 export type QuickKind = 'income' | 'expense' | 'transfer' | 'debt'
 type Kind = QuickKind
 type TransferMode = 'between' | 'atm_withdraw' | 'atm_deposit'
-type DebtMode = 'borrow' | 'lend' | 'collect' | 'pay'
-const DEBT_MODES = ['lend', 'borrow', 'collect', 'pay'] as const
-const moneyIn = (m: DebtMode) => m === 'borrow' || m === 'collect'
 
 type Props = { kind: QuickKind | null; onClose: () => void; membership: Membership }
 
-// Hızlı İşlem: Gelir · Gider · Transfer · Borç (alma / verme). Each form posts one plain journal entry through journal-post.
-// Borç needs a Rehber contact: Borç Alma = Borç money / Alacak Kişilere Borçlar, Borç Verme = Borç Kişilerden Alacaklar / Alacak money,
-// Tahsilat = Borç money / Alacak Kişilerden Alacaklar, Ödeme = Borç Kişilere Borçlar / Alacak money.
+// Hızlı Kayıt: Gelir · Gider · Transfer · Borç. Each form posts one plain journal entry through journal-post.
+// Borç needs a Rehber contact; its lines come from debtLines (lib/quick.ts).
 // A Rehber contact tags every line; for Gelir / Gider its default account fills the first account line.
 export function QuickTransactionDialog({ kind, onClose, membership }: Props) {
   const { t } = useTranslation()
@@ -102,7 +99,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
   const toList = mode === 'atm_withdraw' ? balanceSheet.filter(isCash)
     : mode === 'atm_deposit' ? balanceSheet.filter(isBank) : balanceSheet
   const moneyAccounts = balanceSheet.filter((a) => a.type === 'asset' && a.subtype !== 'receivable')
-  const debtAccount = balanceSheet.find((a) => a.subtype === (debtMode === 'borrow' || debtMode === 'pay' ? 'payable' : 'receivable'))
+  const debtAccount = balanceSheet.find((a) => a.subtype === debtSubtype(debtMode))
   const defaultFee = expenses.find((a) => a.template_key === 'bank_fee')
 
   const money = acc(moneyId)
@@ -172,11 +169,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
 
   let lines: QuickLine[] | null = null
   if (kind === 'debt') {
-    if (money && debtAccount && contactId) {
-      lines = moneyIn(debtMode)
-        ? transferLines(fx, debtAccount, money, debtDiffer ? debtCounter ?? 0 : debtMinor, debtDiffer ? debtMinor : null, 0, null)
-        : transferLines(fx, money, debtAccount, debtMinor, debtDiffer ? debtCounter : null, 0, null)
-    }
+    if (money && debtAccount && contactId) lines = debtLines(fx, debtMode, money, debtAccount, debtMinor, debtCounter)
   } else if (kind === 'transfer') {
     if (from && to) lines = transferLines(fx, from, to, amountMinor, counterMinor, feeMinor, feeAccount ?? null)
   } else if (money && splitRows.length > 0 && splitRows.every((r) => r)) {
@@ -264,7 +257,7 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
     if (!money) errs.money = account
     const e = amtCheck(amount, money?.currency ?? base)
     if (e) errs.amount = e
-    if (!debtAccount) errs.debtAccount = t('check.noDebtAccount', { kind: t(debtMode === 'borrow' || debtMode === 'pay' ? 'check.payable' : 'check.receivable') })
+    if (!debtAccount) errs.debtAccount = t('check.noDebtAccount', { kind: t(`check.${debtSubtype(debtMode)}`) })
     if (debtDiffer && debtCounter === null) errs.counter = t('check.counter')
   } else if (kind === 'transfer') {
     if (!from) errs.from = account
@@ -586,79 +579,6 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
           </Button>
         </div>
       </div>
-    </div>
-  )
-}
-
-// One labelled field with its message under it: an error (red), else a warning (muted, with an icon), else a hint.
-function Field({ label, className, children, error, warning, hint, onTouch }: {
-  label: string; className?: string; children: ReactNode; error?: string; warning?: string; hint?: string; onTouch?: () => void
-}) {
-  return (
-    <div className={`flex min-w-0 flex-col gap-1 ${className ?? ''}`} onBlurCapture={onTouch}>
-      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-        {label}
-        {children}
-      </label>
-      <Msg error={error} warning={warning} hint={hint} />
-    </div>
-  )
-}
-
-function Msg({ error, warning, hint }: { error?: string; warning?: string; hint?: string }) {
-  if (error) return <p className="flex items-start gap-1 text-xs text-destructive" role="alert"><CircleAlertIcon className="mt-0.5 size-3 shrink-0" />{error}</p>
-  if (warning) return <p className="flex items-start gap-1 text-xs text-muted-foreground"><TriangleAlertIcon className="mt-0.5 size-3 shrink-0" />{warning}</p>
-  if (hint) return <p className="text-xs text-muted-foreground">{hint}</p>
-  return null
-}
-
-function Picker({ accounts, value, onChange, label, invalid }: {
-  accounts: AccountNode[]; value: string; onChange: (id: string) => void; label: string; invalid?: boolean
-}) {
-  return (
-    <AccountPicker
-      accounts={accounts} value={value} onChange={onChange} invalid={invalid} aria-label={label}
-      className="rounded-3xl bg-input/50 px-1 text-foreground [&_input]:rounded-3xl"
-    />
-  )
-}
-
-// The journal entry the form will post (Borç / Alacak), so the user sees the booking before saving.
-function Preview({ lines, byId, base, fmt }: {
-  lines: QuickLine[]; byId: Map<string, AccountNode>; base: string; fmt: (decimal: string, cur: string) => string
-}) {
-  const { t } = useTranslation()
-  return (
-    <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-      <div className="mb-1 text-xs font-medium text-muted-foreground">{t('quick.preview')}</div>
-      <table className="w-full">
-        <thead className="text-xs text-muted-foreground">
-          <tr className="[&>th]:px-1 [&>th]:text-left [&>th]:font-medium">
-            <th>{t('ledger.account')}</th>
-            <th className="w-36 !text-right">{t('ledger.debit')}</th>
-            <th className="w-36 !text-right">{t('ledger.credit')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((l, i) => {
-            const a = byId.get(l.account_id)
-            const cur = a?.currency ?? base
-            const cell = (side: 'debit' | 'credit') => (l.side === side
-              ? <>{fmt(l.amount, cur)}{cur !== base && <span className="ml-1 text-xs text-muted-foreground">{cur}</span>}</>
-              : '')
-            return (
-              <tr key={i} className="[&>td]:px-1 [&>td]:py-0.5">
-                <td className={l.side === 'credit' ? 'pl-8' : ''}>
-                  {a?.name}
-                  {l.memo && <span className="ml-2 text-xs text-muted-foreground">{l.memo}</span>}
-                </td>
-                <td className="text-right font-mono tabular-nums">{cell('debit')}</td>
-                <td className="text-right font-mono tabular-nums">{cell('credit')}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mulDivRound, scaleMinor, transferLines } from './quick.ts'
+import { debtLines, mulDivRound, scaleMinor, transferLines } from './quick.ts'
 
 test('scaleMinor: exact, half up, exponents differ', () => {
   assert.equal(scaleMinor(10000, '34.5', 2, 2), 345000) // 100.00 USD → 3450.00 TRY
@@ -28,9 +28,23 @@ test('transferLines: fee line and source line balance in base', () => {
   assert.equal(sum('debit'), sum('credit'))
 })
 
-test('debt via transferLines: borrow debits money, credits the payable account', () => {
+test('debtLines: each mode books money and the debt account on the right side', () => {
   const fx = { base: 'TRY', exp: () => 2, rate: () => undefined }
-  const acc = (id: string) => ({ id, currency: 'TRY' }) as never
-  const lines = transferLines(fx, acc('payable'), acc('bank'), 500000, null, 0, null)!
-  assert.deepEqual(lines.map((l) => [l.account_id, l.side, l.amount]), [['bank', 'debit', '5000.00'], ['payable', 'credit', '5000.00']])
+  const money = { id: 'cash', currency: 'TRY' } as never
+  const payable = { id: 'payable', currency: 'TRY' } as never
+  const receivable = { id: 'receivable', currency: 'TRY' } as never
+  const sides = (l: ReturnType<typeof debtLines>) => l!.map((x) => `${x.side}:${x.account_id}:${x.amount}`).sort()
+  assert.deepEqual(sides(debtLines(fx, 'borrow', money, payable, 5000, null)), ['credit:payable:50.00', 'debit:cash:50.00'])
+  assert.deepEqual(sides(debtLines(fx, 'pay', money, payable, 5000, null)), ['credit:cash:50.00', 'debit:payable:50.00'])
+  assert.deepEqual(sides(debtLines(fx, 'lend', money, receivable, 5000, null)), ['credit:cash:50.00', 'debit:receivable:50.00'])
+  assert.deepEqual(sides(debtLines(fx, 'collect', money, receivable, 5000, null)), ['credit:receivable:50.00', 'debit:cash:50.00'])
+})
+
+test('debtLines: foreign money account books the debt amount in base', () => {
+  const fx = { base: 'TRY', exp: () => 2, rate: () => '40' }
+  const usd = { id: 'usd', currency: 'USD' } as never
+  const payable = { id: 'payable', currency: 'TRY' } as never
+  const lines = debtLines(fx, 'borrow', usd, payable, 10000, 400000)!
+  assert.deepEqual(lines.find((l) => l.account_id === 'usd'), { account_id: 'usd', side: 'debit', amount: '100.00', base_amount: '4000.00' })
+  assert.equal(lines.find((l) => l.account_id === 'payable')?.amount, '4000.00')
 })

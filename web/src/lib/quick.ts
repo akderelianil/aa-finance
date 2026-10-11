@@ -1,6 +1,6 @@
 import type { AccountNode } from './ledger'
 
-// Quick transactions (Gelir · Gider · Transfer): simple forms that build a journal-post line list.
+// Quick Entry (Gelir · Gider · Transfer · Borç): simple forms that build a journal-post line list.
 // Saved entries are plain journal entries; they are edited in the General Journal editor.
 // Amounts here are minor units (number). Every foreign line gets an explicit base_amount so the entry
 // balances exactly (no rounding difference between lines on the server). Rate math is exact (bigint), never float.
@@ -152,6 +152,27 @@ export function transferLines(
   }
   lines.push(line(fx, from, 'credit', amount + fee, transferBase + feeBase))
   return lines
+}
+
+// Borç (between people): Borç Alma and Tahsilat bring money in; Borç Verme and Ödeme send it out.
+export type DebtMode = 'borrow' | 'lend' | 'collect' | 'pay'
+export const DEBT_MODES = ['lend', 'borrow', 'collect', 'pay'] as const
+export const moneyIn = (m: DebtMode) => m === 'borrow' || m === 'collect'
+/** Borç Alma and Ödeme use Kişilere Borçlar (payable); Borç Verme and Tahsilat use Kişilerden Alacaklar (receivable). */
+export const debtSubtype = (m: DebtMode) => (m === 'borrow' || m === 'pay' ? 'payable' : 'receivable')
+
+/**
+ * Borç Alma = Borç money / Alacak Kişilere Borçlar, Borç Verme = Borç Kişilerden Alacaklar / Alacak money,
+ * Tahsilat = Borç money / Alacak Kişilerden Alacaklar, Ödeme = Borç Kişilere Borçlar / Alacak money.
+ * amount is in the money currency; debtAmount is the debt account amount when the currencies differ.
+ */
+export function debtLines(
+  fx: FxCtx, mode: DebtMode, money: AccountNode, debt: AccountNode, amount: number, debtAmount: number | null,
+): QuickLine[] | null {
+  const differ = money.currency !== debt.currency
+  return moneyIn(mode)
+    ? transferLines(fx, debt, money, differ ? debtAmount ?? 0 : amount, differ ? amount : null, 0, null)
+    : transferLines(fx, money, debt, amount, differ ? debtAmount : null, 0, null)
 }
 
 // ATM: bank (or credit card, cash advance) ↔ cash. Accounts match by kind (a child takes the kind of its group).
