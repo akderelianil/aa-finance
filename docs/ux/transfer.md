@@ -29,14 +29,14 @@ Dört senaryo **aynı form**. ATM ayrı ekran değil; "Nakit" bir hesaptır. Kar
 - Rehber yok, bölme yok. Transfer tek tutar, iki hesap.
 - Nereden ve Nereye aynı hesap olamaz.
 - **Masraf** (ATM, havale/EFT ücreti) boş bırakılabilir. Yazılırsa Nereden hesabından ek düşer ve Gider olur.
-- Masraf hesabı varsayılan "Banka Masrafları" gider hesabıdır. Kullanıcı değiştirebilir.
+- Masraf hesabı varsayılan "Banka Ücreti" gider hesabıdır. Kullanıcı değiştirebilir.
 
 ## Kayıt
 Örnek 1: ATM'den 1.000 TL çekildi, 5 TL masraf.
 | Hesap | Borç | Alacak |
 |---|---|---|
 | Nakit | 1.000 | |
-| Banka Masrafları | 5 | |
+| Banka Ücreti | 5 | |
 | Banka | | 1.005 |
 
 Örnek 2: Bankadan karta 2.000 TL ödeme, masraf yok.

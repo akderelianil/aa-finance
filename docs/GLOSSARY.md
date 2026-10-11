@@ -36,6 +36,7 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 | Currency / base currency | Para birimi / Ana para birimi | `döviz cinsi` | Every account has one. Reports use the base currency. |
 | Exchange rate | Kur | | Line rate to the base currency. |
 | Archive | Arşivle | | The account leaves the tree. History stays. |
+| Directory / contact | Rehber / Kişi, Marka, Firma/Kurum | `müşteri`, `cari` | Person, brand or business linked to lines. Holds default accounts and the open balance. |
 
 ## Reports
 
