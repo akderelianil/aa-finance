@@ -1,6 +1,6 @@
 ---
 name: feedback-doc-system
-description: "Doc/agent system the user chose 2026-10-07: docs/code English (docs/ux Turkish, paused); STE style; relative links; owner frontmatter; agent learning loop"
+description: "Doc/agent system the user chose 2026-10-07: docs/code English (docs/ux Turkish); STE style; relative links; owner frontmatter; agent learning loop"
 metadata:
   type: feedback
 ---

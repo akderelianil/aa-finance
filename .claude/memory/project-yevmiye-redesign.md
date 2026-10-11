@@ -2,10 +2,7 @@
 name: project-yevmiye-redesign
 description: "2026-10-11 Yevmiye page and entry dialogs rebuilt (data-grid, icon chooser, defensive forms); owner decisions and gotchas"
 metadata:
-  node_type: memory
   type: project
-  originSessionId: e7bbb109-6fee-4346-ab36-532e7e4077bd
-  modified: 2026-10-11T11:02:50.306Z
 ---
 
 Yevmiye (`web/src/pages/Journal.tsx`) was rebuilt on the ReUI data-grid with cognitive-load and progressive-disclosure rules. Commits `685bebe`, `3c58fa3`, `6b39826`, `89d283a`.

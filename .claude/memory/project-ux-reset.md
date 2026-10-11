@@ -1,6 +1,6 @@
 ---
 name: project-ux-reset
-description: "2026-10-08 UX reset — old docs/ux deleted; flows rebuilt one scenario at a time, simplest first (Gider, Gelir, Transfer done)"
+description: "2026-10-08 UX reset — old docs/ux deleted; flows rebuilt one scenario at a time, simplest first (Gider, Gelir, Transfer, Borç done)"
 metadata:
   type: project
 ---

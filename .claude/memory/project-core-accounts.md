@@ -1,6 +1,6 @@
 ---
 name: project-core-accounts
-description: "2026-10-11 Hesaplar rework — core (locked) account set decided; onboarding choice core-only vs core+recommended still to build"
+description: "2026-10-11 core (locked) account set, onboarding choice core-only vs recommended, admin adds recommended later — all done"
 metadata:
   type: project
 ---
