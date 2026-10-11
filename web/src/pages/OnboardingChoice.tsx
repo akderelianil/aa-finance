@@ -10,11 +10,11 @@ export default function OnboardingChoice() {
   return (
     <PageShell>
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">{t('onboarding.welcome')}</h1>
-        <p className="text-muted-foreground">{t('onboarding.choose')}</p>
+        <h1 className="text-xl font-semibold tracking-tight">{t('onboarding.welcome')}</h1>
+        <p className="text-sm text-muted-foreground">{t('onboarding.choose')}</p>
       </div>
       <Link to="/onboarding/create">
-        <Card className="transition hover:bg-accent">
+        <Card className="transition-colors hover:bg-accent">
           <CardHeader>
             <CardTitle>{t('onboarding.createGroup')}</CardTitle>
             <CardDescription>{t('onboarding.createGroupDesc')}</CardDescription>
@@ -22,7 +22,7 @@ export default function OnboardingChoice() {
         </Card>
       </Link>
       <Link to="/onboarding/join">
-        <Card className="transition hover:bg-accent">
+        <Card className="transition-colors hover:bg-accent">
           <CardHeader>
             <CardTitle>{t('onboarding.joinGroup')}</CardTitle>
             <CardDescription>{t('onboarding.joinGroupDesc')}</CardDescription>

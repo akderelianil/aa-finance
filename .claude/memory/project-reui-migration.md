@@ -15,7 +15,7 @@ Checklist (mark done here after each commit):
 - [x] 4 Directory (Rehber)
 - [x] 5 Dashboard + StatStrip
 - [x] 6 Settings (save toasts, no-op Save disabled, admin tools card)
-- [ ] 7 Auth + onboarding (low priority)
+- [x] 7 Auth + onboarding (Alert FormError, RadioGroup chart choice)
 - [ ] 8 Sweep unused shadcn parts + docs
 
 **Why:** owner wants every screen on the ReUI rules with better UX, low token use per session.

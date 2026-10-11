@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { callFunction } from '@/lib/api'
 import { errorMessage } from '@/lib/errors'
@@ -82,21 +83,20 @@ export default function OnboardingCreate() {
                 </p>
               )}
             </div>
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-sm font-medium">{t('onboarding.chart')}</legend>
-              {(['recommended', 'core'] as const).map((k) => (
-                <label
-                  key={k}
-                  className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                >
-                  <input type="radio" name="chart" className="mt-1 accent-primary" checked={chart === k} onChange={() => setChart(k)} />
-                  <span className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium">{t(k === 'core' ? 'onboarding.chartCore' : 'onboarding.chartRecommended')}</span>
-                    <span className="text-xs text-muted-foreground">{t(k === 'core' ? 'onboarding.chartCoreDesc' : 'onboarding.chartRecommendedDesc')}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
+            <div className="flex flex-col gap-2">
+              <Label>{t('onboarding.chart')}</Label>
+              <RadioGroup value={chart} onValueChange={(v) => setChart(v as 'recommended' | 'core')}>
+                {(['recommended', 'core'] as const).map((k) => (
+                  <Label key={k} className="items-start gap-3 font-normal">
+                    <RadioGroupItem value={k} className="mt-0.5" />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium">{t(k === 'core' ? 'onboarding.chartCore' : 'onboarding.chartRecommended')}</span>
+                      <span className="text-xs text-muted-foreground">{t(k === 'core' ? 'onboarding.chartCoreDesc' : 'onboarding.chartRecommendedDesc')}</span>
+                    </span>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </div>
             <FormError message={create.error ? errorMessage(t, create.error) : null} />
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pt-4">
