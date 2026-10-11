@@ -4,17 +4,16 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
 import { AccountPicker } from '@/components/journal/AccountPicker'
+import { DataState } from '@/components/DataState'
 import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { toast } from '@/components/ui/toast'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -100,7 +99,7 @@ export default function Directory({ membership }: { membership: Membership }) {
       />
 
       <div className="flex items-center gap-3">
-        <Input className="h-8 w-72" type="search" placeholder={t('directory.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <Input className="w-72" type="search" placeholder={t('directory.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
         <ToggleGroup
           value={[filter]} spacing={2} aria-label={t('directory.kind')}
           onValueChange={(v) => { if (v[0]) setFilter(v[0] as ContactKind | 'all') }}
@@ -111,14 +110,20 @@ export default function Directory({ membership }: { membership: Membership }) {
         </ToggleGroup>
       </div>
 
-      {contacts.isLoading && (
-        <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-44" />)}
-        </div>
-      )}
-      {contacts.data && rows.length === 0 && (
-        <Empty><EmptyHeader><EmptyTitle>{t('directory.empty')}</EmptyTitle></EmptyHeader></Empty>
-      )}
+      <DataState
+        loading={contacts.isLoading}
+        error={contacts.isError}
+        onRetry={() => { void contacts.refetch() }}
+        rows={3}
+        empty={contacts.data && rows.length === 0
+          ? {
+            title: t(active.length === 0 ? 'directory.empty' : 'directory.noMatch'),
+            action: active.length === 0
+              ? <Button size="sm" onClick={() => setEditing('new')}><PlusIcon data-icon="inline-start" />{t('directory.add')}</Button>
+              : undefined,
+          }
+          : undefined}
+      />
       <div className="grid grid-cols-3 gap-4">
         {rows.map((c) => {
           const net = balances.data?.get(c.id) ?? 0
@@ -193,7 +198,6 @@ export default function Directory({ membership }: { membership: Membership }) {
           )
         })}
       </div>
-      <FormError message={contacts.error ? errorMessage(t, contacts.error) : null} />
 
       <Dialog open={editing !== null} onOpenChange={(o) => { if (!o) setEditing(null) }}>
         <DialogContent className="sm:max-w-2xl">
@@ -277,16 +281,16 @@ function ContactForm({ contact, all, links, postable, onDone }: {
       </ToggleGroup>
 
       <Field label={t(kind === 'business' ? 'directory.legalName' : 'directory.name')}>
-        <Input className="h-8" required maxLength={100} autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+        <Input required maxLength={100} autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
 
       {kind !== 'brand' && (
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('directory.phone')}>
-            <Input className="h-8" type="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input type="tel" maxLength={40} value={phone} onChange={(e) => setPhone(e.target.value)} />
           </Field>
           <Field label={t('directory.email')}>
-            <Input className="h-8" type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input type="email" maxLength={120} value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
         </div>
       )}
@@ -316,11 +320,11 @@ function ContactForm({ contact, all, links, postable, onDone }: {
             {banks.map((b, i) => (
               <div key={i} className="flex gap-2">
                 <Input
-                  aria-label={t('directory.bankName')} placeholder={t('directory.bankName')} className="h-8 w-40 shrink-0" maxLength={60}
+                  aria-label={t('directory.bankName')} placeholder={t('directory.bankName')} className="w-40 shrink-0" maxLength={60}
                   value={b.bank_name ?? ''} onChange={(e) => setBanks(banks.map((x, j) => (j === i ? { ...x, bank_name: e.target.value } : x)))}
                 />
                 <Input
-                  aria-label="IBAN" placeholder="TR.." className="h-8 font-mono" maxLength={40} autoComplete="off"
+                  aria-label="IBAN" placeholder="TR.." className="font-mono" maxLength={40} autoComplete="off"
                   value={b.iban} onChange={(e) => setBanks(banks.map((x, j) => (j === i ? { ...x, iban: e.target.value } : x)))}
                 />
                 {b.iban && (

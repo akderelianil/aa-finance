@@ -136,6 +136,7 @@ export const tr = {
     kind: 'Tür',
     kinds: { all: 'Tümü', individual: 'Kişi', brand: 'Marka', business: 'Firma/Kurum' },
     empty: 'Rehber boş.',
+    noMatch: 'Aramana uyan kayıt yok.',
     name: 'Ad',
     legalName: 'Unvan',
     phone: 'Telefon',

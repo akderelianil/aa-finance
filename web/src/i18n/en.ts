@@ -138,6 +138,7 @@ export const en: Translation = {
     kind: 'Type',
     kinds: { all: 'All', individual: 'Person', brand: 'Brand', business: 'Business/Institution' },
     empty: 'The directory is empty.',
+    noMatch: 'No contact matches your search.',
     name: 'Name',
     legalName: 'Legal name',
     phone: 'Phone',

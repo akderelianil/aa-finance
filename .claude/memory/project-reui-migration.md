@@ -12,7 +12,7 @@ Checklist (mark done here after each commit):
 - [x] 1 AccountRegister → data-grid
 - [x] 2 Reports → data-grid
 - [x] 3 MemberAccessCard (drop ui/table; table.tsx deleted)
-- [ ] 4 Directory (Rehber)
+- [x] 4 Directory (Rehber)
 - [ ] 5 Dashboard + StatStrip
 - [ ] 6 Settings
 - [ ] 7 Auth + onboarding (low priority)
