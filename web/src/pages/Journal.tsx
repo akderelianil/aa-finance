@@ -323,35 +323,31 @@ export default function Journal({ membership }: { membership: Membership }) {
     </>
   )
 
-  // Detail of one entry: its debit and credit lines. Shown only when the row is open.
+  // Detail of one entry: its lines. Account sits under the Account column, the amount under Amount;
+  // a Debit/Credit label replaces the two money columns so the figures stay in one column.
   function Lines({ entry }: { entry: JournalEntry }) {
     return (
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-xs text-muted-foreground [&>th]:py-1.5 [&>th]:font-medium [&>th]:text-start">
-            <th className="ps-14">{t('ledger.account')}</th>
-            <th>{t('ledger.memo')}</th>
-            <th className="w-36 !text-end">{t('ledger.debit')}</th>
-            <th className="w-36 !text-end pe-3">{t('ledger.credit')}</th>
-            <th className="w-12" />
-          </tr>
-        </thead>
+      <table className="w-full table-fixed text-sm">
+        <colgroup>
+          <col style={{ width: 324 }} /><col /><col style={{ width: 90 }} /><col style={{ width: 140 }} /><col style={{ width: 88 }} />
+        </colgroup>
         <tbody className="bg-muted/30">
           {entry.journal_lines.map((l) => {
             const foreign = l.currency !== base
             return (
-              <tr key={l.id} className="[&>td]:py-1">
-                <td className="ps-14">
+              <tr key={l.id} className="[&>td]:py-1.5">
+                <td />
+                <td className="truncate">
                   {byId.get(l.account_id)?.name}
+                  {l.memo && <span className="ms-2 text-xs text-muted-foreground">{l.memo}</span>}
                   {foreign && (
                     <span className="ms-2 text-xs text-muted-foreground tabular-nums">
                       {fmt(Number(l.amount), l.currency)} {l.currency} × {Number(l.fx_rate).toLocaleString(i18n.language, { maximumFractionDigits: 6 })}
                     </span>
                   )}
                 </td>
-                <td className="text-muted-foreground">{l.memo}</td>
-                <td className="text-end tabular-nums">{l.direction === 'debit' ? fmt(Number(l.base_amount)) : ''}</td>
-                <td className="pe-3 text-end tabular-nums">{l.direction === 'credit' ? fmt(Number(l.base_amount)) : ''}</td>
+                <td><Badge variant={l.direction === 'debit' ? 'info-light' : 'secondary'} size="sm">{t(`ledger.${l.direction}`)}</Badge></td>
+                <td className="text-end tabular-nums">{fmt(Number(l.base_amount))}</td>
                 <td />
               </tr>
             )

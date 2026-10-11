@@ -11,7 +11,7 @@ metadata:
 Yevmiye (`web/src/pages/Journal.tsx`) was rebuilt on the ReUI data-grid with cognitive-load and progressive-disclosure rules. Commits `685bebe`, `3c58fa3`, `6b39826`, `89d283a`.
 
 Owner decisions (feedback while testing):
-- Table columns: User (avatar + tooltip with name, expand chevron), Date, Account, Amount. One row per entry; debit/credit lines open on row click. Edit/Delete in the "⋯" row menu. Newest first. Period presets (Bu ay / Geçen ay / Bu yıl / Özel); date inputs only for "Özel".
+- Expanded row: one Amount column with a Debit/Credit badge, aligned under the grid columns. Table columns: User (avatar + tooltip with name, expand chevron), Date, Account, Amount. One row per entry; debit/credit lines open on row click. Edit/Delete in the "⋯" row menu. Newest first. Period presets (Bu ay / Geçen ay / Bu yıl / Özel); date inputs only for "Özel".
 - "Yeni kayıt" is two steps: `NewEntryChooser` (icon cards: Gider, Gelir, Transfer, Borç; "Serbest kayıt" row below) → the Quick Entry form (`QuickTransactionDialog`, reused; also the sidebar "Hızlı Kayıt"). Free entry = the `JournalEditor` grid in a dialog; editing an existing entry also uses it.
 - Entry forms must be defensive: amount hero field (`AmountInput`, strips letters, shows currency, tidies on blur), inline messages, Save never silently disabled (click marks fields, focuses the first, shows a count). Rules in `web/src/lib/entryRules.ts` and the `check.*` i18n keys. Hard errors block; warnings (old date, low balance, duplicate account, big fee) do not.
 - Rehber, tags, line memos, fee and split stay hidden behind "add" buttons (progressive disclosure).
@@ -24,6 +24,5 @@ Gotchas:
 - Do not truncate decimals silently ("1.234" would become 1,23); show an error instead.
 - Do not install `c-data-grid-9`: it overwrites `data-grid-table.tsx`. Use `meta.expandedContent` of the installed grid.
 - `playwright-cli open` needs `--browser=chromium` (no Chrome in WSL); log in with the demo account ([[reference-demo-account]]).
-- Open: expanded-row Borç/Alacak columns do not line up with the grid's Amount column.
 
 See [[project-hesaplar-redesign]].
