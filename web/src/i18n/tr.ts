@@ -206,6 +206,7 @@ export const tr = {
     unarchive: 'Arşivden çıkar',
     archived: 'Arşivde',
     showArchived: 'Arşivdekileri göster',
+    showDetails: 'Ayrıntıları göster',
     search: 'Hesap ara',
     expandAll: 'Tümünü aç',
     collapseAll: 'Tümünü kapat',

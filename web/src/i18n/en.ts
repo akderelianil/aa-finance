@@ -208,6 +208,7 @@ export const en: Translation = {
     unarchive: 'Unarchive',
     archived: 'Archived',
     showArchived: 'Show archived',
+    showDetails: 'Show details',
     search: 'Search accounts',
     expandAll: 'Expand all',
     collapseAll: 'Collapse all',
