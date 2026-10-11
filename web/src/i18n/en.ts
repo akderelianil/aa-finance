@@ -163,6 +163,7 @@ export const en: Translation = {
     clear: 'Clear',
     mixed: 'Several',
   },
+  state: { retry: 'Try again', error: 'Data could not be loaded.' },
   ledger: {
     type: { asset: 'Asset', liability: 'Debt', equity: 'Equity', income: 'Income', expense: 'Expense' },
     typePlural: {

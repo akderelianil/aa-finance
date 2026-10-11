@@ -161,6 +161,7 @@ export const tr = {
     clear: 'Temizle',
     mixed: 'Birden fazla',
   },
+  state: { retry: 'Tekrar dene', error: 'Veriler yüklenemedi.' },
   ledger: {
     type: { asset: 'Varlık', liability: 'Borç', equity: 'Özkaynak', income: 'Gelir', expense: 'Gider' },
     typePlural: {
