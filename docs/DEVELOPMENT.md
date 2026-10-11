@@ -15,7 +15,7 @@ Quick start and fixes for repeated mistakes. Decisions: [ARCHITECTURE](ARCHITECT
 | Lint (oxlint) | `cd web && npm run lint` |
 | Supabase CLI | `npx supabase ...` |
 
-Minimum check after a change: `npm run lint && npm run build` (now: lint 1 warning, build clean). After a UI text or `docs/ux` change, also run `npm run check:terms` ([GLOSSARY](GLOSSARY.md)).
+Minimum check after a change: `npm run lint && npm run build` (lint must show no errors; warnings come mostly from ReUI registry code). After a UI text or `docs/ux` change, also run `npm run check:terms` ([GLOSSARY](GLOSSARY.md)).
 
 ## Machine notes (Ubuntu on WSL2)
 - Work in `~/aa-finance` (ext4). Do not run from `/mnt/c`: it is slow and has file-mode and line-ending noise.
