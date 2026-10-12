@@ -11,6 +11,7 @@ export const en: Translation = {
     none: 'None',
   },
   nav: {
+    home: 'Home',
     quick: 'Quick Entry',
     accounts: 'Chart of Accounts',
     journal: 'General Journal',

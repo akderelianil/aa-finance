@@ -3,9 +3,10 @@ import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { EntryDialog } from './journal/EntryDialog'
 import { newDraft, type Draft } from './journal/JournalEditor'
 import { MemberMenu } from './members/MemberMenu'
@@ -25,15 +26,13 @@ const active = (pathname: string, to: string) => pathname === to || pathname.sta
 export function AppShell() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
+  const current = [...ITEMS, { to: '/etkinlik', key: 'activity' }, { to: '/ayarlar', key: 'settings' }].find((i) => active(pathname, i.to))
   const [quick, setQuick] = useState(false)
   const [draft, setDraft] = useState<Draft | null>(null)
 
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader>
-          <MemberMenu />
-        </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
@@ -87,7 +86,21 @@ export function AppShell() {
       <SidebarInset className="min-w-0">
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger aria-label={t('nav.toggle')} />
-          <div className="flex-1" />
+          <Breadcrumb className="min-w-0 flex-1">
+            <BreadcrumbList className="flex-nowrap">
+              <BreadcrumbItem><MemberMenu /></BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink render={<NavLink to="/hesaplar" />}>{t('nav.home')}</BreadcrumbLink>
+              </BreadcrumbItem>
+              {current && (
+                <>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem><BreadcrumbPage>{t(`nav.${current.key}`)}</BreadcrumbPage></BreadcrumbItem>
+                </>
+              )}
+            </BreadcrumbList>
+          </Breadcrumb>
           <ThemeToggle />
         </header>
         <div className="flex w-full flex-col gap-4 px-6 pt-4 pb-8">

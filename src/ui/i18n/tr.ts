@@ -9,6 +9,7 @@ export const tr = {
     none: 'Yok',
   },
   nav: {
+    home: 'Ana Sayfa',
     quick: 'Hızlı Kayıt',
     accounts: 'Hesap Planı',
     journal: 'Yevmiye',
