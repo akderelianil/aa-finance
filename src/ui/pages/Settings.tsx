@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArchiveRestoreIcon, BookOpenIcon, DatabaseBackupIcon, DatabaseIcon, TriangleAlertIcon, Trash2Icon, UsersIcon } from 'lucide-react'
+import { ArchiveRestoreIcon, BookOpenIcon, DatabaseBackupIcon, DatabaseIcon, InfoIcon, TriangleAlertIcon, Trash2Icon, UsersIcon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
-import { ThemeToggle } from '@/components/ThemeToggle'
+import { ThemeChoice } from '@/components/ThemeToggle'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { DataState } from '@/components/DataState'
@@ -25,6 +26,12 @@ import { COUNTRY_CURRENCY } from '../../core/countries.ts'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import { backupAs, backupDir, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
+
+// "₺" for TRY, the code itself when the locale has no short symbol.
+function currencySymbol(code: string) {
+  const part = new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')
+  return part?.value ?? code
+}
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backup and restore.
 // The base currency is fixed at setup.
@@ -114,9 +121,21 @@ function SettingsForm({ values }: { values: Values }) {
         <FramePanel className="p-0">
           <FrameHeader className="border-b">
             <FrameTitle>{t('settings.book')}</FrameTitle>
-            <FrameDescription>{t('settings.baseCurrency', { currency: values.baseCurrency })}</FrameDescription>
           </FrameHeader>
           <div className="flex flex-col divide-y">
+            <SettingRow
+              title={<span className="inline-flex items-center gap-1.5">
+                {t('settings.baseCurrencyTitle')}
+                <Tooltip>
+                  <TooltipTrigger render={<span className="inline-flex text-muted-foreground" aria-label={t('settings.baseCurrencyInfo')} />}>
+                    <InfoIcon className="size-3.5" />
+                  </TooltipTrigger>
+                  <TooltipContent>{t('settings.baseCurrencyInfo')}</TooltipContent>
+                </Tooltip>
+              </span>}
+            >
+              <span className="text-sm font-medium tabular-nums">{currencySymbol(values.baseCurrency)} <span className="text-muted-foreground">{values.baseCurrency}</span></span>
+            </SettingRow>
             <SettingRow title={t('setup.groupName')} htmlFor="set-name" description={nameError ?? (admin ? undefined : t('members.adminOnly'))} invalid={!!nameError}>
               <Input
                 id="set-name" className="w-64" value={groupName} maxLength={200} disabled={!admin}
@@ -135,7 +154,7 @@ function SettingsForm({ values }: { values: Values }) {
                 options={LANGUAGES.map((l) => ({ value: l, label: t(`language.${l}`) }))}
               />
             </SettingRow>
-            <SettingRow title={t('settings.theme')}><ThemeToggle /></SettingRow>
+            <SettingRow title={t('settings.theme')}><ThemeChoice /></SettingRow>
             <SettingRow title={t('settings.lockDate')} htmlFor="set-lock" description={t('settings.lockHint')}>
               {lockDate && admin && <Button type="button" variant="ghost" size="sm" onClick={() => setLockDate('')}>{t('settings.unlock')}</Button>}
               <Input id="set-lock" type="date" className="w-44" value={lockDate} disabled={!admin} onChange={(e) => setLockDate(e.target.value)} />

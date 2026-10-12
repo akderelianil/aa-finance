@@ -1,7 +1,8 @@
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type Theme = 'light' | 'dark' | 'system'
 const KEY = 'theme'
@@ -25,26 +26,61 @@ export function initTheme() {
   applyTheme(stored())
 }
 
-export function ThemeToggle() {
-  const { t } = useTranslation()
+const ORDER = ['light', 'dark', 'system'] as const
+const ICONS = { light: SunIcon, dark: MoonIcon, system: MonitorIcon }
+
+// The current theme, shared by every toggle on screen (the header button and the settings choice).
+function useTheme() {
   const [theme, setTheme] = useState<Theme>(stored)
-
-  const order = ['light', 'dark', 'system'] as const
-  const Icon = { light: SunIcon, dark: MoonIcon, system: MonitorIcon }[theme]
-
-  function cycle() {
-    const next = order[(order.indexOf(theme) + 1) % order.length]
-    setTheme(next)
+  useEffect(() => {
+    const sync = () => setTheme(stored())
+    window.addEventListener('themechange', sync)
+    return () => window.removeEventListener('themechange', sync)
+  }, [])
+  function choose(next: Theme) {
     try {
       if (next === 'system') localStorage.removeItem(KEY)
       else localStorage.setItem(KEY, next)
     } catch { /* depolama kapalıysa sadece bu oturumda geçerli */ }
     applyTheme(next)
+    setTheme(next)
+    window.dispatchEvent(new Event('themechange'))
   }
+  return [theme, choose] as const
+}
 
+// Header: one button that cycles light, dark, system.
+export function ThemeToggle() {
+  const { t } = useTranslation()
+  const [theme, choose] = useTheme()
+  const Icon = ICONS[theme]
   return (
-    <Button type="button" variant="outline" size="icon" onClick={cycle} aria-label={`${t('settings.theme')}: ${t(`settings.theme_${theme}`)}`} title={t(`settings.theme_${theme}`)}>
+    <Button
+      type="button" variant="outline" size="icon" onClick={() => choose(ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length])}
+      aria-label={`${t('settings.theme')}: ${t(`settings.theme_${theme}`)}`} title={t(`settings.theme_${theme}`)}
+    >
       <Icon />
     </Button>
+  )
+}
+
+// Settings: the three themes side by side, one always selected.
+export function ThemeChoice() {
+  const { t } = useTranslation()
+  const [theme, choose] = useTheme()
+  return (
+    <ToggleGroup
+      variant="outline" size="sm" spacing={0} value={[theme]} aria-label={t('settings.theme')}
+      onValueChange={(v) => { if (v[0]) choose(v[0] as Theme) }}
+    >
+      {ORDER.map((k) => {
+        const Icon = ICONS[k]
+        return (
+          <ToggleGroupItem key={k} value={k} aria-label={t(`settings.theme_${k}`)} title={t(`settings.theme_${k}`)}>
+            <Icon />
+          </ToggleGroupItem>
+        )
+      })}
+    </ToggleGroup>
   )
 }
