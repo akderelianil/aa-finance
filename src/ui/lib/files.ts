@@ -53,12 +53,6 @@ export async function resetAll(): Promise<boolean> {
   return true
 }
 
-/** Deletes the whole book like `resetAll`, then closes the app instead of showing setup. */
-export async function deleteAccount(): Promise<void> {
-  await cmd('reset_data', { stamp: stamp() })
-  await cmd('quit_app')
-}
-
 /** All data as one JSON file. Null when the user cancels. */
 export async function exportJson(): Promise<string | null> {
   const text = JSON.stringify(await call('data.export', {}), null, 2)

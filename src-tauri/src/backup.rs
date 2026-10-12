@@ -128,12 +128,6 @@ pub async fn reset_data(app: AppHandle, db: State<'_, Db>, stamp: String) -> Res
     wipe(&conn, &before)
 }
 
-/// Closes the app (after the book is deleted).
-#[tauri::command]
-pub fn quit_app(app: AppHandle) {
-    app.exit(0);
-}
-
 fn wipe(conn: &Connection, before: &Path) -> Result<(), String> {
     copy_to(conn, before)?;
     let names: Vec<(String, String)> = conn

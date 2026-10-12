@@ -21,7 +21,7 @@ import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
-import { backupAs, backupDir, deleteAccount, exportJson, inApp, resetAll, restore } from '@/lib/files'
+import { backupAs, backupDir, exportJson, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backups and export.
@@ -228,8 +228,8 @@ function DataCard() {
   )
 }
 
-// Three destructive actions, admin only; the user types a word to confirm.
-type Danger = 'records' | 'reset' | 'delete'
+// Two destructive actions, admin only; the user types a word to confirm.
+type Danger = 'records' | 'delete'
 
 function DangerCard({ admin }: { admin: boolean }) {
   const { t } = useTranslation()
@@ -243,7 +243,6 @@ function DangerCard({ admin }: { admin: boolean }) {
   const ready = typed.trim().toLocaleUpperCase() === word
   const rows: { kind: Danger; app: boolean }[] = [
     { kind: 'records', app: false },
-    { kind: 'reset', app: true },
     { kind: 'delete', app: true },
   ]
 
@@ -257,8 +256,7 @@ function DangerCard({ admin }: { admin: boolean }) {
         await qc.invalidateQueries()
         setKind(null)
         toast.add({ title: t('danger.recordsDone', { count }), timeout: 4000 })
-      } else if (kind === 'reset') await resetAll()
-      else await deleteAccount()
+      } else await resetAll()
     } catch (e) {
       setError(e)
     } finally {
