@@ -3,6 +3,7 @@
 import * as z from 'zod/mini'
 import type { Db } from '../db.ts'
 import * as accounts from './accounts.ts'
+import * as contacts from './contacts.ts'
 import type { Ctx, Op } from './ctx.ts'
 import * as data from './data.ts'
 import * as entries from './entries.ts'
@@ -23,6 +24,10 @@ export const ops = {
   'members.list': members.list,
   'members.add': members.add,
   'members.update': members.edit,
+  'contacts.list': contacts.list,
+  'contacts.create': contacts.create,
+  'contacts.update': contacts.edit,
+  'contacts.delete': contacts.remove,
   'fx.list': fx.list,
   'fx.get': fx.get,
   'fx.set': fx.set,

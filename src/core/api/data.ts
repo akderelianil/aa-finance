@@ -5,7 +5,7 @@ import { read } from './ctx.ts'
 import { API_VERSION } from './index.ts'
 
 // Tables in reference order. Column names and ids stay as in the database; currency ids become ISO codes.
-const TABLES = ['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines', 'audit_log', 'activity_log'] as const
+const TABLES = ['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines', 'contacts', 'brand_businesses', 'audit_log', 'activity_log'] as const
 
 /** Every row of every table, for an archive. There is no import: a restore uses an SQLite backup. */
 export const exportAll = read(z.object({}), async (ctx) => {

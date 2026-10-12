@@ -228,7 +228,7 @@ test('data.export: every table, currencies as codes', async () => {
   const { id } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
   const out = await api.call('data.export', {})
   assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 7)
+  assert.equal(out.schemaVersion, 8)
   const { tables: t } = out
   const entry = t.entries.find((e) => e.id === id)!
   assert.equal(entry.state, 'posted')
@@ -293,4 +293,55 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   await api.call('members.update', { id: admin.id, role: 'member' })
   api.use(999999)
   assert.equal((await api.call('settings.get', {})).me.id, can)
+})
+
+test('contacts: brand <-> business many-to-many, persons link to none, kinds and names are checked', async () => {
+  const { api, db, acc } = await fresh()
+  const add = (kind: 'individual' | 'brand' | 'business', name: string, extra: object = {}) =>
+    api.call('contacts.create', { kind, name, ...extra }).then((r) => r.id)
+  const ali = await add('individual', 'Ali')
+  const migros = await add('brand', 'Migros')
+  const macro = await add('brand', 'Macrocenter')
+  const firm = await add('business', 'Migros A.Ş.')
+  const other = await add('business', 'Kipa A.Ş.', { partners: [macro] })
+
+  // A business owns many brands; a brand belongs to many businesses.
+  await api.call('contacts.update', { id: firm, partners: [migros, macro] })
+  await api.call('contacts.update', { id: migros, partners: [firm, other] })
+  const by = async () => new Map((await api.call('contacts.list', {})).map((c) => [c.id, c]))
+  let m = await by()
+  assert.deepEqual(m.get(firm)!.partners, [migros, macro])
+  assert.deepEqual(m.get(migros)!.partners, [firm, other])
+  assert.deepEqual(m.get(macro)!.partners, [firm, other].sort())
+  assert.deepEqual(m.get(ali)!.partners, [])
+
+  // Replacing the set unlinks the rest.
+  await api.call('contacts.update', { id: firm, partners: [macro] })
+  m = await by()
+  assert.deepEqual(m.get(migros)!.partners, [other])
+  assert.deepEqual(m.get(firm)!.partners, [macro])
+
+  // Rules: kinds, names, accounts.
+  await assert.rejects(api.call('contacts.update', { id: ali, partners: [firm] }), code('contact_link_kind'))
+  await assert.rejects(api.call('contacts.update', { id: migros, partners: [macro] }), code('contact_link_kind'))
+  await assert.rejects(api.call('contacts.create', { kind: 'brand', name: ' migros ' }), code('contact_name_taken'))
+  await assert.rejects(api.call('contacts.update', { id: migros, incomeAccount: acc('bank') }), code('contact_account_type'))
+  const food = (await api.call('accounts.list', {})).find((a) => a.type === 'expense' && !a.placeholder && !a.locked) ?? assert.fail('no expense account')
+  await api.call('contacts.update', { id: migros, expenseAccount: food.id })
+  assert.equal((await by()).get(migros)!.expenseAccount, food.id)
+  await assert.rejects(db.batch([{ sql: `UPDATE contacts SET kind = 'business' WHERE id = ?`, params: [migros] }]), /contact_kind_fixed/)
+  await assert.rejects(db.batch([{ sql: `INSERT INTO brand_businesses (created_by, updated_by, brand_id, business_id) VALUES (2, 2, ?, ?)`, params: [macro, firm] }]), /UNIQUE/)
+  await assert.rejects(db.batch([{ sql: 'DELETE FROM contacts WHERE id = ?', params: [ali] }]), /no_delete/)
+
+  // Removing a contact removes its links and frees the name.
+  await api.call('contacts.delete', { id: firm })
+  m = await by()
+  assert.ok(!m.has(firm))
+  assert.deepEqual(m.get(macro)!.partners, [other])
+  const [{ n }] = await db.query('SELECT count(*) AS n FROM brand_businesses WHERE deleted_at IS NOT NULL AND deleted_by = 2')
+  assert.ok((n as number) >= 1)
+  await add('business', 'Migros A.Ş.')
+  await assert.rejects(api.call('contacts.delete', { id: firm }), code('contact_not_found'))
+  const hist = await api.call('audit.forRow', { table: 'contacts', id: firm })
+  assert.deepEqual(hist.map((h) => h.op), ['insert', 'delete'])
 })

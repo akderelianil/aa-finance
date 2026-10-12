@@ -24,7 +24,7 @@ export const activity = read(z.object({ ...paging }), async (ctx, input) => {
  * FUTURE(audit): per-member audit view, audit export with the backup, hash chain before sync (docs/ROADMAP.md#later).
  */
 export const audit = read(
-  z.object({ table: z.enum(['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']), id }),
+  z.object({ table: z.enum(['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines', 'contacts', 'brand_businesses']), id }),
   async (ctx, input) => {
     // table is from the enum, never free text.
     const row = await need(ctx.db, 'row_not_found', `SELECT id FROM ${input.table} WHERE id = ?`, [input.id])

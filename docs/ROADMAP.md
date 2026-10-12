@@ -25,7 +25,7 @@ Review the flows one at a time with the product owner; focus is UX/UI. Order: se
 ## Later
 - **Audit trail (future plan).** Today `audit_log` stays in the SQLite file: written by triggers, immutable, kept forever, shown as entry history. Next: a per-member audit view, export of the audit log with the backup, and tamper evidence (hash chain) before sync starts.
 - Rebuild convenience flows on `entries.post`, one UX scenario at a time (loan, installment, deposit, investment).
-- Num, reconcile, scheduled entries, FX revaluation, contacts, tags, dashboard.
+- Num, reconcile, scheduled entries, FX revaluation, Rehber page and contact links on entry lines (tables exist), tags, dashboard.
 - Plugins (trusted, restricted mode by default), sync, encryption at rest (decide before release).
 
 Each phase ends with: tests, `npx tsc --noEmit`, `npm run lint`, a browser check of the changed screen, one commit.

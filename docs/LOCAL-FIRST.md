@@ -60,7 +60,8 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Members: one file = one group. `actors` of kind `user` are members with `role` (`admin`, `member`) and `color`; at least one admin stays. A member edits and deletes own entries (`created_by`); an admin edits and deletes all and manages members. No PIN: the OS protects the file. The UI keeps the last member on the device and opens with it. Flow: [kurulum](ux/kurulum.md).
 - Book settings are admin only (trigger `settings_admin`, migration `0004`). Entry lists carry the `author` (the member who wrote it).
 - Logs: `audit_log` (triggers, kept forever, in the SQLite file) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
-- Later: contacts, tags, dashboard, plugin data.
+- Rehber (Directory), `0008_contacts.sql`: `contacts` (`kind` individual / brand / business, name unique, optional default income and expense account) and `brand_businesses` (many-to-many, brand ↔ business only; a trigger checks the kinds). A contact's kind never changes. The Rehber page and the link from entry lines are not built yet.
+- Later: tags, dashboard, plugin data.
 
 ## API first
 - The UI calls only the API, never SQL. The API is named JSON operations: `api.call('entries.post', input)`. The list is `ops` in `src/core/api/index.ts`, with one `API_VERSION`.
@@ -112,7 +113,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 Idle memory misses the budget on WSL (WebKitGTK with software rendering). The product owner accepts it; optimize after v1 works.
 
 ## Out of v1
-Sync, PIN or sign-in, per-member entry grants, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
+Sync, PIN or sign-in, per-member entry grants, mobile, plugins, server-side rates, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
 
 ## Open
 - Encrypt the file at rest (SQLCipher): decide before release.
