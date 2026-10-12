@@ -1,4 +1,4 @@
-import { lazy, useEffect } from 'react'
+import { lazy, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/AppShell'
@@ -32,7 +32,10 @@ export default function App() {
     if (ready) autoBackup().catch((e) => console.error('auto backup', e))
   }, [ready])
 
-  if (settings.error instanceof ApiError && settings.error.code === 'not_setup') return <Setup />
+  // Setup stays on screen until its done moment ends, even when settings load earlier.
+  const [inSetup, setInSetup] = useState(false)
+  if (settings.error instanceof ApiError && settings.error.code === 'not_setup' && !inSetup) setInSetup(true)
+  if (inSetup) return <Setup onFinish={() => setInSetup(false)} />
   if (!settings.data) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16">
