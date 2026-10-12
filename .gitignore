@@ -16,3 +16,4 @@ docs/.obsidian/*
 
 # graphify: local cache and rebuildable output
 graphify-out/
+.dev/
