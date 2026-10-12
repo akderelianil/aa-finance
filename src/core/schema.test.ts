@@ -20,13 +20,13 @@ async function fresh(recommended = false): Promise<Ctx> {
 }
 
 function insert(ctx: Ctx, table: string, row: Record<string, Value>): Statement {
-  const r = { ...(table === 'settings' || table === 'fx_rates' ? {} : { created_by: ctx.actor }), updated_by: ctx.actor, ...row }
+  const r = { created_by: ctx.actor, updated_by: ctx.actor, ...row }
   const cols = Object.keys(r)
   return { sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, params: Object.values(r) }
 }
 
 function update(ctx: Ctx, table: string, id: number, set: Record<string, Value>): Statement {
-  const r = { ...set, updated_by: ctx.actor, updated_at: Date.now() }
+  const r = { ...set, ...(set.deleted_at != null && { deleted_by: ctx.actor }), updated_by: ctx.actor, updated_at: Date.now() }
   const cols = Object.keys(r)
   return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`, params: [...Object.values(r), id] }
 }
@@ -270,4 +270,22 @@ test('0005 and 0006 keep every row and id when they rebuild tables', async () =>
   assert.deepEqual(await db.query('PRAGMA foreign_key_check'), [])
   assert.deepEqual((await db.query(`SELECT 1 FROM pragma_table_info('actors') WHERE name = 'uid'`)), [])
   assert.equal((await db.query('SELECT name FROM actors WHERE id = 2'))[0].name, 'T')
+})
+
+test('every table but the logs has the six audit columns; deleted_by pairs with deleted_at', async () => {
+  const ctx = await fresh()
+  const tables = ['currencies', 'actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']
+  for (const t of tables) {
+    const cols = (await ctx.db.query(`SELECT name FROM pragma_table_info('${t}')`)).map((c) => c.name)
+    for (const c of ['created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by']) assert.ok(cols.includes(c), `${t}.${c}`)
+  }
+  const a = await account(ctx, 'asset', 'Audit cash')
+  const b = await account(ctx, 'equity', 'Audit capital')
+  const id = await entry(ctx, '2026-03-01', [[a, 5], [b, -5]])
+  await ctx.db.batch([update(ctx, 'entries', id, { deleted_at: Date.now() })])
+  const [e] = await ctx.db.query('SELECT deleted_by FROM entries WHERE id = ?', [id])
+  assert.equal(e.deleted_by, ctx.actor)
+  const lines = await ctx.db.query('SELECT deleted_by FROM lines WHERE entry_id = ?', [id])
+  assert.ok(lines.length === 2 && lines.every((l) => l.deleted_by === ctx.actor))
+  await assert.rejects(ctx.db.batch([update(ctx, 'settings', 1, { deleted_at: Date.now() })]), /no_delete/)
 })

@@ -116,7 +116,7 @@ export const edit = write(
         const lines = await resolve(ctx.db, on, input.lines)
         const now = Date.now()
         statements.push(
-          { sql: 'UPDATE lines SET deleted_at = ?, updated_at = ?, updated_by = ? WHERE entry_id = ? AND deleted_at IS NULL', params: [now, now, ctx.actor, e.id] },
+          { sql: 'UPDATE lines SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE entry_id = ? AND deleted_at IS NULL', params: [now, ctx.actor, now, ctx.actor, e.id] },
           ...lineStatements(ctx, input.id, on, lines),
         )
       }

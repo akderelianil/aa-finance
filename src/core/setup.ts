@@ -49,8 +49,8 @@ export function setupStatements(input: SetupInput): { user: number; statements: 
   ]
   const setting = (key: string, value: string | null) =>
     statements.push({
-      sql: `INSERT INTO settings (updated_by, key, value) VALUES (?, ?, ?)`,
-      params: [user, key, value],
+      sql: `INSERT INTO settings (created_by, updated_by, key, value) VALUES (?, ?, ?, ?)`,
+      params: [user, user, key, value],
     })
   setting('base_currency', input.baseCurrency)
   setting('language', input.language)
