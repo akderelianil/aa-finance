@@ -24,6 +24,7 @@ export const ops = {
   'members.add': members.add,
   'members.update': members.edit,
   'contacts.list': contacts.list,
+  'contacts.balances': contacts.balances,
   'contacts.create': contacts.create,
   'contacts.update': contacts.edit,
   'contacts.delete': contacts.remove,

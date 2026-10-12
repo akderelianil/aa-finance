@@ -1,4 +1,4 @@
-import { ArrowRightLeftIcon, BookOpenIcon, ChartPieIcon, HistoryIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { ArrowRightLeftIcon, BookOpenIcon, BookUserIcon, ChartPieIcon, HistoryIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -16,6 +16,7 @@ const ITEMS = [
   { to: '/hesaplar', key: 'accounts', icon: ListTreeIcon },
   { to: '/yevmiye', key: 'journal', icon: BookOpenIcon },
   { to: '/raporlar', key: 'reports', icon: ChartPieIcon },
+  { to: '/rehber', key: 'directory', icon: BookUserIcon },
   { to: '/kurlar', key: 'rates', icon: ArrowRightLeftIcon },
 ] as const
 

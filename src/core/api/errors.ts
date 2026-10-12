@@ -3,7 +3,7 @@
 const dbCodes = new Set([
   'account_archived', 'account_deleted', 'account_field_fixed', 'account_has_children', 'account_has_lines',
   'account_locked', 'account_parent_cycle', 'account_parent_missing', 'account_parent_type', 'account_placeholder',
-  'base_currency_fixed', 'base_currency_missing', 'contact_account_type', 'contact_insert_deleted',
+  'base_currency_fixed', 'base_currency_missing', 'contact_account_type', 'contact_deleted', 'contact_has_lines', 'contact_insert_deleted',
   'contact_kind_fixed', 'contact_link_fixed', 'contact_link_kind', 'currency_fixed', 'currency_unknown', 'entry_insert_draft',
   'entry_not_draft', 'entry_number_fixed', 'entry_posted', 'entry_too_few_lines', 'entry_unbalanced',
   'line_base_mismatch', 'line_date_mismatch', 'line_entry_fixed', 'line_insert_deleted', 'line_rate_required',

@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next'
 import type { AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
+/** What the picker needs of an account; a Rehber record fits too (path = its kind, no currency). */
+export type PickerItem = Pick<AccountNode, 'id' | 'label' | 'path' | 'currency'>
+
 type Props = {
   /** Postable accounts: no group account, not archived. */
-  accounts: AccountNode[]
+  accounts: PickerItem[]
   value: string
   onChange: (id: string) => void
   autoFocus?: boolean

@@ -16,7 +16,8 @@ import { cn } from '@/lib/utils'
 import { AccountPicker } from './AccountPicker'
 import { AmountInput } from './AmountInput'
 
-export type DraftLine = { key: number; account: string; memo: string; debit: string; credit: string; rate: string; base: string }
+/** `contact` is the Rehber record of a debt line; the form keeps it so an edit does not lose it. */
+export type DraftLine = { key: number; account: string; memo: string; debit: string; credit: string; rate: string; base: string; contact?: number }
 export type Draft = { id?: number; date: string; reference: string; description: string; lines: DraftLine[] }
 
 let nextKey = 1
@@ -37,7 +38,7 @@ export function entryToDraft(e: Entry, base: string, byId: Map<number, AccountNo
       const cur = byId.get(l.account)?.currency ?? base
       const amount = toDecimal(l.amount, minor(cur))
       return {
-        ...emptyLine(), account: String(l.account), memo: l.memo ?? '',
+        ...emptyLine(), account: String(l.account), memo: l.memo ?? '', contact: l.contact ?? undefined,
         debit: l.amount > 0 ? amount : '', credit: l.amount < 0 ? amount : '',
         base: cur !== base ? toDecimal(l.baseAmount, minor(base)) : '',
       }
@@ -145,6 +146,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
         account: Number(l.account),
         amount: a.amount,
         memo: l.memo.trim() || null,
+        ...(l.contact !== undefined && { contact: l.contact }),
         // A foreign line sends its base amount, so what the form showed is what is booked.
         ...(cur !== base && { baseAmount: a.base }),
       }

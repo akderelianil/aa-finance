@@ -110,21 +110,24 @@ export function transfer(
 export type DebtKind = 'lend' | 'borrow' | 'collect' | 'repay'
 
 /**
- * Borç: money moves between an asset and a person account (receivables for lend/collect, payables for borrow/repay).
+ * Borç: money moves between an asset and a debt account (receivables for lend/collect, payables for borrow/repay);
+ * `contact` is the Rehber record the debt is with.
  * `amount` is in the money account currency; `debtAmount` when the debt account currency differs.
  * `rate` (credit account currency → base) is needed only when neither currency is the base.
  */
 export function debt(
   book: Book,
-  f: Common & { kind: DebtKind; money: QuickAccount; debt: QuickAccount; amount: number; debtAmount?: number; rate?: string },
+  f: Common & { kind: DebtKind; money: QuickAccount; debt: QuickAccount; amount: number; debtAmount?: number; rate?: string; contact?: number },
 ): EntryInput {
   if (f.money.type !== 'asset' || f.money.id === f.debt.id) fail('quick_money_account')
   const receivable = f.kind === 'lend' || f.kind === 'collect'
   if (f.debt.type !== (receivable ? 'asset' : 'liability')) fail('quick_debt_account')
   if (f.money.currency !== f.debt.currency && f.debtAmount === undefined) fail('quick_amount_required')
-  return f.kind === 'lend' || f.kind === 'repay'
+  const e = f.kind === 'lend' || f.kind === 'repay'
     ? pair(book, f, f.debt, f.money, f.amount, f.debtAmount, f.rate, null)
     : pair(book, f, f.money, f.debt, f.debtAmount ?? f.amount, f.amount, f.rate, null)
+  // The Rehber record rides on the debt line only.
+  return f.contact === undefined ? e : { ...e, lines: e.lines.map((l) => (l.account === f.debt.id ? { ...l, contact: f.contact } : l)) }
 }
 
 /** Two accounts, optional fee. `amount` is in the credit account currency, `debitAmount` in the debit one. */

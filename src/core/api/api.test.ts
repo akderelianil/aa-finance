@@ -341,3 +341,31 @@ test('entries.deleteAll: admin only, soft deletes every entry, keeps accounts, a
   assert.deepEqual(await api.call('entries.deleteAll', {}), { count: 0 })
   assert.equal((await api.call('accounts.list', {})).find((a) => a.id === g)!.balance, 0)
 })
+
+test('contact on a debt line: balances per contact, a used contact cannot be removed, the line keeps it on edit', async () => {
+  const { api, db, acc } = await fresh()
+  const ali = (await api.call('contacts.create', { kind: 'individual', name: 'Ali' })).id
+  const veli = (await api.call('contacts.create', { kind: 'individual', name: 'Veli' })).id
+  const post = (lines: { account: number; amount: number; contact?: number }[]) => api.call('entries.post', { date: '2026-03-01', lines })
+
+  await post([{ account: acc('receivables'), amount: 200000, contact: ali }, { account: acc('Wallet'), amount: -200000 }])
+  await post([{ account: acc('Wallet'), amount: 50000 }, { account: acc('receivables'), amount: -50000, contact: ali }])
+  const borrow = await post([{ account: acc('Wallet'), amount: 70000 }, { account: acc('payables'), amount: -70000, contact: veli }])
+  assert.deepEqual(
+    (await api.call('contacts.balances', {})).sort((a, b) => a.contact - b.contact),
+    [{ contact: ali, currency: 'TRY', kind: 'receivable', amount: 150000 }, { contact: veli, currency: 'TRY', kind: 'payable', amount: 70000 }],
+  )
+
+  // The line keeps its contact when the entry is read and when only the text changes.
+  const e = await api.call('entries.get', { id: borrow.id })
+  assert.deepEqual(e.lines.map((l) => l.contact), [null, veli])
+  await assert.rejects(post([{ account: acc('Wallet'), amount: 1 }, { account: acc('payables'), amount: -1, contact: 999 }]), code('contact_not_found'))
+  await assert.rejects(api.call('contacts.delete', { id: veli }), code('contact_has_lines'))
+
+  // Deleting the entry frees the contact and its balance.
+  await api.call('entries.delete', { id: borrow.id })
+  assert.equal((await api.call('contacts.balances', {})).length, 1)
+  await api.call('contacts.delete', { id: veli })
+  await assert.rejects(post([{ account: acc('Wallet'), amount: 1 }, { account: acc('payables'), amount: -1, contact: veli }]), code('contact_not_found'))
+  assert.equal(((await db.query('SELECT count(*) AS n FROM lines WHERE contact_id IS NOT NULL'))[0].n as number) > 0, true)
+})

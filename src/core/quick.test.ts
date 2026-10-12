@@ -117,3 +117,10 @@ test('debt: lend, borrow, collect, repay move the right sides', async () => {
     [[usd.id, 10000, 340000], [rec.id, -340000, -340000]],
   )
 })
+
+test('debt: the Rehber contact rides on the debt line only', async () => {
+  const { book, acc } = await fresh()
+  const [wallet, rec] = [acc('Wallet'), acc('receivables')]
+  const e = debt(book, { date: '2026-03-01', kind: 'lend', money: wallet, debt: rec, amount: 1000, contact: 7 })
+  assert.deepEqual(e.lines.map((l) => [l.account, l.contact]), [[rec.id, 7], [wallet.id, undefined]])
+})

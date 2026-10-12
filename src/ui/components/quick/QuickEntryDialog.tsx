@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { EntryInput } from '../../../core/api/entries.ts'
 import { toBase } from '../../../core/money.ts'
 import * as quick from '../../../core/quick.ts'
-import { AccountPicker, NEW } from '@/components/journal/AccountPicker'
+import { AccountPicker, NEW, type PickerItem } from '@/components/journal/AccountPicker'
 import { AmountInput } from '@/components/journal/AmountInput'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,8 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const { base, minor, fmt } = useBook()
   const accounts = useOp('accounts.list', {})
   const usage = useOp('accounts.usage', {})
+  const contacts = useOp('contacts.list', {})
+  const balances = useOp('contacts.balances', {})
   const { roots, byId } = useAccountTree(accounts.data)
   const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   const sys = (key: string) => postable.find((a) => a.systemKey === key) ?? flattenTree(roots).find((a) => a.systemKey === key)
@@ -85,16 +87,24 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const cards = postable.filter((a) => a.type === 'liability' && a.parent !== sys('payables')?.id && a.systemKey !== 'payables')
   const receivable = debtKind === 'lend' || debtKind === 'collect'
   const debtGroup = sys(receivable ? 'receivables' : 'payables')
-  const people = postable.filter((a) => a.parent === debtGroup?.id)
+  // Rehber records as picker items; the path column shows the kind.
+  const people = useMemo<PickerItem[]>(
+    () => (contacts.data ?? []).map((c) => ({ id: c.id, label: c.name, path: t(`dir.kind.${c.kind}`), currency: '' })),
+    [contacts.data, t],
+  )
+  const contactById = new Map((contacts.data ?? []).map((c) => [c.id, c]))
+  const personName = person.startsWith(NEW) ? person.slice(NEW.length) : contactById.get(Number(person))?.name ?? ''
+  // The debt account of the money currency: the group itself, or its sub-account named by the currency code.
+  const debtAccounts = debtGroup ? [debtGroup, ...postable.filter((a) => a.parent === debtGroup.id && a.label === a.currency)] : []
   const feeAcc = acc(feeAccount) ?? sys('bank_fee')
   const wallet = postable.find((a) => a.parent === sys('cash')?.id && a.type === 'asset')
   const money = moneyRaw || (kind === 'expense' || kind === 'income' ? String(wallet?.id ?? '') : '')
 
   // Stored day rates of the foreign currencies on the form.
   const curOf = (v: string) => acc(v)?.currency
-  const debtCur = acc(person)?.currency ?? debtGroup?.currency
+  const debtCur = curOf(money) ?? debtGroup?.currency
   const used = kind === 'transfer' ? [curOf(from), curOf(to), feeAcc?.currency]
-    : kind === 'debt' ? [curOf(money), debtCur]
+    : kind === 'debt' ? [curOf(money)]
     : [curOf(money), ...splits.map((s) => curOf(s.money))]
   const foreign = [...new Set(used.filter((c): c is string => !!c && c !== base))]
   const rates = useQueries({
@@ -193,24 +203,16 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
       need('money', money)
       const m = acc(money)
       amt('amount', amount, m?.currency ?? base)
-      const p = acc(person)
-      const pCur = p?.currency ?? debtGroup?.currency ?? base
-      if (p) openBalance = { value: shown(p.type, p.balance), cur: p.currency }
-      if (m && m.currency !== pCur) {
-        const suggest = convert(parse(amount, m.currency), m.currency, pCur)
-        counterHint = { cur: pCur, suggest }
-        if (counter.trim()) amt('counter', counter, pCur)
-        else if (suggest === null) errs.counter = t('check.counter')
-      }
+      const p = person && !person.startsWith(NEW) ? contactById.get(Number(person)) : undefined
+      // Open balance of this contact in the money currency (the debt is booked in that currency).
+      if (p && m) openBalance = { value: (balances.data ?? []).find((b) => b.contact === p.id && b.currency === m.currency && b.kind === (receivable ? 'receivable' : 'payable'))?.amount ?? 0, cur: m.currency }
       if (m && debtGroup && person && !Object.keys(errs).length) {
-        // A new person is booked on the placeholder id 0; save() opens the account first.
-        const debt: quick.QuickAccount = p ? qa(p) : { id: 0, type: debtGroup.type, currency: pCur }
-        const debtAmount = counterHint ? (counter.trim() ? parse(counter, pCur) : counterHint.suggest!) : undefined
-        const creditCur = debtKind === 'lend' || debtKind === 'repay' ? m.currency : pCur
-        input = quick.debt(book, { ...head, kind: debtKind, money: qa(m), debt, amount: parse(amount, m.currency), debtAmount, rate: rateOf(creditCur) })
+        // A missing debt account and a new contact are booked on the placeholder id 0; save() creates them first.
+        const found = debtAccounts.find((a) => a.currency === m.currency)
+        const debt: quick.QuickAccount = found ? qa(found) : { id: 0, type: debtGroup.type, currency: m.currency }
+        input = quick.debt(book, { ...head, kind: debtKind, money: qa(m), debt, amount: parse(amount, m.currency), rate: rateOf(m.currency), contact: p?.id ?? 0 })
         const reduces = debtKind === 'collect' || debtKind === 'repay'
-        const debtMinor = debtAmount ?? parse(amount, m.currency)
-        if (reduces && openBalance && debtMinor > openBalance.value) warn = t('quick.overpay', { amount: fmt(openBalance.value, openBalance.cur), currency: openBalance.cur })
+        if (reduces && openBalance && parse(amount, m.currency) > openBalance.value) warn = t('quick.overpay', { amount: fmt(openBalance.value, openBalance.cur), currency: openBalance.cur })
       }
     }
   } catch (e) {
@@ -233,9 +235,16 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
     setSaveError(null)
     try {
       let entry = input
-      if (kind === 'debt' && person.startsWith(NEW) && debtGroup) {
-        const { id } = await call('accounts.create', { parent: debtGroup.id, name: person.slice(NEW.length) })
-        entry = { ...entry, lines: entry.lines.map((l) => (l.account === 0 ? { ...l, account: id } : l)) }
+      if (kind === 'debt' && debtGroup) {
+        // A new name joins the Rehber as a Person; a currency with no debt account gets one under the group.
+        const cur = acc(money)!.currency
+        const contact = person.startsWith(NEW) ? (await call('contacts.create', { kind: 'individual', name: personName })).id : Number(person)
+        const account = debtAccounts.find((a) => a.currency === cur)?.id
+          ?? (await call('accounts.create', { parent: debtGroup.id, name: cur, currency: cur })).id
+        entry = {
+          ...entry,
+          lines: entry.lines.map((l) => ({ ...l, account: l.account === 0 ? account : l.account, ...(l.contact === 0 && { contact }) })),
+        }
       }
       if (kind === 'expense' || kind === 'income') {
         // New accounts typed into the category field are opened first (once per name), under the Gider/Gelir root.
@@ -345,8 +354,10 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
     </Field>
   )
 
-  const bookLabel = (id: number) => acc(String(id))?.label
-    ?? (id === 0 ? person.slice(NEW.length) : splits.find((x) => -x.key === id)?.account.slice(NEW.length) ?? '')
+  // The debt line shows the group and the contact: "Kişilerden Alacaklar (Ayşe)".
+  const debtLine = (id: number) => kind === 'debt' && debtAccounts.some((a) => a.id === id) || id === 0
+  const bookLabel = (id: number) => debtLine(id) ? `${debtGroup?.label ?? ''} (${personName})`
+    : acc(String(id))?.label ?? splits.find((x) => -x.key === id)?.account.slice(NEW.length) ?? ''
   const bookCurrency = (id: number) => acc(String(id))?.currency ?? (id < 0 ? moneyCur : debtCur ?? base)
 
   if (accounts.isError) {
@@ -379,7 +390,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
       {kind === 'debt' && (
         <ToggleGroup
           value={[debtKind]} spacing={2} className="grid w-full grid-cols-4" aria-label={t('quick.kind.debt')}
-          onValueChange={(v) => { if (v[0]) { setDebtKind(v[0] as quick.DebtKind); setPerson(''); setCounter('') } }}
+          onValueChange={(v) => { if (v[0]) setDebtKind(v[0] as quick.DebtKind) }}
         >
           {DEBT_KINDS.map((m) => <ToggleGroupItem key={m} value={m} variant="outline" size="sm">{t(`quick.debtKind.${m}`)}</ToggleGroupItem>)}
         </ToggleGroup>
@@ -398,7 +409,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
       {kind === 'debt' && (
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('quick.person')} error={show('person')}
-            hint={person.startsWith(NEW) ? t('quick.newPersonHint', { group: debtGroup?.label ?? '' }) : undefined}>
+            hint={person.startsWith(NEW) ? t('quick.newPersonHint') : undefined}>
             <AccountPicker
               accounts={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
               creatable placeholder={t('quick.personPlaceholder')} className="rounded-md border border-input"

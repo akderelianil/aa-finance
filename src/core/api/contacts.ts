@@ -30,6 +30,29 @@ export const list = read(z.object({}), async (ctx): Promise<Contact[]> => {
   }))
 })
 
+export type ContactBalance = { contact: number; currency: string; kind: 'receivable' | 'payable'; amount: number }
+
+/**
+ * Open debts per contact and currency, in the account currency: what a contact owes us (receivable) or we owe
+ * them (payable). Sums the contact's lines on the Receivables / Payables accounts; zero balances are left out.
+ */
+export const balances = read(z.object({}), async (ctx): Promise<ContactBalance[]> => {
+  const rows = await ctx.db.query(
+    `SELECT l.contact_id AS contact, cur.code AS currency, (a.system_key = 'receivables' OR a.parent_id = (SELECT id FROM accounts WHERE system_key = 'receivables')) AS receivable, sum(l.amount) AS amount
+     FROM lines l
+     JOIN accounts a ON a.id = l.account_id
+     JOIN currencies cur ON cur.id = a.currency_id
+     WHERE l.deleted_at IS NULL AND l.contact_id IS NOT NULL
+       AND (a.system_key IN ('receivables', 'payables')
+         OR a.parent_id IN (SELECT id FROM accounts WHERE system_key IN ('receivables', 'payables')))
+     GROUP BY l.contact_id, cur.code, receivable
+     HAVING sum(l.amount) <> 0`)
+  return rows.map((r) => ({
+    contact: r.contact as number, currency: r.currency as string, kind: r.receivable ? 'receivable' : 'payable',
+    amount: r.receivable ? (r.amount as number) : -(r.amount as number),
+  }))
+})
+
 const accountRef = z.optional(z.nullable(id))
 const partners = z.optional(z.array(id).check(z.maxLength(500)))
 

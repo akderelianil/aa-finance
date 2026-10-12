@@ -14,6 +14,7 @@ const Accounts = lazy(() => import('@/pages/Accounts'))
 const AccountRegister = lazy(() => import('@/pages/AccountRegister'))
 const Journal = lazy(() => import('@/pages/Journal'))
 const Reports = lazy(() => import('@/pages/Reports'))
+const Directory = lazy(() => import('@/pages/Directory'))
 const Rates = lazy(() => import('@/pages/Rates'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const Activity = lazy(() => import('@/pages/Activity'))
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/hesaplar/:id" element={<AccountRegister />} />
         <Route path="/yevmiye" element={<Journal />} />
         <Route path="/raporlar" element={<Reports />} />
+        <Route path="/rehber" element={<Directory />} />
         <Route path="/kurlar" element={<Rates />} />
         <Route path="/ayarlar" element={<Settings />} />
         <Route path="/etkinlik" element={<Activity />} />

@@ -27,7 +27,7 @@ Technical design of the local app. Product model: [ARCHITECTURE](ARCHITECTURE.md
 ## Database rules
 The database enforces the rules. The TypeScript service checks first, only to give clear messages.
 
-- Schema: `src/core/migrations/` (`0001_schema.sql` first; `0005`–`0007` rebuilt the data tables: no `uid`, no `accounts.code`, uniform audit columns; `0008` adds the Rehber tables). All tables are `STRICT` (a float in a money column fails). A broken rule raises a stable error code (`entry_unbalanced`, `period_locked`, ...); the API maps codes to messages.
+- Schema: `src/core/migrations/` (`0001_schema.sql` first; `0005`–`0007` rebuilt the data tables: no `uid`, no `accounts.code`, uniform audit columns; `0008` adds the Rehber tables, `0009` adds `lines.contact_id`). All tables are `STRICT` (a float in a money column fails). A broken rule raises a stable error code (`entry_unbalanced`, `period_locked`, ...); the API maps codes to messages.
 - Every table except the two logs has `id INTEGER PRIMARY KEY` and the same six audit columns: `created_at`, `updated_at` (unix ms), `created_by`, `updated_by`, `deleted_at`, `deleted_by` (→ `actors`; `deleted_*` are both set or both null). `currencies` too (ISO 4217, `0002_currencies.sql`; owned by System). Settings and currencies are never deleted: a trigger blocks it. There is no global id: one file is one ledger. If sharing or sync comes, add a `uid` with a migration. `entries.post` takes the next id (`max(id)+1`; rows are never deleted) so one batch can refer to the entry it just wrote. Actor 1 is `system`.
 - The API sets `updated_at` and `updated_by` on every update. A trigger cannot do it without logging each update twice.
 - Rows are never deleted. `deleted_at` marks a soft delete. A trigger blocks `DELETE`.
@@ -62,7 +62,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Members: one file = one group. `actors` of kind `user` are members with `role` (`admin`, `member`) and `color`; at least one admin stays. A member edits and deletes own entries (`created_by`); an admin edits and deletes all and manages members. No PIN: the OS protects the file. The UI keeps the last member on the device and opens with it. Flow: [kurulum](ux/kurulum.md).
 - Book settings are admin only (trigger `settings_admin`, migration `0004`). Entry lists carry the `author` (the member who wrote it).
 - Logs: `audit_log` (triggers, kept forever, in the SQLite file) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
-- Rehber (Directory), `0008_contacts.sql`: `contacts` (`kind` individual / brand / business, name unique, optional default income and expense account) and `brand_businesses` (many-to-many, brand ↔ business only; a trigger checks the kinds). A contact's kind never changes. The Rehber page and the link from entry lines are not built yet.
+- Rehber (Directory), `0008_contacts.sql`: `contacts` (`kind` individual / brand / business, name unique, optional default income and expense account) and `brand_businesses` (many-to-many, brand ↔ business only; a trigger checks the kinds). A contact's kind never changes. The Rehber page (`/rehber`) exists. `lines.contact_id` (`0009`) links a line to a contact; only Borç sets it. `contacts.balances` sums a contact's open debt per currency from the Receivables / Payables lines. A contact with live lines cannot be deleted (`contact_has_lines`).
 - Later: tags, dashboard, plugin data.
 
 ## API first
