@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { DataState } from '@/components/DataState'
+import { EntryChanges } from '@/components/journal/EntryHistory'
 import { Badge } from '@/components/reui/badge'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useOp } from '@/lib/api'
@@ -65,6 +66,12 @@ export function ActivityDetail({ entryId, onClose }: { entryId: number | null; o
                 })}
               </tbody>
             </table>
+          )}
+          {audit.data && audit.data.length > 0 && (
+            <section className="flex flex-col gap-1">
+              <h3 className="text-sm font-medium">{t('gj.history')}</h3>
+              <EntryChanges rows={audit.data} />
+            </section>
           )}
         </div>
       </SheetContent>

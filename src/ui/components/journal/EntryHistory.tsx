@@ -10,7 +10,7 @@ type Change = { at: number; actor: string; kind: 'created' | 'edited' | 'deleted
 type Field = 'entry_date' | 'description' | 'reference'
 const FIELDS: Field[] = ['entry_date', 'description', 'reference']
 
-type AuditRow = { at: number; actor: string; op: string; old: Record<string, unknown> | null; new: Record<string, unknown> | null }
+export type AuditRow = { at: number; actor: string; op: string; old: Record<string, unknown> | null; new: Record<string, unknown> | null }
 
 /**
  * audit_log rows of one entry → user-level changes. A create or an edit runs draft → posted in one batch;
@@ -30,14 +30,40 @@ function changes(rows: AuditRow[]): Change[] {
   return out.reverse()
 }
 
+/** One entry's changes as a list, newest first (audit_log rows → user-level changes). */
+export function EntryChanges({ rows }: { rows: AuditRow[] }) {
+  const { t } = useTranslation()
+  const { dateTime } = useFormat()
+  const list = changes(rows)
+  const show = (v: unknown) => (v === null || v === '' ? '—' : String(v))
+  return (
+    <ol className="flex flex-col divide-y text-sm">
+      {list.map((c, i) => (
+        <li key={i} className="flex flex-col gap-1 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <Badge variant={c.kind === 'deleted' ? 'destructive-light' : c.kind === 'created' ? 'success-light' : 'info-light'} size="sm">
+              {t(`gj.change.${c.kind}`)}
+            </Badge>
+            <span className="text-xs text-muted-foreground tabular-nums">{dateTime(c.at)}</span>
+          </div>
+          <span className="text-xs text-muted-foreground">{c.actor}</span>
+          {c.lines && <span className="text-xs">{t('gj.linesRewritten')}</span>}
+          {c.fields.map((f) => (
+            <span key={f.key} className="text-xs">
+              <span className="text-muted-foreground">{t(`gj.field.${f.key}`)}: </span>
+              <span className="line-through decoration-muted-foreground/60">{show(f.from)}</span> → {show(f.to)}
+            </span>
+          ))}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 // Who created, changed or deleted this entry, newest first (from audit_log).
 export function EntryHistory({ entry, onClose }: { entry: Entry | null; onClose: () => void }) {
   const { t } = useTranslation()
-  const { dateTime } = useFormat()
   const audit = useOp('audit.forRow', { table: 'entries', id: entry?.id ?? 0 }, { enabled: !!entry })
-  const list = audit.data ? changes(audit.data) : []
-  const when = (ms: number) => dateTime(ms)
-  const show = (v: unknown) => (v === null || v === '' ? '—' : String(v))
 
   return (
     <Sheet open={!!entry} onOpenChange={(o) => { if (!o) onClose() }}>
@@ -48,26 +74,7 @@ export function EntryHistory({ entry, onClose }: { entry: Entry | null; onClose:
         </SheetHeader>
         <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
           <DataState loading={audit.isPending} error={audit.isError} onRetry={() => void audit.refetch()} />
-          <ol className="flex flex-col divide-y text-sm">
-            {list.map((c, i) => (
-              <li key={i} className="flex flex-col gap-1 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Badge variant={c.kind === 'deleted' ? 'destructive-light' : c.kind === 'created' ? 'success-light' : 'info-light'} size="sm">
-                    {t(`gj.change.${c.kind}`)}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground tabular-nums">{when(c.at)}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{c.actor}</span>
-                {c.lines && <span className="text-xs">{t('gj.linesRewritten')}</span>}
-                {c.fields.map((f) => (
-                  <span key={f.key} className="text-xs">
-                    <span className="text-muted-foreground">{t(`gj.field.${f.key}`)}: </span>
-                    <span className="line-through decoration-muted-foreground/60">{show(f.from)}</span> → {show(f.to)}
-                  </span>
-                ))}
-              </li>
-            ))}
-          </ol>
+          {audit.data && <EntryChanges rows={audit.data} />}
         </div>
       </SheetContent>
     </Sheet>
