@@ -41,7 +41,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | A1 Audit fixes | Entry edit/delete scoped to the caller's group. Edge Functions on the transaction pooler (`DB_POOL_URL`), JWT checked locally (`getClaims`). Journal and Register page past 1000 rows. TCMB rate saved under its publish date. RLS via `my_group_id()`. Private avatars (signed URLs). Unused packages, tables and the attachments bucket removed. | Done 2026-10-12 |
 | P1 Grid speed | Loading skeletons capped at 10 rows (Reports first visit 7 s → 0.4 s, Journal 3.7 s → 0.5 s). Client-side pages in Journal and Register. | Done 2026-10-12 |
 | L0 Spike | Tauri 2 shell, Rust `db_query` and `db_batch`, SQLite file, migration runner (`user_version`), Node test adapter. Check IPC cost and bigint. See [LOCAL-FIRST](LOCAL-FIRST.md). | Done 2026-10-12 |
-| L1 Schema | Tables, triggers, indexes, template data. Trigger tests on in-memory SQLite. | |
+| L1 Schema | Tables, triggers, indexes, template data. Trigger tests on in-memory SQLite. | Done 2026-10-12 |
 | L2 Core API | Services and read queries behind named JSON operations. Tests first. | |
 | L3 UI | Chart of Accounts, General Journal, Account Register, Reports, Quick Entry on ReUI with SQL paging. | |
 | L4 Profile and backup | Local profile, backup, export (SQLite file, JSON), logs view. Benchmarks on 1M lines. | |

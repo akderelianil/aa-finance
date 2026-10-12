@@ -15,7 +15,11 @@ async function time(label: string, out: string[], fn: () => Promise<unknown>) {
 
 async function bench(): Promise<string[]> {
   const out: string[] = []
-  await db.batch([{ sql: 'DELETE FROM spike' }])
+  // A temp table: the benchmark never touches the real schema.
+  await db.batch([
+    { sql: 'CREATE TEMP TABLE IF NOT EXISTS spike (id INTEGER PRIMARY KEY, amount INTEGER NOT NULL, note TEXT)' },
+    { sql: 'DELETE FROM spike' },
+  ])
   await time('1000 × SELECT 1 (sequential IPC)', out, async () => {
     for (let i = 0; i < 1000; i++) await db.query('SELECT 1')
   })
