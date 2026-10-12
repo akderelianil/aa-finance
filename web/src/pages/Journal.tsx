@@ -210,7 +210,8 @@ export default function Journal({ membership }: { membership: Membership }) {
     data: visible,
     getRowId: (e: JournalEntry) => e.id,
     getRowCanExpand: () => true,
-    state: { expanded, pagination: { pageIndex: 0, pageSize: 2000 } },
+    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
+    state: { expanded, pagination: { pageIndex: 0, pageSize: entries.isLoading ? 10 : 2000 } },
     onExpandedChange: setExpanded,
   })
 

@@ -183,7 +183,8 @@ export default function Accounts({ membership }: { membership: Membership }) {
     enableRowSelection: true,
     enableMultiRowSelection: false,
     paginateExpandedRows: false,
-    state: { expanded: effectiveExpanded, rowSelection: selected, pagination: { pageIndex: 0, pageSize: 1000 } },
+    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
+    state: { expanded: effectiveExpanded, rowSelection: selected, pagination: { pageIndex: 0, pageSize: accounts.isLoading ? 10 : 1000 } },
     onExpandedChange: (u) => setExpanded((prev) => (typeof u === 'function' ? u(prev ?? openIds(false)) : u)),
     onRowSelectionChange: setSelected,
   })

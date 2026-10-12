@@ -74,7 +74,8 @@ export function MemberAccessCard() {
     columns,
     data,
     getRowId: (r: Row) => r.id,
-    state: { pagination: { pageIndex: 0, pageSize: 5000 } },
+    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
+    state: { pagination: { pageIndex: 0, pageSize: loading ? 10 : 5000 } },
   })
   if (!loading && !failed && data.length === 0) return null
 

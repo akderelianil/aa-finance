@@ -177,7 +177,8 @@ export default function AccountRegister({ membership }: { membership: Membership
     columns,
     data: rows,
     getRowId: (r: Row) => r.id,
-    state: { pagination: { pageIndex: 0, pageSize: 5000 } },
+    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
+    state: { pagination: { pageIndex: 0, pageSize: entries.isLoading ? 10 : 5000 } },
   })
 
   if (accounts.isLoading) return <DataState loading />
