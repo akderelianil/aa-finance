@@ -1,7 +1,7 @@
 import * as z from 'zod/mini'
 import type { Db, Statement } from '../db.ts'
 import { rateOf, toBase } from '../money.ts'
-import { baseCurrency, date, fail, insert, limits, need, one, paging, rate, read, text, id, update, write, type Ctx } from './ctx.ts'
+import { baseCurrency, date, fail, insert, limits, need, needAdmin, one, paging, rate, read, text, id, update, write, type Ctx } from './ctx.ts'
 import { rateOn } from './fx.ts'
 
 const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
@@ -141,6 +141,19 @@ export const remove = write(z.object({ id }), async (ctx, input) => {
   await needOwner(ctx, e.created_by as number)
   await ctx.write([update(ctx, 'entries', input.id, { deleted_at: Date.now() })], String(input.id))
   return {}
+})
+
+/** Admin only. Soft deletes every entry (accounts, members, rates and settings stay). A locked period stops it. */
+export const removeAll = write(z.object({}), async (ctx) => {
+  await needAdmin(ctx)
+  const { n } = await need(ctx.db, 'not_setup', 'SELECT count(*) AS n FROM entries WHERE deleted_at IS NULL')
+  const now = Date.now()
+  if (n)
+    await ctx.write(
+      [{ sql: 'UPDATE entries SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE deleted_at IS NULL', params: [now, ctx.actor, now, ctx.actor] }],
+      String(n),
+    )
+  return { count: n as number }
 })
 
 export type Line = { id: number; account: number; amount: number; baseAmount: number; rate: string | null; memo: string | null }

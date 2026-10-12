@@ -345,3 +345,17 @@ test('contacts: brand <-> business many-to-many, persons link to none, kinds and
   const hist = await api.call('audit.forRow', { table: 'contacts', id: firm })
   assert.deepEqual(hist.map((h) => h.op), ['insert', 'delete'])
 })
+
+test('entries.deleteAll: admin only, soft deletes every entry, keeps accounts, a locked period stops it', async () => {
+  const { api, acc } = await fresh()
+  const g = acc('Groceries')
+  const post = (date: string) => api.call('entries.post', { date, lines: [{ account: g, amount: 5 }, { account: acc('opening_balance'), amount: -5 }] })
+  await post('2026-01-02')
+  await post('2026-01-03')
+  await api.call('settings.update', { lockDate: '2026-01-02' })
+  await assert.rejects(api.call('entries.deleteAll', {}), /period_locked/)
+  await api.call('settings.update', { lockDate: null })
+  assert.deepEqual(await api.call('entries.deleteAll', {}), { count: 2 })
+  assert.deepEqual(await api.call('entries.deleteAll', {}), { count: 0 })
+  assert.equal((await api.call('accounts.list', {})).find((a) => a.id === g)!.balance, 0)
+})

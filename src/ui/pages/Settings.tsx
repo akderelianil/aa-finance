@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArchiveRestoreIcon, DatabaseBackupIcon, FileJsonIcon, Trash2Icon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,8 +20,8 @@ import { DataState } from '@/components/DataState'
 import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
-import { useErrorText, useOp, useWrite } from '@/lib/api'
-import { backupAs, backupDir, exportJson, inApp, resetAll, restore } from '@/lib/files'
+import { call, useErrorText, useOp, useWrite } from '@/lib/api'
+import { backupAs, backupDir, deleteAccount, exportJson, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backups and export.
@@ -149,7 +149,7 @@ function SettingsForm({ values }: { values: Values }) {
       </form>
       <MembersCard admin={admin} />
       <DataCard />
-      <ResetCard admin={admin} />
+      <DangerCard admin={admin} />
     </div>
   )
 }
@@ -228,25 +228,40 @@ function DataCard() {
   )
 }
 
-// Deletes the whole ledger and starts over. Admin only; the user types a word to confirm.
-function ResetCard({ admin }: { admin: boolean }) {
+// Three destructive actions, admin only; the user types a word to confirm.
+type Danger = 'records' | 'reset' | 'delete'
+
+function DangerCard({ admin }: { admin: boolean }) {
   const { t } = useTranslation()
   const errorText = useErrorText()
-  const [open, setOpen] = useState(false)
+  const qc = useQueryClient()
+  const [kind, setKind] = useState<Danger | null>(null)
   const [typed, setTyped] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const word = t('data.resetWord')
+  const word = t('danger.word')
   const ready = typed.trim().toLocaleUpperCase() === word
+  const rows: { kind: Danger; app: boolean }[] = [
+    { kind: 'records', app: false },
+    { kind: 'reset', app: true },
+    { kind: 'delete', app: true },
+  ]
 
   async function run() {
-    if (!ready) return
+    if (!kind || !ready) return
     setBusy(true)
     setError(null)
     try {
-      await resetAll()
+      if (kind === 'records') {
+        const { count } = await call('entries.deleteAll', {})
+        await qc.invalidateQueries()
+        setKind(null)
+        toast.add({ title: t('danger.recordsDone', { count }), timeout: 4000 })
+      } else if (kind === 'reset') await resetAll()
+      else await deleteAccount()
     } catch (e) {
       setError(e)
+    } finally {
       setBusy(false)
     }
   }
@@ -254,32 +269,45 @@ function ResetCard({ admin }: { admin: boolean }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('data.reset')}</CardTitle>
-        <CardDescription>{admin ? t('data.resetHint') : t('data.resetAdminOnly')}</CardDescription>
+        <CardTitle>{t('danger.title')}</CardTitle>
+        <CardDescription>{admin ? t('danger.hint') : t('danger.adminOnly')}</CardDescription>
       </CardHeader>
-      <CardFooter className="justify-end">
-        <Button variant="destructive" size="sm" disabled={!inApp || !admin} onClick={() => { setTyped(''); setError(null); setOpen(true) }}>
-          <Trash2Icon data-icon="inline-start" />
-          {t('data.reset')}
-        </Button>
-      </CardFooter>
-      <AlertDialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+      <CardContent>
+        <FieldGroup>
+          {rows.map((r) => (
+            <div key={r.kind} className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium">{t(`danger.${r.kind}`)}</span>
+                <span className="text-xs text-muted-foreground">{t(`danger.${r.kind}Hint`)}</span>
+              </div>
+              <Button
+                variant="destructive" size="sm" className="shrink-0" disabled={!admin || (r.app && !inApp)}
+                onClick={() => { setTyped(''); setError(null); setKind(r.kind) }}
+              >
+                <Trash2Icon data-icon="inline-start" />
+                {t(`danger.${r.kind}`)}
+              </Button>
+            </div>
+          ))}
+        </FieldGroup>
+      </CardContent>
+      <AlertDialog open={kind !== null} onOpenChange={(o) => !busy && !o && setKind(null)}>
         <AlertDialogContent>
           <form onSubmit={(e) => { e.preventDefault(); void run() }} className="flex flex-col gap-4">
             <AlertDialogHeader>
-              <AlertDialogTitle>{t('data.resetTitle')}</AlertDialogTitle>
-              <AlertDialogDescription>{t('data.resetBody')}</AlertDialogDescription>
+              <AlertDialogTitle>{kind && t(`danger.${kind}Title`)}</AlertDialogTitle>
+              <AlertDialogDescription>{kind && t(`danger.${kind}Body`)}</AlertDialogDescription>
             </AlertDialogHeader>
             <Field>
-              <FieldLabel htmlFor="reset-word">{t('data.resetConfirm', { word })}</FieldLabel>
-              <Input id="reset-word" autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} />
+              <FieldLabel htmlFor="danger-word">{t('danger.confirm', { word })}</FieldLabel>
+              <Input id="danger-word" autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} />
             </Field>
             {error != null && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(error)}</AlertDescription></Alert>}
             <AlertDialogFooter>
               <AlertDialogCancel disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
               <Button type="submit" variant="destructive" disabled={!ready || busy}>
                 {busy && <Spinner data-icon="inline-start" />}
-                {t('data.resetDo')}
+                {kind && t(`danger.${kind}`)}
               </Button>
             </AlertDialogFooter>
           </form>

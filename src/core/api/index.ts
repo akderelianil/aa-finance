@@ -41,6 +41,7 @@ export const ops = {
   'entries.post': entries.post,
   'entries.update': entries.edit,
   'entries.delete': entries.remove,
+  'entries.deleteAll': entries.removeAll,
   'entries.get': entries.get,
   'entries.list': entries.list,
   'reports.trialBalance': reports.trialBalance,
