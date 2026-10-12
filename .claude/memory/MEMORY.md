@@ -14,4 +14,4 @@
 - [Member switch (2026-10-12)](project-member-switch.md) — group menu switches viewed member; journal-post member_id; Accounts/Reports not filtered yet
 - [Audit (2026-10-12)](project-audit-2026-10-12.md) — audit fixes done; release-time Auth/CORS items deferred
 - [Grid performance (2026-10-12)](project-grid-performance.md) — slowness was grid skeletons, not DB; profile the client first
-- [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — fully local Tauri + SQLite + TS core, keep simple; sync later; no Go/PocketBase; branch local-first
+- [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — Tauri + SQLite + TS core on branch local-first; L0 spike done, money = safe int number; RAM open

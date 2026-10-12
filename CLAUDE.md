@@ -20,7 +20,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions.
 
 ## Engineering rules
-- Money: int64 minor units (`bigint`/string in TS; never float). Rates and quantities: `numeric` → string.
+- Money: int64 minor units (`bigint`/string in TS; never float). Rates and quantities: `numeric` → string. Local-first app: money is a safe integer `number` ([LOCAL-FIRST](docs/LOCAL-FIRST.md#database-rules)).
 - Never edit an applied migration. Add a new one in `supabase/migrations`.
 - Access: everyone in a group reads every entry. The `journal_entries.member_id` owner and the group admin edit and delete; the admin can grant another member `edit` or `delete` on one member's entries (`member_access`, enforced in `journal-post`). The account owner is a label only.
 - Supabase MCP is read-only. Change the schema with a migration + CLI.

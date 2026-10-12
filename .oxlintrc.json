@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "overrides": [
+    {
+      "files": ["src/core/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "group": ["@tauri-apps/**", "react", "react/**", "react-dom", "react-dom/**", "**/ui/**"], "message": "core is pure TypeScript: no UI or Tauri imports." }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

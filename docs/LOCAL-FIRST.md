@@ -18,14 +18,16 @@ Decided 2026-10-12 with the product owner, on branch `local-first`. It replaces 
 - Code: TypeScript. UI: React with ReUI on shadcn, only the parts the app uses.
 - Data: SQLite (WAL mode). No ORM, no query builder. Plain SQL files. No DuckDB.
 - Layout: one project. `src/core/` holds pure TypeScript (rules, services, SQL, tests). `src/ui/` holds pages and components. `core` never imports UI or Tauri code (lint rule).
-- Rust stays thin (about 100 lines): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. Confirm in the L0 spike (IPC cost, bigint).
+- Rust stays thin (`src-tauri/src/db.rs`, about 100 lines, rusqlite bundled): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. `db_query` returns `{columns, rows}` with rows as arrays.
+- Core gets the database through the `Db` interface (`src/core/db.ts`). The app uses Rust over IPC (`src/ui/tauri-db.ts`). Tests use `node:sqlite` (`src/core/test/node-db.ts`). Node is a dev tool only; the app does not ship it.
+- Migrations: `src/core/migrations/NNNN_name.sql`, applied by `migrate()` after `PRAGMA user_version`, one transaction each.
 
 ## Database rules
 The database enforces the rules. The TypeScript service checks first, only to give clear messages.
 
 - Every table has `id INTEGER PRIMARY KEY` (joins and queries), `uid TEXT UNIQUE` (UUIDv7, for export and later sharing), `created_at`, `updated_at` (unix ms), `created_by`, `updated_by` (→ `actors`).
 - Rows are never deleted. `deleted_at` marks a soft delete. A trigger blocks `DELETE`.
-- Money is int64 minor units (`bigint` in TypeScript). Rates are text. Dates are `TEXT 'YYYY-MM-DD'`.
+- Money is integer minor units, a plain `number` in TypeScript (never float math). Integers cross IPC as JSON numbers. Both adapters reject a value outside ±(2^53−1); amounts never get that large. Rates are text. Dates are `TEXT 'YYYY-MM-DD'`.
 - Balances are not stored. They come from lines.
 - Entry state is `draft` or `posted`. A trigger checks "≥2 lines and `SUM(base_amount) = 0`" when the state becomes `posted`. Lines of a posted entry cannot change. An edit sets `draft`, changes lines, sets `posted` again, in one transaction.
 - Other triggers: set `updated_at`; no posting to a placeholder account; line currency equals account currency; locked accounts keep their fields; parent has the same type; no change on or before `lock_date`; write `audit_log`; block changes to both logs.
@@ -66,6 +68,20 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Cold start under 1 s. Idle RAM under 150 MB. First bundle under 500 KB compressed.
 - Reports on 1M synthetic lines under 200 ms.
 - Grids use SQL paging (ReUI `data-grid` with `manualPagination`). Virtualization (`DataGridTableVirtual`) comes later if needed.
+
+### Measured (L0, release build, WSL2 + WSLg, no GPU)
+| Check | Result |
+|---|---|
+| Process start → database open and migrated | 440–480 ms |
+| One IPC round trip (`SELECT 1`) | 0.4 ms |
+| Insert 100k rows in one `db_batch` | 300 ms |
+| Read 1k / 10k / 100k rows | 31 / 8 / 65 ms |
+| `SUM` over 100k rows | 5 ms |
+| Binary / first bundle (gzip) | 4.7 MB / 69 KB |
+| Idle memory, PSS (app + WebKit processes) | 360 MB; 245 MB with `WEBKIT_DISABLE_COMPOSITING_MODE=1` |
+
+- Idle memory misses the 150 MB budget on WSL. Most of it is WebKitGTK with software rendering. Measure again on Windows (WebView2) before changing the budget.
+- Keep IPC calls few: one call per operation, not one per row.
 
 ## Out of v1
 Sync, groups and members, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.

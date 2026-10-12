@@ -14,6 +14,8 @@ Quick start and fixes for repeated mistakes. Decisions: [ARCHITECTURE](ARCHITECT
 | Build (type check + build) | `cd web && npm run build` |
 | Lint (oxlint) | `cd web && npm run lint` |
 | Supabase CLI | `npx supabase ...` |
+| Local-first app (repo root) | `npm run tauri dev` (window), `npm test` (core, node:sqlite), `npm run lint && npm run build` |
+| Local-first release binary | `npx tauri build --no-bundle` → `src-tauri/target/release/aa-finance` |
 
 Minimum check after a change: `npm run lint && npm run build` (lint must show no errors; warnings come mostly from ReUI registry code). After a UI text or `docs/ux` change, also run `npm run check:terms` ([GLOSSARY](GLOSSARY.md)).
 
@@ -22,6 +24,8 @@ Minimum check after a change: `npm run lint && npm run build` (lint must show no
 - Use npm. Files are UTF-8 with LF (`.gitattributes`).
 - The dev DB password is unchanged on purpose (dev stage). Never write it to a file.
 - **Supabase MCP is read-only and may return "Unauthorized"** (token not in its process env). Use the CLI; see Secrets.
+- Tauri needs Rust (`rustup`, in `~/.cargo/bin`; add it to `PATH`) and `sudo apt install pkg-config libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev file`. The window opens through WSLg. The `libEGL`/`MESA ZINK` warnings are harmless (no GPU in WSL).
+- The app database is `~/.local/share/com.akdereli.aa-finance/aa-finance.sqlite`.
 
 ## Secrets (.env)
 - The root `.env` (gitignored) holds tokens and secret keys. The template `.env.example` is committed and has no values. Frontend vars are separate: `web/.env.local` (only `VITE_*`, not secret).
@@ -35,7 +39,7 @@ Minimum check after a change: `npm run lint && npm run build` (lint must show no
 ## Working rules
 1. Never edit an applied migration. Add a new file (`supabase/migrations/YYYYMMDDHHMMSS_name.sql`).
 2. After a schema change, run the Supabase advisors (security + performance). They catch missing RLS.
-3. Money is `bigint`/string everywhere. Rate/quantity is `numeric` → string. No float.
+3. Money is `bigint`/string everywhere. Rate/quantity is `numeric` → string. No float. (Local-first app: money is a safe integer `number`; see [LOCAL-FIRST](LOCAL-FIRST.md#database-rules).)
 4. New Edge Function: use the `_shared/` helpers (db, http, accounts, uuid). Write = one transaction + `FOR UPDATE` on the affected account rows.
 5. If unsure of library syntax, check current docs with context7. Versions are new (react-router 8, tailwind 4, vite 8, i18next 26) and can differ from training data.
 6. Open every UI change with Playwright CLI and take a screenshot: `npx -y @playwright/cli open <url>`, then `screenshot`, then `close`. Snapshots and screenshots go to `.playwright-cli/` (gitignored).
