@@ -8,6 +8,7 @@ import { MEMBER_COLORS } from '../../core/setup.ts'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
 import { Stepper, StepperIndicator, StepperItem, StepperNav, StepperPanel, StepperContent, StepperTitle, StepperTrigger } from '@/components/reui/stepper'
+import { MemberAvatar } from '@/components/members/MemberAvatar'
 import { SearchList } from '@/components/SearchList'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +19,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
 import { LANGUAGES, type Language } from '@/i18n'
 import { call, setMember, useErrorText, useOp } from '@/lib/api'
-import { colorClass, initials } from '@/lib/members'
+import { colorClass } from '@/lib/members'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['country', 'currency', 'you', 'group', 'chart', 'summary'] as const
@@ -269,9 +270,7 @@ export default function Setup({ onFinish }: { onFinish: () => void }) {
                   {step === 3 && (
                     <>
                       <div className="flex items-center gap-3">
-                        <span aria-hidden className={cn('flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white transition-colors', colorClass(color))}>
-                          {initials(name)}
-                        </span>
+                        <MemberAvatar name={name} color={color} size="lg" />
                         <div className="flex min-w-0 flex-col gap-0.5">
                           <span className="truncate text-sm font-medium">{name.trim() || t('setup.name')}</span>
                           <Badge variant="primary-light" className="w-fit">{t('role.admin')}</Badge>

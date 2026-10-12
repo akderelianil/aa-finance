@@ -17,12 +17,13 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { DataState } from '@/components/DataState'
+import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { backupAs, backupDir, exportJson, inApp, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
 
-// Settings: profile name, language, period lock date, how long the activity log is kept; backups and export.
+// Settings: group name, language, period lock date, how long the activity log is kept; backups and export.
 // The base currency is fixed at setup.
 export default function Settings() {
   const { t } = useTranslation()
@@ -43,11 +44,12 @@ function SettingsForm({ values }: { values: Values }) {
   const [language, setLanguage] = useState<Language>(values.language)
   const [lockDate, setLockDate] = useState(values.lockDate ?? '')
   const [days, setDays] = useState(String(values.activityLogDays))
-  const [userName, setUserName] = useState(values.userName)
+  const [groupName, setGroupName] = useState(values.groupName)
+  const admin = values.me.role === 'admin'
   const save = useWrite('settings.update')
   const daysNumber = Number(days)
   const daysError = !Number.isInteger(daysNumber) || daysNumber < 1 ? t('settings.daysInvalid') : null
-  const nameError = !userName.trim() ? t('settings.nameInvalid') : null
+  const nameError = !groupName.trim() ? t('settings.nameInvalid') : null
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -57,7 +59,7 @@ function SettingsForm({ values }: { values: Values }) {
         ...(language !== values.language && { language }),
         ...((lockDate || null) !== values.lockDate && { lockDate: lockDate || null }),
         ...(daysNumber !== values.activityLogDays && { activityLogDays: daysNumber }),
-        ...(userName.trim() !== values.userName && { userName: userName.trim() }),
+        ...(groupName.trim() !== values.groupName && { groupName: groupName.trim() }),
       },
       {
         onSuccess: () => {
@@ -79,12 +81,14 @@ function SettingsForm({ values }: { values: Values }) {
           <CardContent>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="set-name">{t('settings.userName')}</FieldLabel>
+                <FieldLabel htmlFor="set-name">{t('setup.groupName')}</FieldLabel>
                 <Input
-                  id="set-name" className="max-w-sm" value={userName} maxLength={200}
-                  aria-invalid={!!nameError || undefined} onChange={(e) => setUserName(e.target.value)}
+                  id="set-name" className="max-w-sm" value={groupName} maxLength={200} disabled={!admin}
+                  aria-invalid={!!nameError || undefined} onChange={(e) => setGroupName(e.target.value)}
                 />
-                <FieldDescription className={nameError ? 'text-destructive' : undefined}>{nameError ?? t('settings.userNameHint')}</FieldDescription>
+                {(nameError || !admin) && (
+                  <FieldDescription className={nameError ? 'text-destructive' : undefined}>{nameError ?? t('members.adminOnly')}</FieldDescription>
+                )}
               </Field>
               <div className="grid grid-cols-2 gap-4">
                 <Field>
@@ -126,6 +130,7 @@ function SettingsForm({ values }: { values: Values }) {
           </CardFooter>
         </Card>
       </form>
+      <MembersCard admin={admin} />
       <DataCard />
     </div>
   )

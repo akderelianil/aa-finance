@@ -8,7 +8,7 @@ metadata:
   modified: 2026-10-12T14:44:04.243Z
 ---
 
-X1 started 2026-10-12 with the first-run setup flow. Phases: X1a `docs/ux/kurulum.md`, X1b migration 0003 + core ops + tests, X1c onboarding UI, X1d sidebar member menu + Settings Üyeler card.
+X1 started 2026-10-12 with the first-run setup flow; X1a–X1d done the same day. Phases: X1a `docs/ux/kurulum.md`, X1b migration 0003 + core ops + tests, X1c onboarding UI, X1d sidebar member menu + Settings Üyeler card.
 
 User decisions (overrides L4 "one profile, no sign-in"):
 - One ledger file = one family; many members (`actors` + `role` admin/member + `color`). First user = admin. Profile name becomes `group_name` setting; new `country` setting.

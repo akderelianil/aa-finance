@@ -3,11 +3,12 @@ import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarInset,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { EntryDialog } from './journal/EntryDialog'
 import { newDraft, type Draft } from './journal/JournalEditor'
+import { MemberMenu } from './members/MemberMenu'
 import { QuickEntryDialog } from './quick/QuickEntryDialog'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -30,6 +31,9 @@ export function AppShell() {
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
+        <SidebarHeader>
+          <MemberMenu />
+        </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
