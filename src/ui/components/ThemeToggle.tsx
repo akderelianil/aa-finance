@@ -1,7 +1,6 @@
 import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -47,21 +46,6 @@ function useTheme() {
     window.dispatchEvent(new Event('themechange'))
   }
   return [theme, choose] as const
-}
-
-// Header: one button that cycles light, dark, system.
-export function ThemeToggle() {
-  const { t } = useTranslation()
-  const [theme, choose] = useTheme()
-  const Icon = ICONS[theme]
-  return (
-    <Button
-      type="button" variant="outline" size="icon" onClick={() => choose(ORDER[(ORDER.indexOf(theme) + 1) % ORDER.length])}
-      aria-label={`${t('settings.theme')}: ${t(`settings.theme_${theme}`)}`} title={t(`settings.theme_${theme}`)}
-    >
-      <Icon />
-    </Button>
-  )
 }
 
 // Settings: the three themes side by side, one always selected.

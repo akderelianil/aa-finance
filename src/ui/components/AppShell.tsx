@@ -11,7 +11,6 @@ import { EntryDialog } from './journal/EntryDialog'
 import { newDraft, type Draft } from './journal/JournalEditor'
 import { MemberMenu } from './members/MemberMenu'
 import { QuickEntryDialog } from './quick/QuickEntryDialog'
-import { ThemeToggle } from './ThemeToggle'
 
 const ITEMS = [
   { to: '/hesaplar', key: 'accounts', icon: ListTreeIcon },
@@ -102,7 +101,6 @@ export function AppShell() {
               )}
             </BreadcrumbList>
           </Breadcrumb>
-          <ThemeToggle />
         </header>
         <div className="flex w-full flex-col gap-4 px-6 pt-4 pb-8">
           <Suspense><Outlet /></Suspense>
