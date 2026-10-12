@@ -19,6 +19,7 @@ Uygulama ilk kez açıldı, defter dosyası yok. Amaç: birkaç adımda kullanı
 
 ## Açılış: kullanıcı seçimi
 - Her oturumda ilk ekran. Defter kuruluysa Üyeler listelenir (avatar, ad, rol). Son kullanılan Üye işaretli ve odaklı gelir. Birine basmak o Üye olarak çalışmaktır (PIN yok).
+- Oturumu kapat: kenar çubuğundaki Üye menüsünde. Basınca bu ekrana döner; veri silinmez.
 - Defterde kimse yoksa (kurulum yapılmamış): "Kayıt ol" düğmesi. Basınca Kurulum başlar.
 - Kurulumda sol üstte ok düğmesi ("Kullanıcı seçimine dön") kullanıcı seçimine döner. 1. adımda Esc veya Alt+← aynı işi yapar. Kaydedilmiş bir şey olmadığı için veri kaybı yok.
 - Kurulum bitince seçim ekranı atlanır: kurulumu yapan kişi olarak açılır.

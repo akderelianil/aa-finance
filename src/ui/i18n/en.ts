@@ -273,6 +273,7 @@ export const en: Translation = {
   members: {
     switch: 'Switch member',
     manage: 'Manage members',
+    signOut: 'Sign out',
     title: 'Members',
     subtitle: 'The people who share the book. No PIN: picking a member means working as that member.',
     you: 'You',

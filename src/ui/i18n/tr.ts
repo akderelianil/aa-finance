@@ -271,6 +271,7 @@ export const tr = {
   members: {
     switch: 'Üye değiştir',
     manage: 'Üyeleri yönet',
+    signOut: 'Oturumu kapat',
     title: 'Üyeler',
     subtitle: 'Defteri paylaşan kişiler. PIN yok: üye seçmek o üye olarak çalışmaktır.',
     you: 'Sen',

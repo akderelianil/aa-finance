@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { CheckIcon, ChevronsUpDownIcon, UsersIcon } from 'lucide-react'
+import { CheckIcon, ChevronsUpDownIcon, LogOutIcon, UsersIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import {
@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { setMember, useOp } from '@/lib/api'
+import { signOut } from '@/lib/session'
 import { MemberAvatar } from './MemberAvatar'
 
 // Sidebar header: the group and the member you act as. Picking another member switches at once (no PIN).
@@ -51,6 +52,10 @@ export function MemberMenu() {
             <DropdownMenuItem onClick={() => void navigate('/ayarlar')}>
               <UsersIcon />
               {t('members.manage')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={signOut}>
+              <LogOutIcon />
+              {t('members.signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

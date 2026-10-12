@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { ApiError, useOp } from '@/lib/api'
 import { autoBackup } from '@/lib/files'
+import { markPicked, usePicked } from '@/lib/session'
 import Setup from '@/pages/Setup'
 import Welcome from '@/pages/Welcome'
 
@@ -19,9 +20,6 @@ const Activity = lazy(() => import('@/pages/Activity'))
 
 // Once per session the user picks who they are; with no one registered, Register leads to Setup.
 // Set up and picked → the app in the saved language.
-const PICKED = 'aa-finance.picked'
-const wasPicked = () => { try { return sessionStorage.getItem(PICKED) === '1' } catch { return false } }
-const markPicked = () => { try { sessionStorage.setItem(PICKED, '1') } catch { /* this render only */ } }
 
 export default function App() {
   const { i18n } = useTranslation()
@@ -40,13 +38,13 @@ export default function App() {
 
   // Setup stays on screen until its done moment ends, even when settings load earlier.
   const [inSetup, setInSetup] = useState(false)
-  const [picked, setPicked] = useState(wasPicked)
+  const picked = usePicked()
   const notSetup = settings.error instanceof ApiError && settings.error.code === 'not_setup'
   if (inSetup) {
-    return <Setup onBack={() => setInSetup(false)} onFinish={() => { markPicked(); setPicked(true); setInSetup(false) }} />
+    return <Setup onBack={() => setInSetup(false)} onFinish={() => { markPicked(); setInSetup(false) }} />
   }
   if (notSetup || (settings.data && !picked)) {
-    return <Welcome registered={!notSetup} onPick={() => { markPicked(); setPicked(true) }} onRegister={() => setInSetup(true)} />
+    return <Welcome registered={!notSetup} onPick={markPicked} onRegister={() => setInSetup(true)} />
   }
   if (!settings.data) {
     return (
