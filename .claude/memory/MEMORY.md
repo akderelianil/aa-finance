@@ -5,3 +5,4 @@
 - [Secrets via .env](feedback-use-dotenv-secrets.md) — load root .env per command, never print values
 - [Local-first app](project-local-first.md) — Tauri + SQLite; Supabase retired to archive/; owner decisions; X1 status, next entry flow
 - [Git remote](project-no-git-remote.md) — origin is a local path; push only when asked
+- [entries.state kept](project-entries-state-kept.md) — SQLite lacks deferred triggers; draft→posted is the balance commit point

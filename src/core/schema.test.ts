@@ -20,7 +20,7 @@ async function fresh(recommended = false): Promise<Ctx> {
 }
 
 function insert(ctx: Ctx, table: string, row: Record<string, Value>): Statement {
-  const r = { created_by: ctx.actor, updated_by: ctx.actor, ...row }
+  const r = { ...(table === 'settings' || table === 'fx_rates' ? {} : { created_by: ctx.actor }), updated_by: ctx.actor, ...row }
   const cols = Object.keys(r)
   return { sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, params: Object.values(r) }
 }
@@ -256,14 +256,14 @@ test('balance query reads only the covering index', async () => {
   assert.match(plan.map((r) => r.detail).join('\n'), /COVERING INDEX lines_account/)
 })
 
-test('0005 keeps every row and id when it drops uid', async () => {
+test('0005 and 0006 keep every row and id when they rebuild tables', async () => {
   const db = openNodeDb()
   const all = readMigrations()
   await migrate(db, all.slice(0, 4))
   await db.batch([{
     sql: `INSERT INTO actors (uid, created_by, updated_by, kind, name, role) VALUES (lower(hex(randomblob(18))), 1, 1, 'user', 'T', 'admin')`,
   }])
-  const count = async () => (await db.query('SELECT (SELECT count(*) FROM actors) a, (SELECT count(*) FROM audit_log) l')) [0]
+  const count = async () => (await db.query('SELECT (SELECT count(*) FROM actors) a, (SELECT count(*) FROM audit_log) l, (SELECT count(*) FROM settings) s')) [0]
   const before = await count()
   await migrate(db, all)
   assert.deepEqual(await count(), before)

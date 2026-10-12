@@ -228,7 +228,7 @@ test('data.export: every table, currencies as codes', async () => {
   const { id } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
   const out = await api.call('data.export', {})
   assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 5)
+  assert.equal(out.schemaVersion, 6)
   const { tables: t } = out
   const entry = t.entries.find((e) => e.id === id)!
   assert.equal(entry.state, 'posted')

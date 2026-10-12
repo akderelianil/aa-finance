@@ -51,9 +51,12 @@ export function fail(code: string, details?: unknown): never {
   throw new ApiError(code, details)
 }
 
+/** Tables whose audit_log insert row already names the creator: they have updated_by only. */
+const NO_CREATED = ['settings', 'fx_rates']
+
 /** INSERT with the actor columns. Keys come from code, never from input. */
 export function insert(ctx: Ctx, table: string, row: Record<string, Value>): Statement {
-  const r = { ...row, created_by: ctx.actor, updated_by: ctx.actor }
+  const r = { ...row, ...(!NO_CREATED.includes(table) && { created_by: ctx.actor }), updated_by: ctx.actor }
   const cols = Object.keys(r)
   return { sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, params: Object.values(r) }
 }
