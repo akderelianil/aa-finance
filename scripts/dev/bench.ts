@@ -10,7 +10,7 @@ await migrate(db, readMigrations())
 const api = createApi(db)
 await api.call('setup.run', { baseCurrency: 'TRY', language: 'en', userName: 'Bench', recommended: true })
 const accounts = await api.call('accounts.list', {})
-const uid = (name: string) => accounts.find((a) => a.name === name)!.uid
+const uid = (name: string) => accounts.find((a) => a.name === name)!.id
 const [wallet, groceries, rent, salary] = ['Wallet', 'Groceries', 'Rent', 'Salary'].map(uid)
 
 const ms = (t0: number) => `${Math.round(performance.now() - t0)} ms`
@@ -33,8 +33,8 @@ const last = N / 50 - 1 // the wallet is on every entry
 await time('accounts.list (balances)', 'accounts.list', {})
 await time('entries.list, first page', 'entries.list', {})
 await time('entries.list, search', 'entries.list', { search: 'nothing' })
-await time('register, first page', 'accounts.register', { uid: wallet })
-await time('register, last page', 'accounts.register', { uid: wallet, page: last })
+await time('register, first page', 'accounts.register', { id: wallet })
+await time('register, last page', 'accounts.register', { id: wallet, page: last })
 await time('trial balance', 'reports.trialBalance', {})
 await time('balance sheet', 'reports.balanceSheet', {})
 await time('income statement, one year', 'reports.incomeStatement', { from: '2023-01-01', to: '2023-12-31' })

@@ -66,7 +66,7 @@ export default function Journal() {
 
   const me = useOp('settings.get', {}).data?.me
   const accounts = useOp('accounts.list', {})
-  const { byUid } = useAccountTree(accounts.data)
+  const { byId } = useAccountTree(accounts.data)
   const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined }
   const [total, setTotal] = useState<number>()
   const pages = useServerPages(JSON.stringify(filters), total)
@@ -75,14 +75,14 @@ export default function Journal() {
   const gridI18n = useGridI18n()
 
   const accountsOf = (e: Entry) => {
-    const names = (debit: boolean) => [...new Set(e.lines.filter((l) => (l.amount > 0) === debit).map((l) => byUid.get(l.account)?.label ?? ''))]
+    const names = (debit: boolean) => [...new Set(e.lines.filter((l) => (l.amount > 0) === debit).map((l) => byId.get(l.account)?.label ?? ''))]
     const [d, c] = [names(true), names(false)]
     return d.length === 1 && c.length === 1 ? `${d[0]} → ${c[0]}` : t('gj.lines', { count: e.lines.length })
   }
   const volume = (e: Entry) => e.lines.reduce((s, l) => s + (l.baseAmount > 0 ? l.baseAmount : 0), 0)
   /** A member changes own entries; an admin all. */
-  const canChange = (e: Entry) => me?.role === 'admin' || e.author.uid === me?.uid
-  const edit = (e: Entry) => setDraft(entryToDraft(e, base, byUid, minor))
+  const canChange = (e: Entry) => me?.role === 'admin' || e.author.id === me?.id
+  const edit = (e: Entry) => setDraft(entryToDraft(e, base, byId, minor))
 
   const columns = useMemo<ColumnDef<DataGridFeatures, Entry>[]>(() => [
     {
@@ -175,13 +175,13 @@ export default function Journal() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, byUid, fmt, fmtDate, me])
+  ], [t, i18n.language, base, byId, fmt, fmtDate, me])
 
   const table = useTable({
     features: dataGridFeatures,
     columns,
     data: entries.data?.rows ?? [],
-    getRowId: (e: Entry) => e.uid,
+    getRowId: (e: Entry) => String(e.id),
     getRowCanExpand: () => true,
     manualPagination: true,
     rowCount: entries.data?.total ?? 0,
@@ -204,8 +204,8 @@ export default function Journal() {
         isLoading={entries.isPending}
         onRowClick={(e) => setExpanded((prev) => {
           const cur = prev === true ? {} : prev
-          const { [e.uid]: wasOpen, ...rest } = cur
-          return wasOpen ? rest : { ...rest, [e.uid]: true }
+          const { [e.id]: wasOpen, ...rest } = cur
+          return wasOpen ? rest : { ...rest, [e.id]: true }
         })}
         tableLayout={{ dense: true, headerBackground: false }}
         emptyMessage={entries.isError ? (
@@ -270,7 +270,7 @@ export default function Journal() {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive" disabled={remove.isPending}
-              onClick={(ev) => { ev.preventDefault(); if (deleting) remove.mutate({ uid: deleting.uid }, { onSuccess: () => setDeleting(null) }) }}
+              onClick={(ev) => { ev.preventDefault(); if (deleting) remove.mutate({ id: deleting.id }, { onSuccess: () => setDeleting(null) }) }}
             >
               {t('common.delete')}
             </AlertDialogAction>
@@ -289,10 +289,10 @@ export default function Journal() {
         </colgroup>
         <tbody className="bg-muted/30">
           {entry.lines.map((l) => {
-            const acc = byUid.get(l.account)
+            const acc = byId.get(l.account)
             const foreign = acc && acc.currency !== base
             return (
-              <tr key={l.uid} className="[&>td]:py-1.5">
+              <tr key={l.id} className="[&>td]:py-1.5">
                 <td />
                 <td className="truncate">
                   {acc?.label}

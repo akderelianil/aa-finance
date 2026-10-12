@@ -6,23 +6,21 @@ import type { Db, Statement, Value } from './db.ts'
 import { migrate } from './migrate.ts'
 import { setup } from './setup.ts'
 import { openNodeDb, readMigrations } from './test/node-db.ts'
-import { uuidv7 } from './uuid.ts'
 
 type Ctx = { db: Db; actor: number; acc: (key: string) => number }
 
 async function fresh(recommended = false): Promise<Ctx> {
   const db = openNodeDb()
   await migrate(db, readMigrations())
-  const user = await setup(db, { baseCurrency: 'TRY', language: 'en', userName: 'Test', recommended })
-  const [{ id: actor }] = await db.query('SELECT id FROM actors WHERE uid = ?', [user])
+  const actor = await setup(db, { baseCurrency: 'TRY', language: 'en', userName: 'Test', recommended })
   const rows = await db.query('SELECT id, coalesce(system_key, name) AS k FROM accounts')
   const ids = new Map(rows.map((r) => [r.k, r.id as number]))
   const acc = (key: string) => ids.get(key) ?? assert.fail(`no account ${key}`)
-  return { db, actor: actor as number, acc }
+  return { db, actor, acc }
 }
 
 function insert(ctx: Ctx, table: string, row: Record<string, Value>): Statement {
-  const r = { uid: uuidv7(), created_by: ctx.actor, updated_by: ctx.actor, ...row }
+  const r = { created_by: ctx.actor, updated_by: ctx.actor, ...row }
   const cols = Object.keys(r)
   return { sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, params: Object.values(r) }
 }
@@ -36,9 +34,8 @@ function update(ctx: Ctx, table: string, id: number, set: Record<string, Value>)
 async function account(ctx: Ctx, parent: string, name: string, currency = 'TRY'): Promise<number> {
   const [{ id: currency_id }] = await ctx.db.query('SELECT id FROM currencies WHERE code = ?', [currency])
   const [{ type }] = await ctx.db.query('SELECT type FROM accounts WHERE id = ?', [ctx.acc(parent)])
-  const uid = uuidv7()
-  await ctx.db.batch([insert(ctx, 'accounts', { uid, parent_id: ctx.acc(parent), name, type, currency_id })])
-  const [{ id }] = await ctx.db.query('SELECT id FROM accounts WHERE uid = ?', [uid])
+  await ctx.db.batch([insert(ctx, 'accounts', { parent_id: ctx.acc(parent), name, type, currency_id })])
+  const [{ id }] = await ctx.db.query('SELECT max(id) AS id FROM accounts')
   return id as number
 }
 
@@ -46,9 +43,8 @@ type Line = [account: number, amount: number, base?: number, rate?: string]
 
 /** Writes a draft entry, then its lines and (by default) the post in a second batch. */
 async function entry(ctx: Ctx, date: string, lines: Line[], post = true): Promise<number> {
-  const uid = uuidv7()
-  await ctx.db.batch([insert(ctx, 'entries', { uid, entry_date: date })])
-  const [{ id }] = await ctx.db.query('SELECT id FROM entries WHERE uid = ?', [uid])
+  await ctx.db.batch([insert(ctx, 'entries', { entry_date: date })])
+  const [{ id }] = await ctx.db.query('SELECT max(id) AS id FROM entries')
   await ctx.db.batch([
     ...lines.map(([account_id, amount, base, rate], i) =>
       insert(ctx, 'lines', { entry_id: id, account_id, entry_date: date, amount, base_amount: base ?? amount, rate: rate ?? null, position: i }),
@@ -260,8 +256,18 @@ test('balance query reads only the covering index', async () => {
   assert.match(plan.map((r) => r.detail).join('\n'), /COVERING INDEX lines_account/)
 })
 
-test('uuidv7 has version 7 and sorts by time', () => {
-  const a = uuidv7()
-  assert.match(a, /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
-  assert.ok(Math.abs(Number.parseInt(a.slice(0, 8) + a.slice(9, 13), 16) - Date.now()) < 1000)
+test('0005 keeps every row and id when it drops uid', async () => {
+  const db = openNodeDb()
+  const all = readMigrations()
+  await migrate(db, all.slice(0, 4))
+  await db.batch([{
+    sql: `INSERT INTO actors (uid, created_by, updated_by, kind, name, role) VALUES (lower(hex(randomblob(18))), 1, 1, 'user', 'T', 'admin')`,
+  }])
+  const count = async () => (await db.query('SELECT (SELECT count(*) FROM actors) a, (SELECT count(*) FROM audit_log) l')) [0]
+  const before = await count()
+  await migrate(db, all)
+  assert.deepEqual(await count(), before)
+  assert.deepEqual(await db.query('PRAGMA foreign_key_check'), [])
+  assert.deepEqual((await db.query(`SELECT 1 FROM pragma_table_info('actors') WHERE name = 'uid'`)), [])
+  assert.equal((await db.query('SELECT name FROM actors WHERE id = 2'))[0].name, 'T')
 })

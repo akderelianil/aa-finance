@@ -383,7 +383,6 @@ export const tr = {
     account_parent_type: 'Üst hesap aynı türde olmalı.',
     account_placeholder: 'Grup hesabına kayıt yapılamaz; alt hesaplarından birini seç.',
     account_name_taken: 'Bu grupta aynı adlı hesap var.',
-    account_code_taken: 'Bu hesap kodu kullanılıyor.',
     base_currency_fixed: 'Ana para birimi değişmez.',
     base_currency_missing: 'Ana para birimi tanımlı değil.',
     currency_fixed: 'Kaydı olan hesabın para birimi değişmez.',

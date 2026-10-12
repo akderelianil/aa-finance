@@ -1,5 +1,5 @@
 import * as z from 'zod/mini'
-import { limits, need, paging, read, uid } from './ctx.ts'
+import { limits, need, paging, read, id } from './ctx.ts'
 
 /** Who did what, newest first. */
 export const activity = read(z.object({ ...paging }), async (ctx, input) => {
@@ -24,10 +24,10 @@ export const activity = read(z.object({ ...paging }), async (ctx, input) => {
  * FUTURE(audit): per-member audit view, audit export with the backup, hash chain before sync (docs/ROADMAP.md#later).
  */
 export const audit = read(
-  z.object({ table: z.enum(['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']), uid }),
+  z.object({ table: z.enum(['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']), id }),
   async (ctx, input) => {
     // table is from the enum, never free text.
-    const row = await need(ctx.db, 'row_not_found', `SELECT id FROM ${input.table} WHERE uid = ?`, [input.uid])
+    const row = await need(ctx.db, 'row_not_found', `SELECT id FROM ${input.table} WHERE id = ?`, [input.id])
     const rows = await ctx.db.query(
       `SELECT g.at, a.name AS actor, g.op, g.old, g.new FROM audit_log g JOIN actors a ON a.id = g.actor_id
        WHERE g.table_name = ? AND g.row_id = ? ORDER BY g.id`,

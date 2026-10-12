@@ -46,7 +46,7 @@ export function MembersCard({ admin }: { admin: boolean }) {
         {members.data ? (
           <ul className="flex flex-col divide-y">
             {members.data.map((m) => (
-              <li key={m.uid} className="flex items-center gap-3 py-2">
+              <li key={m.id} className="flex items-center gap-3 py-2">
                 <MemberAvatar name={m.name} color={m.color} size="md" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
                 {m.me && <Badge variant="info-light">{t('members.you')}</Badge>}
@@ -72,7 +72,7 @@ export function MembersCard({ admin }: { admin: boolean }) {
           </DialogHeader>
           {target && (
             <MemberForm
-              key={target.mode === 'edit' ? target.member.uid : 'new'}
+              key={target.mode === 'edit' ? target.member.id : 'new'}
               target={target} admin={admin} count={members.data?.length ?? 0} onClose={() => setTarget(null)}
             />
           )}
@@ -102,7 +102,7 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
     const done = { onSuccess: () => { toast.add({ title: t('members.saved'), timeout: 2500 }); onClose() } }
     if (!old) add.mutate({ name: name.trim(), color, role }, done)
     else edit.mutate({
-      uid: old.uid,
+      id: old.id,
       ...(name.trim() !== old.name && { name: name.trim() }),
       ...(color !== old.color && { color }),
       ...(role !== old.role && { role }),

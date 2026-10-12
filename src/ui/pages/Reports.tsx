@@ -20,14 +20,14 @@ import { shown, useAccountTree, useBook, type AccountNode, type AccountType } fr
 import { cn } from '@/lib/utils'
 
 type Tab = 'trial' | 'balance' | 'income'
-type Row = { id: string; label: string; depth: number; kind: 'head' | 'strong' | 'group' | 'row' | 'total'; v: number[] }
+type Row = { id: string | number; label: string; depth: number; kind: 'head' | 'strong' | 'group' | 'row' | 'total'; v: number[] }
 /** One account with its subtree: the values summed over the subtree (signed like lines). */
 type Node = { node: AccountNode; v: number[]; children: Node[] }
 
-function rollUp(nodes: AccountNode[], own: Map<string, number[]>, width: number): Node[] {
+function rollUp(nodes: AccountNode[], own: Map<number, number[]>, width: number): Node[] {
   return nodes.map((node) => {
     const children = rollUp(node.children, own, width)
-    const v = [...(own.get(node.uid) ?? Array(width).fill(0))]
+    const v = [...(own.get(node.id) ?? Array(width).fill(0))]
     for (const c of children) c.v.forEach((x, i) => (v[i] += x))
     return { node, v, children }
   })
@@ -58,7 +58,7 @@ export default function Reports() {
   function treeRows(nodes: Node[], value: (n: Node) => number[], out: Row[] = []): Row[] {
     for (const n of nodes) {
       if ((!showZero && n.v.every((x) => x === 0)) || n.node.depth >= maxDepth) continue
-      out.push({ id: n.node.uid, label: n.node.label, depth: n.node.depth, kind: n.node.depth === 0 ? 'strong' : n.children.length ? 'group' : 'row', v: value(n) })
+      out.push({ id: n.node.id, label: n.node.label, depth: n.node.depth, kind: n.node.depth === 0 ? 'strong' : n.children.length ? 'group' : 'row', v: value(n) })
       treeRows(n.children, value, out)
     }
     return out
@@ -147,7 +147,7 @@ export default function Reports() {
     features: dataGridFeatures,
     columns,
     data: rows,
-    getRowId: (r: Row) => r.id,
+    getRowId: (r: Row) => String(r.id),
     // While loading, the grid draws one skeleton row per pageSize row: keep it small. Reports do not page.
     state: { pagination: { pageIndex: 0, pageSize: loading ? 10 : 10_000 } },
   })

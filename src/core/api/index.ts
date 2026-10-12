@@ -56,22 +56,22 @@ const open = new Set<OpName>(['setup.run', 'currencies.list'])
 export type Api = {
   call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>>
   /** Act as this member from the next call. Unknown or null: the first admin. */
-  use(member: string | null): void
+  use(member: number | null): void
 }
 
 /** The API for one member: the chosen one, else the first admin, found after setup. */
-export function createApi(db: Db, member: string | null = null): Api {
+export function createApi(db: Db, member: number | null = null): Api {
   let actor: number | null = null
   const findActor = async () => {
     const [r] = await db.query(
       `SELECT id FROM actors WHERE kind = 'user' AND deleted_at IS NULL
-       ORDER BY uid IS NOT ?, role IS NOT 'admin', id LIMIT 1`, [member])
+       ORDER BY id IS NOT ?, role IS NOT 'admin', id LIMIT 1`, [member])
     return (actor = (r?.id as number | undefined) ?? null)
   }
 
   return {
-    use(uid) {
-      member = uid
+    use(id) {
+      member = id
       actor = null
     },
     async call(name, input) {

@@ -40,24 +40,24 @@ const numberMeta = {
 // debit, credit and the running balance in the account currency (natural side of the account type).
 // Paged in SQL; it opens on the last page, where the newest lines are.
 export default function AccountRegister() {
-  const { uid = '' } = useParams()
+  const id = Number(useParams().id) || 0
   const { t, i18n } = useTranslation()
   const errorText = useErrorText()
   const { base, minor, fmt } = useBook()
   const { date: fmtDate } = useFormat()
   const accounts = useOp('accounts.list', {})
-  const { byUid } = useAccountTree(accounts.data)
-  const account = byUid.get(uid)
+  const { byId } = useAccountTree(accounts.data)
+  const account = byId.get(id)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
   const [history, setHistory] = useState<Entry | null>(null)
-  const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<number | null>(null)
 
-  const filters = { uid, from: from || undefined, to: to || undefined }
+  const filters = { id, from: from || undefined, to: to || undefined }
   const [total, setTotal] = useState<number>()
   const pages = useServerPages(JSON.stringify(filters), total, 'last')
-  const register = useOp('accounts.register', { ...filters, page: pages.page ?? 0, pageSize: pages.pageSize }, { keep: true, enabled: !!uid })
+  const register = useOp('accounts.register', { ...filters, page: pages.page ?? 0, pageSize: pages.pageSize }, { keep: true, enabled: !!id })
   if (register.data && register.data.total !== total) setTotal(register.data.total)
   const gridI18n = useGridI18n()
 
@@ -66,7 +66,7 @@ export default function AccountRegister() {
   const money = (v: number) => fmt(v, cur)
 
   // Edit and history need the whole entry: fetch it on demand.
-  const open = async (entry: string, then: (e: Entry) => void) => then(await call('entries.get', { uid: entry }))
+  const open = async (entry: number, then: (e: Entry) => void) => then(await call('entries.get', { id: entry }))
 
   const columns = useMemo<ColumnDef<DataGridFeatures, RegisterRow>[]>(() => [
     {
@@ -109,7 +109,7 @@ export default function AccountRegister() {
       header: ({ column }) => <DataGridColumnHeader title={t('reg.other')} column={column} />,
       cell: ({ row: { original: r } }) => (
         <span className={cn('truncate', !r.other && 'text-muted-foreground')}>
-          {r.other ? byUid.get(r.other)?.label : t('reg.split', { count: r.otherCount })}
+          {r.other ? byId.get(r.other)?.label : t('reg.split', { count: r.otherCount })}
         </span>
       ),
       size: 160,
@@ -155,7 +155,7 @@ export default function AccountRegister() {
             <MoreHorizontalIcon />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => void open(r.entry, (e) => setDraft(entryToDraft(e, base, byUid, minor)))}>{t('common.edit')}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => void open(r.entry, (e) => setDraft(entryToDraft(e, base, byId, minor)))}>{t('common.edit')}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => void open(r.entry, setHistory)}>{t('gj.history')}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={() => { remove.reset(); setDeleting(r.entry) }}>{t('common.delete')}</DropdownMenuItem>
@@ -168,13 +168,13 @@ export default function AccountRegister() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, cur, byUid, fmt, fmtDate, minor, account?.type])
+  ], [t, i18n.language, base, cur, byId, fmt, fmtDate, minor, account?.type])
 
   const table = useTable({
     features: dataGridFeatures,
     columns,
     data: register.data?.rows ?? [],
-    getRowId: (r: RegisterRow) => r.line,
+    getRowId: (r: RegisterRow) => String(r.line),
     manualPagination: true,
     rowCount: register.data?.total ?? 0,
     state: { pagination: pages.pagination },
@@ -186,7 +186,7 @@ export default function AccountRegister() {
   // A new entry starts with this account on the first line.
   const startEntry = () => {
     const d = newDraft()
-    d.lines[0] = { ...d.lines[0], account: uid }
+    d.lines[0] = { ...d.lines[0], account: String(id) }
     setDraft(d)
   }
 
@@ -287,7 +287,7 @@ export default function AccountRegister() {
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive" disabled={remove.isPending}
-              onClick={(ev) => { ev.preventDefault(); if (deleting) remove.mutate({ uid: deleting }, { onSuccess: () => setDeleting(null) }) }}
+              onClick={(ev) => { ev.preventDefault(); if (deleting) remove.mutate({ id: deleting }, { onSuccess: () => setDeleting(null) }) }}
             >
               {t('common.delete')}
             </AlertDialogAction>

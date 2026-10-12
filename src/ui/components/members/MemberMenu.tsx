@@ -18,8 +18,8 @@ export function MemberMenu() {
   const members = useOp('members.list', {})
   const me = members.data?.find((m) => m.me)
 
-  function pick(uid: string) {
-    setMember(uid)
+  function pick(id: number) {
+    setMember(id)
     void qc.invalidateQueries()
   }
 
@@ -39,7 +39,7 @@ export function MemberMenu() {
             <DropdownMenuGroup>
               <DropdownMenuLabel>{t('members.switch')}</DropdownMenuLabel>
               {members.data?.map((m) => (
-                <DropdownMenuItem key={m.uid} onClick={() => !m.me && pick(m.uid)}>
+                <DropdownMenuItem key={m.id} onClick={() => !m.me && pick(m.id)}>
                   <MemberAvatar name={m.name} color={m.color} />
                   <span className="min-w-0 flex-1 truncate">{m.name}</span>
                   <span className="text-xs text-muted-foreground">{t(`role.${m.role}`)}</span>

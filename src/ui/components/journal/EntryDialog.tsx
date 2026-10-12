@@ -10,19 +10,19 @@ export function EntryDialog({ draft, onChange, onClose }: { draft: Draft | null;
   const { t } = useTranslation()
   const { base, minor, fmt } = useBook()
   const accounts = useOp('accounts.list', {})
-  const { roots, byUid } = useAccountTree(accounts.data)
+  const { roots, byId } = useAccountTree(accounts.data)
   const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   return (
     <Dialog open={!!draft} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{draft?.uid ? t('gj.editing') : t('gj.newTitle')}</DialogTitle>
+          <DialogTitle>{draft?.id ? t('gj.editing') : t('gj.newTitle')}</DialogTitle>
           <DialogDescription>{t('gj.newHint')}</DialogDescription>
         </DialogHeader>
         {draft && (
           <JournalEditor
-            key={draft.uid ?? 'new'}
-            draft={draft} onChange={onChange} accounts={postable} byUid={byUid} base={base} minor={minor} fmt={fmt}
+            key={draft.id ?? 'new'}
+            draft={draft} onChange={onChange} accounts={postable} byId={byId} base={base} minor={minor} fmt={fmt}
             onCancel={onClose} onSaved={onClose}
           />
         )}

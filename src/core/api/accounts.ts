@@ -1,15 +1,13 @@
 import * as z from 'zod/mini'
 import type { AccountType } from '../chart.ts'
-import { uuidv7 } from '../uuid.ts'
-import { currency, date, insert, limits, name, need, one, paging, read, uid, update, write } from './ctx.ts'
+import { currency, date, insert, limits, name, need, one, paging, read, id, update, write } from './ctx.ts'
 
 export type Account = {
-  uid: string
-  parent: string | null
+  id: number
+  parent: number | null
   name: string
   type: AccountType
   currency: string
-  code: string | null
   placeholder: boolean
   locked: boolean
   systemKey: string | null
@@ -22,11 +20,10 @@ export type Account = {
 /** All live accounts with own balances up to `asOf` (default: all dates). */
 export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input): Promise<Account[]> => {
   const rows = await ctx.db.query(
-    `SELECT a.uid, p.uid AS parent, a.name, a.type, c.code AS currency, a.code, a.is_placeholder, a.locked, a.system_key,
+    `SELECT a.id, a.parent_id AS parent, a.name, a.type, c.code AS currency, a.is_placeholder, a.locked, a.system_key,
             a.archived_at, coalesce(b.amount, 0) AS balance, coalesce(b.base, 0) AS base
      FROM accounts a
      JOIN currencies c ON c.id = a.currency_id
-     LEFT JOIN accounts p ON p.id = a.parent_id
      LEFT JOIN (
        SELECT account_id, sum(amount) AS amount, sum(base_amount) AS base FROM lines
        WHERE deleted_at IS NULL AND entry_date <= ? GROUP BY account_id
@@ -36,12 +33,11 @@ export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input
     [input.asOf ?? '9999-12-31'],
   )
   return rows.map((r) => ({
-    uid: r.uid as string,
-    parent: r.parent as string | null,
+    id: r.id as number,
+    parent: r.parent as number | null,
     name: r.name as string,
     type: r.type as AccountType,
     currency: r.currency as string,
-    code: r.code as string | null,
     placeholder: r.is_placeholder === 1,
     locked: r.locked === 1,
     systemKey: r.system_key as string | null,
@@ -51,64 +47,59 @@ export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input
   }))
 })
 
-const code = z.optional(z.nullable(z.string().check(z.trim(), z.minLength(1), z.maxLength(50))))
-
 /** Type comes from the parent. Currency defaults to the base currency. */
 export const create = write(
-  z.object({ parent: uid, name, currency: z.optional(currency), code, placeholder: z.optional(z.boolean()) }),
+  z.object({ parent: id, name, currency: z.optional(currency), placeholder: z.optional(z.boolean()) }),
   async (ctx, input) => {
-    const parent = await need(ctx.db, 'account_not_found', 'SELECT id, type FROM accounts WHERE uid = ? AND deleted_at IS NULL', [input.parent])
+    const parent = await need(ctx.db, 'account_not_found', 'SELECT id, type FROM accounts WHERE id = ? AND deleted_at IS NULL', [input.parent])
     const cur = input.currency
       ? await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])
       : await need(ctx.db, 'not_setup', `SELECT c.id FROM currencies c JOIN settings s ON s.value = c.code WHERE s.key = 'base_currency'`)
-    const rowUid = uuidv7()
     await ctx.write(
       [insert(ctx, 'accounts', {
-        uid: rowUid, parent_id: parent.id, name: input.name, type: parent.type, currency_id: cur.id,
-        code: input.code ?? null, is_placeholder: input.placeholder ? 1 : 0,
+        parent_id: parent.id, name: input.name, type: parent.type, currency_id: cur.id, is_placeholder: input.placeholder ? 1 : 0,
       })],
-      `${rowUid} ${input.name}`,
+      input.name,
     )
-    return { uid: rowUid }
+    return { id: Number((await ctx.db.query('SELECT max(id) AS id FROM accounts'))[0].id) }
   },
 )
 
 export const edit = write(
-  z.object({ uid, name: z.optional(name), parent: z.optional(uid), currency: z.optional(currency), code, placeholder: z.optional(z.boolean()) }),
+  z.object({ id, name: z.optional(name), parent: z.optional(id), currency: z.optional(currency), placeholder: z.optional(z.boolean()) }),
   async (ctx, input) => {
-    await live(ctx.db, input.uid)
+    await live(ctx.db, input.id)
     const set: Record<string, string | number | null> = {}
     if (input.name !== undefined) set.name = input.name
-    if (input.code !== undefined) set.code = input.code
     if (input.placeholder !== undefined) set.is_placeholder = input.placeholder ? 1 : 0
     if (input.parent !== undefined) set.parent_id = (await live(ctx.db, input.parent)).id
     if (input.currency !== undefined)
       set.currency_id = (await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])).id
-    if (Object.keys(set).length) await ctx.write([update(ctx, 'accounts', input.uid, set)], input.uid)
+    if (Object.keys(set).length) await ctx.write([update(ctx, 'accounts', input.id, set)], String(input.id))
     return {}
   },
 )
 
-export const archive = write(z.object({ uid, archived: z.boolean() }), async (ctx, input) => {
-  await live(ctx.db, input.uid)
-  await ctx.write([update(ctx, 'accounts', input.uid, { archived_at: input.archived ? Date.now() : null })], input.uid)
+export const archive = write(z.object({ id, archived: z.boolean() }), async (ctx, input) => {
+  await live(ctx.db, input.id)
+  await ctx.write([update(ctx, 'accounts', input.id, { archived_at: input.archived ? Date.now() : null })], String(input.id))
   return {}
 })
 
 /** Soft delete. Only an account without live lines and children (the database checks). */
-export const remove = write(z.object({ uid }), async (ctx, input) => {
-  await live(ctx.db, input.uid)
-  await ctx.write([update(ctx, 'accounts', input.uid, { deleted_at: Date.now() })], input.uid)
+export const remove = write(z.object({ id }), async (ctx, input) => {
+  await live(ctx.db, input.id)
+  await ctx.write([update(ctx, 'accounts', input.id, { deleted_at: Date.now() })], String(input.id))
   return {}
 })
 
-async function live(db: Parameters<typeof need>[0], accountUid: string) {
-  return need(db, 'account_not_found', 'SELECT id FROM accounts WHERE uid = ? AND deleted_at IS NULL', [accountUid])
+async function live(db: Parameters<typeof need>[0], accountId: number) {
+  return need(db, 'account_not_found', 'SELECT id FROM accounts WHERE id = ? AND deleted_at IS NULL', [accountId])
 }
 
 export type RegisterRow = {
-  line: string
-  entry: string
+  line: number
+  entry: number
   date: string
   year: number
   number: number
@@ -121,15 +112,15 @@ export type RegisterRow = {
   /** Running balance in the account currency. */
   balance: number
   /** The other account when the entry has exactly one other line, else null. */
-  other: string | null
+  other: number | null
   otherCount: number
 }
 
 /** Account register: lines oldest first, paged, with a running balance from `opening`. */
 export const register = read(
-  z.object({ uid, from: z.optional(date), to: z.optional(date), ...paging }),
+  z.object({ id, from: z.optional(date), to: z.optional(date), ...paging }),
   async (ctx, input) => {
-    const acc = await live(ctx.db, input.uid)
+    const acc = await live(ctx.db, input.id)
     const from = input.from ?? '0000-01-01'
     const to = input.to ?? '9999-12-31'
     const { limit, offset } = limits(input)
@@ -141,7 +132,7 @@ export const register = read(
     const opening = head!.opening as number
     const rows = await ctx.db.query(
       `WITH r AS (
-         SELECT l.id, l.uid, l.entry_id, l.position, l.entry_date, l.memo, l.amount, l.base_amount, l.rate,
+         SELECT l.id, l.entry_id, l.position, l.entry_date, l.memo, l.amount, l.base_amount, l.rate,
                 sum(l.amount) OVER (ORDER BY l.entry_date, l.entry_id, l.position, l.id) AS run
          FROM lines l
          WHERE l.account_id = ?1 AND l.deleted_at IS NULL AND l.entry_date >= ?2 AND l.entry_date <= ?3
@@ -149,10 +140,10 @@ export const register = read(
          ORDER BY l.entry_date, l.entry_id, l.position, l.id
          LIMIT ?5 OFFSET ?6
        )
-       SELECT r.uid, e.uid AS entry, r.entry_date, e.year, e.number, e.reference, e.description, r.memo,
+       SELECT r.id, r.entry_id AS entry, r.entry_date, e.year, e.number, e.reference, e.description, r.memo,
               r.amount, r.base_amount, r.rate, r.run + ?4 AS balance,
               (SELECT count(*) FROM lines o WHERE o.entry_id = r.entry_id AND o.id <> r.id AND o.deleted_at IS NULL) AS other_count,
-              (SELECT a.uid FROM lines o JOIN accounts a ON a.id = o.account_id
+              (SELECT o.account_id FROM lines o
                WHERE o.entry_id = r.entry_id AND o.id <> r.id AND o.deleted_at IS NULL LIMIT 1) AS other
        FROM r
        JOIN entries e ON e.id = r.entry_id
@@ -163,8 +154,8 @@ export const register = read(
       opening,
       total: head!.total as number,
       rows: rows.map((r): RegisterRow => ({
-        line: r.uid as string,
-        entry: r.entry as string,
+        line: r.id as number,
+        entry: r.entry as number,
         date: r.entry_date as string,
         year: r.year as number,
         number: r.number as number,
@@ -175,7 +166,7 @@ export const register = read(
         baseAmount: r.base_amount as number,
         rate: r.rate as string | null,
         balance: r.balance as number,
-        other: r.other_count === 1 ? (r.other as string) : null,
+        other: r.other_count === 1 ? (r.other as number) : null,
         otherCount: r.other_count as number,
       })),
     }

@@ -22,7 +22,7 @@ export const write = <S extends z.ZodMiniType, O>(input: S, run: (ctx: Ctx, inpu
   ({ input, write: true, run })
 
 // Shared input pieces.
-export const uid = z.string().check(z.length(36))
+export const id = z.int().check(z.minimum(1))
 export const date = z.iso.date()
 export const name = z.string().check(z.trim(), z.minLength(1), z.maxLength(200))
 export const text = z.nullable(z.string().check(z.trim(), z.maxLength(1000)))
@@ -58,11 +58,11 @@ export function insert(ctx: Ctx, table: string, row: Record<string, Value>): Sta
   return { sql: `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`, params: Object.values(r) }
 }
 
-/** UPDATE one row by uid, stamping updated_at and updated_by. */
-export function update(ctx: Ctx, table: string, rowUid: string, set: Record<string, Value>): Statement {
+/** UPDATE one row by id, stamping updated_at and updated_by. */
+export function update(ctx: Ctx, table: string, rowId: number, set: Record<string, Value>): Statement {
   const r = { ...set, updated_at: Date.now(), updated_by: ctx.actor }
   const cols = Object.keys(r)
-  return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE uid = ?`, params: [...Object.values(r), rowUid] }
+  return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`, params: [...Object.values(r), rowId] }
 }
 
 /** ApiError('admin_only') unless the caller is an admin. The DB triggers check it again. */

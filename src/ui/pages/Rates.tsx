@@ -64,7 +64,7 @@ export default function Rates() {
       cell: ({ row: { original: r } }) => (
         <Button
           variant="ghost" size="icon-xs" aria-label={t('common.delete')}
-          onClick={() => remove.mutate({ uid: r.uid }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) })}
+          onClick={() => remove.mutate({ id: r.id }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) })}
         >
           <Trash2Icon />
         </Button>
@@ -78,7 +78,7 @@ export default function Rates() {
     features: dataGridFeatures,
     columns,
     data: rates.data ?? [],
-    getRowId: (r: FxRate) => r.uid,
+    getRowId: (r: FxRate) => String(r.id),
     state: { pagination: { pageIndex: 0, pageSize: rates.isPending ? 10 : 10_000 } },
   })
   const add = <Button onClick={() => setAdding(true)}><PlusIcon data-icon="inline-start" />{t('fx.add')}</Button>

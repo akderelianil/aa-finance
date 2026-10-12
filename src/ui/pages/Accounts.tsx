@@ -67,8 +67,8 @@ export default function Accounts() {
   }, [roots, search, showArchived, rootFilter, i18n.language])
 
   const flat = useMemo(() => flattenTree(visible), [visible])
-  const selectedNode = flat.find((n) => selected[n.uid]) ?? null
-  const openIds = () => Object.fromEntries(flat.filter((n) => n.children.length).map((n) => [n.uid, true]))
+  const selectedNode = flat.find((n) => selected[n.id]) ?? null
+  const openIds = () => Object.fromEntries(flat.filter((n) => n.children.length).map((n) => [n.id, true]))
   const effectiveExpanded: ExpandedState = search ? true : expanded ?? true
 
   const columns = useMemo<ColumnDef<DataGridFeatures, AccountNode>[]>(() => [
@@ -81,7 +81,7 @@ export default function Accounts() {
         return (
           <div
             className={cn('flex items-center gap-1', n.archived && 'text-muted-foreground')}
-            onDoubleClick={() => !n.placeholder && navigate(`/hesaplar/${n.uid}`)}
+            onDoubleClick={() => !n.placeholder && navigate(`/hesaplar/${n.id}`)}
           >
             <DataGridTableRowExpand row={row} className="-ms-1.5 -me-1" />
             <span className={cn(n.depth === 0 ? 'font-semibold' : 'font-medium', n.placeholder && n.depth > 0 && 'italic')}>{n.label}</span>
@@ -127,7 +127,7 @@ export default function Accounts() {
     features: dataGridFeatures,
     columns,
     data: visible,
-    getRowId: (n: AccountNode) => n.uid,
+    getRowId: (n: AccountNode) => String(n.id),
     getSubRows: (n) => n.children,
     enableRowSelection: true,
     enableMultiRowSelection: false,
@@ -144,17 +144,17 @@ export default function Accounts() {
 
   const archive = useWrite('accounts.archive')
   const remove = useWrite('accounts.delete')
-  const select = (n: AccountNode) => setSelected({ [n.uid]: true })
+  const select = (n: AccountNode) => setSelected({ [n.id]: true })
   const handlers: AccountHandlers = {
-    openRegister: (n) => navigate(`/hesaplar/${n.uid}`),
+    openRegister: (n) => navigate(`/hesaplar/${n.id}`),
     addChild: (n) => setTarget({ mode: 'create', parent: n }),
     edit: (n) => setTarget({ mode: 'edit', node: n }),
-    archive: (n) => archive.mutate({ uid: n.uid, archived: !n.archived }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) }),
+    archive: (n) => archive.mutate({ id: n.id, archived: !n.archived }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) }),
     remove: (n) => { remove.reset(); setDeleting(n) },
   }
   const onContextMenu = (e: MouseEvent) => {
-    const uid = (e.target as HTMLElement).closest('[data-row-id]')?.getAttribute('data-row-id')
-    const node = uid ? flat.find((n) => n.uid === uid) ?? null : null
+    const rowId = (e.target as HTMLElement).closest('[data-row-id]')?.getAttribute('data-row-id')
+    const node = rowId ? flat.find((n) => String(n.id) === rowId) ?? null : null
     setCtxNode(node && accountActions(node, handlers, t).length ? node : null)
     if (node) select(node)
   }
@@ -246,7 +246,7 @@ export default function Accounts() {
               variant="destructive" disabled={remove.isPending}
               onClick={(e) => {
                 e.preventDefault()
-                if (deleting) remove.mutate({ uid: deleting.uid }, { onSuccess: () => { setDeleting(null); setSelected({}) } })
+                if (deleting) remove.mutate({ id: deleting.id }, { onSuccess: () => { setDeleting(null); setSelected({}) } })
               }}
             >
               {t('common.delete')}

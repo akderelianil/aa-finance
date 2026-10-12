@@ -384,7 +384,6 @@ export const en: Translation = {
     account_parent_type: 'The parent account must have the same type.',
     account_placeholder: 'A group account takes no entries; pick one of its child accounts.',
     account_name_taken: 'This group already has an account with this name.',
-    account_code_taken: 'This account code is in use.',
     base_currency_fixed: 'The base currency cannot change.',
     base_currency_missing: 'No base currency is set.',
     currency_fixed: 'An account with entries keeps its currency.',

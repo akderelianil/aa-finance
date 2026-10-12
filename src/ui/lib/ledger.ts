@@ -54,8 +54,8 @@ export function useAccountTree(accounts: Account[] | undefined) {
 function buildTree(accounts: Account[], t: ReturnType<typeof useTranslation>['t'], i18n: ReturnType<typeof useTranslation>['i18n']) {
   const label = (a: Account) =>
     a.systemKey && i18n.exists(`system.${a.systemKey}`) ? t(`system.${a.systemKey}` as 'system.asset') : a.name
-  const nodes = new Map<string, AccountNode>()
-  for (const a of accounts) nodes.set(a.uid, { ...a, label: label(a), depth: 0, path: '', treeBase: 0, children: [] })
+  const nodes = new Map<number, AccountNode>()
+  for (const a of accounts) nodes.set(a.id, { ...a, label: label(a), depth: 0, path: '', treeBase: 0, children: [] })
   const roots: AccountNode[] = []
   for (const n of nodes.values()) {
     const p = n.parent ? nodes.get(n.parent) : undefined
@@ -74,7 +74,7 @@ function buildTree(accounts: Account[], t: ReturnType<typeof useTranslation>['t'
   }
   roots.sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type))
   for (const r of roots) walk(r, 0, '')
-  return { roots, byUid: nodes }
+  return { roots, byId: nodes }
 }
 
 export function flattenTree(nodes: AccountNode[]): AccountNode[] {

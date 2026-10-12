@@ -25,7 +25,7 @@ export const setup = write(
     const { user, statements } = setupStatements(input)
     // No actor before setup: the new user writes its own activity row.
     statements.push({
-      sql: `INSERT INTO activity_log (actor_id, operation, summary, ok) VALUES ((SELECT id FROM actors WHERE uid = ?), 'setup.run', ?, 1)`,
+      sql: `INSERT INTO activity_log (actor_id, operation, summary, ok) VALUES (?, 'setup.run', ?, 1)`,
       params: [user, input.baseCurrency],
     })
     await ctx.db.batch(statements)
@@ -42,11 +42,11 @@ export type Settings = {
   groupName: string
   country: string | null
   /** The caller. */
-  me: { uid: string; role: 'admin' | 'member'; color: string | null }
+  me: { id: number; role: 'admin' | 'member'; color: string | null }
 }
 
 export const get = read(z.object({}), async (ctx): Promise<Settings> => {
-  const user = await need(ctx.db, 'not_setup', 'SELECT uid, name, role, color FROM actors WHERE id = ?', [ctx.actor])
+  const user = await need(ctx.db, 'not_setup', 'SELECT name, role, color FROM actors WHERE id = ?', [ctx.actor])
   const rows = await ctx.db.query(
     `SELECT key, value FROM settings WHERE key IN ('base_currency', 'language', 'lock_date', 'activity_log_days', 'group_name', 'country')`)
   const v = Object.fromEntries(rows.map((r) => [r.key, r.value]))
@@ -59,7 +59,7 @@ export const get = read(z.object({}), async (ctx): Promise<Settings> => {
     userName: user.name as string,
     groupName: (v.group_name as string | null) ?? (user.name as string),
     country: (v.country as string | null) ?? null,
-    me: { uid: user.uid as string, role: user.role as 'admin' | 'member', color: (user.color as string | null) ?? null },
+    me: { id: ctx.actor, role: user.role as 'admin' | 'member', color: (user.color as string | null) ?? null },
   }
 })
 
@@ -85,11 +85,11 @@ export const set = write(
       ['group_name', input.groupName],
       ['country', input.country],
     ]
-    const rows = await ctx.db.query('SELECT key, uid FROM settings')
-    const uidOf = new Map(rows.map((r) => [r.key, r.uid as string]))
+    const rows = await ctx.db.query('SELECT key, id FROM settings')
+    const idOf = new Map(rows.map((r) => [r.key, r.id as number]))
     const statements = values
       .filter(([, v]) => v !== undefined)
-      .map(([key, v]) => update(ctx, 'settings', uidOf.get(key) ?? fail('not_setup'), { value: v ?? null }))
+      .map(([key, v]) => update(ctx, 'settings', idOf.get(key) ?? fail('not_setup'), { value: v ?? null }))
     if (input.userName !== undefined) {
       values.push(['user_name', input.userName])
       statements.push({ sql: 'UPDATE actors SET name = ?, updated_at = ?, updated_by = ? WHERE id = ?', params: [input.userName, Date.now(), ctx.actor, ctx.actor] })

@@ -27,8 +27,8 @@ Technical design of the local app. Product model: [ARCHITECTURE](ARCHITECTURE.md
 ## Database rules
 The database enforces the rules. The TypeScript service checks first, only to give clear messages.
 
-- Schema: `src/core/migrations/0001_schema.sql`. All tables are `STRICT` (a float in a money column fails). A broken rule raises a stable error code (`entry_unbalanced`, `period_locked`, ...); the API maps codes to messages.
-- Every data table has `id INTEGER PRIMARY KEY` (joins and queries), `uid TEXT UNIQUE` (UUIDv7 from `src/core/uuid.ts`, for export and later sharing), `created_at`, `updated_at` (unix ms), `created_by`, `updated_by` (→ `actors`). Core makes the `uid`, so one batch can refer to a row it just wrote (`(SELECT id FROM entries WHERE uid = ?)`). `currencies` is fixed reference data (ISO 4217, `0002_currencies.sql`) without these columns. Actor 1 is `system`.
+- Schema: `src/core/migrations/` (`0001_schema.sql` first; `0005_drop_uid.sql` rebuilt the six data tables). All tables are `STRICT` (a float in a money column fails). A broken rule raises a stable error code (`entry_unbalanced`, `period_locked`, ...); the API maps codes to messages.
+- Every data table has `id INTEGER PRIMARY KEY` (joins, queries and the API), `created_at`, `updated_at` (unix ms), `created_by`, `updated_by` (→ `actors`). There is no global id: one file is one ledger. If sharing or sync comes, add a `uid` with a migration. `entries.post` takes the next id (`max(id)+1`; rows are never deleted) so one batch can refer to the entry it just wrote. `currencies` is fixed reference data (ISO 4217, `0002_currencies.sql`) without these columns. Actor 1 is `system`.
 - The API sets `updated_at` and `updated_by` on every update. A trigger cannot do it without logging each update twice.
 - Rows are never deleted. `deleted_at` marks a soft delete. A trigger blocks `DELETE`.
 - Money is integer minor units, a plain `number` in TypeScript (never float math). Integers cross IPC as JSON numbers. Both adapters reject a value outside ±(2^53−1); amounts never get that large. Rates are text. Dates are `TEXT 'YYYY-MM-DD'`.
@@ -66,7 +66,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - The UI calls only the API, never SQL. The API is named JSON operations: `api.call('entries.post', input)`. The list is `ops` in `src/core/api/index.ts`, with one `API_VERSION`.
 - Each op has a Zod (`zod/mini`) input schema, a TypeScript output type and stable error codes. A failure is always an `ApiError` with a `code` (bad input: `invalid_input`). Output schemas come with the plugin bridge.
 - `call()` validates the input and binds the actor. It writes the `activity_log` row in the same transaction as the op's write. A failed write is logged with its error code. Reads are not logged.
-- Records are named by `uid` in the API, never by integer `id`. Currencies are named by ISO code.
+- Records are named by integer `id` in the API. Currencies are named by ISO code.
 - Lists are paged (`page`, `pageSize` ≤1000, offset). Journal: newest first. Account register: oldest first, with `opening` and a running balance in the account currency.
 - Reports are in the base currency and signed like lines. The trial balance gives debit and credit turnover per account too. The balance sheet returns the unclosed income and expense total as `earnings`.
 - Foreign-currency line: the base amount comes from `baseAmount`, else `rate`, else the stored rate on or before the entry date (`rate_missing` if none). A difference up to 1 minor unit per converted line goes to FX Gains and Losses. A larger difference is `entry_unbalanced`.

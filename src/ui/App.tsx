@@ -48,7 +48,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/hesaplar" element={<Accounts />} />
-        <Route path="/hesaplar/:uid" element={<AccountRegister />} />
+        <Route path="/hesaplar/:id" element={<AccountRegister />} />
         <Route path="/yevmiye" element={<Journal />} />
         <Route path="/raporlar" element={<Reports />} />
         <Route path="/kurlar" element={<Rates />} />

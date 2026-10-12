@@ -1,15 +1,15 @@
 // Reports in the base currency. All amounts are signed like lines: plus is debit, minus is credit.
-// Rows carry the account uid and type; the UI takes names and the tree from accounts.list.
+// Rows carry the account id and type; the UI takes names and the tree from accounts.list.
 import * as z from 'zod/mini'
 import type { AccountType } from '../chart.ts'
 import type { Db } from '../db.ts'
 import { date, read } from './ctx.ts'
 
-export type ReportRow = { account: string; type: AccountType; balance: number }
+export type ReportRow = { account: number; type: AccountType; balance: number }
 
 async function balances(db: Db, from: string, to: string, types: AccountType[]): Promise<ReportRow[]> {
   const rows = await db.query(
-    `SELECT a.uid, a.type, sum(l.base_amount) AS balance
+    `SELECT a.id, a.type, sum(l.base_amount) AS balance
      FROM lines l JOIN accounts a ON a.id = l.account_id
      WHERE l.deleted_at IS NULL AND l.entry_date >= ? AND l.entry_date <= ?
        AND a.type IN (SELECT value FROM json_each(?))
@@ -17,7 +17,7 @@ async function balances(db: Db, from: string, to: string, types: AccountType[]):
      ORDER BY a.id`,
     [from, to, JSON.stringify(types)],
   )
-  return rows.map((r) => ({ account: r.uid as string, type: r.type as AccountType, balance: r.balance as number }))
+  return rows.map((r) => ({ account: r.id as number, type: r.type as AccountType, balance: r.balance as number }))
 }
 
 const sum = (rows: ReportRow[]) => rows.reduce((s, r) => s + r.balance, 0)
@@ -30,7 +30,7 @@ export type TrialRow = ReportRow & { debit: number; credit: number }
  */
 export const trialBalance = read(z.object({ asOf: z.optional(date) }), async (ctx, input) => {
   const rows = await ctx.db.query(
-    `SELECT a.uid, a.type, sum(l.base_amount) AS balance,
+    `SELECT a.id, a.type, sum(l.base_amount) AS balance,
             sum(max(l.base_amount, 0)) AS debit, -sum(min(l.base_amount, 0)) AS credit
      FROM lines l JOIN accounts a ON a.id = l.account_id
      WHERE l.deleted_at IS NULL AND l.entry_date <= ?
@@ -38,7 +38,7 @@ export const trialBalance = read(z.object({ asOf: z.optional(date) }), async (ct
     [input.asOf ?? '9999-12-31'],
   )
   const out = rows.map((r): TrialRow => ({
-    account: r.uid as string, type: r.type as AccountType, balance: r.balance as number,
+    account: r.id as number, type: r.type as AccountType, balance: r.balance as number,
     debit: r.debit as number, credit: r.credit as number,
   }))
   const debit = out.reduce((s, r) => s + Math.max(r.balance, 0), 0)

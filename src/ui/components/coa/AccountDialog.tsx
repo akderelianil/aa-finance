@@ -41,7 +41,7 @@ export function AccountDialog({ target, ...rest }: Props) {
           <DialogTitle>{target?.mode === 'edit' ? t('coa.editTitle') : t('coa.newTitle')}</DialogTitle>
           <DialogDescription className="sr-only">{t('nav.accounts')}</DialogDescription>
         </DialogHeader>
-        {target && <Form key={target.mode === 'edit' ? target.node.uid : (target.parent?.uid ?? 'root')} target={target} {...rest} />}
+        {target && <Form key={target.mode === 'edit' ? target.node.id : (target.parent?.id ?? 'root')} target={target} {...rest} />}
       </DialogContent>
     </Dialog>
   )
@@ -51,25 +51,25 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
   const { t } = useTranslation()
   const errorText = useErrorText()
   const edit = target.mode === 'edit' ? target.node : null
-  const initialParent = edit ? edit.parent : target.mode === 'create' ? (target.parent?.uid ?? null) : null
-  const byUid = new Map(flattenTree(roots).map((n) => [n.uid, n]))
+  const initialParent = edit ? edit.parent : target.mode === 'create' ? (target.parent?.id ?? null) : null
+  const byId = new Map(flattenTree(roots).map((n) => [n.id, n]))
 
   const [name, setName] = useState(edit?.name ?? '')
-  const [parentUid, setParentUid] = useState(initialParent ?? '')
-  const parent = parentUid ? byUid.get(parentUid) : undefined
+  const [parentId, setParentId] = useState(initialParent ?? 0)
+  const parent = parentId ? byId.get(parentId) : undefined
   const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? currencies[0] ?? '')
   const [placeholder, setPlaceholder] = useState(edit?.placeholder ?? false)
   // An account with lines keeps its currency and cannot become a group; the database checks too.
   const used = !!edit && edit.balance !== 0
 
   // Parents: same type, not archived, not inside the edited account's subtree.
-  const subtree = new Set(edit ? flattenTree([edit]).map((n) => n.uid) : [])
-  const allowed = (n: AccountNode) => takesChildren(n) && !n.archived && !subtree.has(n.uid) && (!edit || n.type === edit.type)
+  const subtree = new Set(edit ? flattenTree([edit]).map((n) => n.id) : [])
+  const allowed = (n: AccountNode) => takesChildren(n) && !n.archived && !subtree.has(n.id) && (!edit || n.type === edit.type)
   // A group whose parent is not offered moves up to the nearest offered ancestor.
   const groupTree = (nodes: AccountNode[]): CascaderNode[] => nodes.flatMap((n) => {
     const kids = groupTree(n.children)
     if (!allowed(n)) return kids
-    return [{ value: n.uid, label: n.label, children: kids.length ? kids : undefined }]
+    return [{ value: String(n.id), label: n.label, children: kids.length ? kids : undefined }]
   })
   const groups = groupTree(roots)
 
@@ -81,13 +81,13 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
     e.preventDefault()
     const done = { onSuccess: onClose }
     if (!edit) {
-      create.mutate({ parent: parentUid, name: name.trim(), currency, placeholder }, done)
+      create.mutate({ parent: parentId, name: name.trim(), currency, placeholder }, done)
       return
     }
     update.mutate({
-      uid: edit.uid,
+      id: edit.id,
       ...(name.trim() !== edit.name && { name: name.trim() }),
-      ...(parentUid !== edit.parent && { parent: parentUid }),
+      ...(parentId !== edit.parent && { parent: parentId }),
       ...(currency !== edit.currency && { currency }),
       ...(placeholder !== edit.placeholder && { placeholder }),
     }, done)
@@ -98,9 +98,9 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="acc-parent">{t('coa.parent')}</FieldLabel>
-          <Cascader items={groups} value={parentUid} onValueChange={(v) => {
-            setParentUid(v ?? '')
-            const p = v ? byUid.get(v) : undefined
+          <Cascader items={groups} value={parentId ? String(parentId) : ''} onValueChange={(v) => {
+            setParentId(Number(v) || 0)
+            const p = v ? byId.get(Number(v)) : undefined
             if (!edit && p) setCurrency(p.currency)
           }}>
             <CascaderTrigger id="acc-parent" aria-label={t('coa.parent')} render={<Button variant="outline" className="w-full justify-between font-normal" />}>
@@ -152,7 +152,7 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
         {save.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(save.error)}</AlertDescription></Alert>}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button type="submit" disabled={save.isPending || !name.trim() || !parentUid}>
+          <Button type="submit" disabled={save.isPending || !name.trim() || !parentId}>
             {save.isPending && <Spinner data-icon="inline-start" />}
             {t('common.save')}
           </Button>

@@ -34,7 +34,7 @@ function changes(rows: AuditRow[]): Change[] {
 export function EntryHistory({ entry, onClose }: { entry: Entry | null; onClose: () => void }) {
   const { t } = useTranslation()
   const { dateTime } = useFormat()
-  const audit = useOp('audit.forRow', { table: 'entries', uid: entry?.uid ?? '' }, { enabled: !!entry })
+  const audit = useOp('audit.forRow', { table: 'entries', id: entry?.id ?? 0 }, { enabled: !!entry })
   const list = audit.data ? changes(audit.data) : []
   const when = (ms: number) => dateTime(ms)
   const show = (v: unknown) => (v === null || v === '' ? '—' : String(v))

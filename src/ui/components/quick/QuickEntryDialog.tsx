@@ -94,7 +94,7 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
   const qc = useQueryClient()
   const { base, minor, fmt } = useBook()
   const accounts = useOp('accounts.list', {})
-  const { roots, byUid } = useAccountTree(accounts.data)
+  const { roots, byId } = useAccountTree(accounts.data)
   const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   const sys = (key: string) => postable.find((a) => a.systemKey === key) ?? flattenTree(roots).find((a) => a.systemKey === key)
 
@@ -118,16 +118,16 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
   const [saveError, setSaveError] = useState<unknown>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
-  const acc = (uid: string) => (uid && !uid.startsWith(NEW) ? byUid.get(uid) : undefined)
-  const assets = postable.filter((a) => a.type === 'asset' && a.systemKey !== 'receivables' && a.parent !== sys('receivables')?.uid)
-  const cards = postable.filter((a) => a.type === 'liability' && a.parent !== sys('payables')?.uid && a.systemKey !== 'payables')
+  const acc = (v: string) => (v && !v.startsWith(NEW) ? byId.get(Number(v)) : undefined)
+  const assets = postable.filter((a) => a.type === 'asset' && a.systemKey !== 'receivables' && a.parent !== sys('receivables')?.id)
+  const cards = postable.filter((a) => a.type === 'liability' && a.parent !== sys('payables')?.id && a.systemKey !== 'payables')
   const receivable = debtKind === 'lend' || debtKind === 'collect'
   const debtGroup = sys(receivable ? 'receivables' : 'payables')
-  const people = postable.filter((a) => a.parent === debtGroup?.uid)
+  const people = postable.filter((a) => a.parent === debtGroup?.id)
   const feeAcc = acc(feeAccount) ?? sys('bank_fee')
 
   // Stored day rates of the foreign currencies on the form.
-  const curOf = (uid: string) => acc(uid)?.currency
+  const curOf = (v: string) => acc(v)?.currency
   const debtCur = acc(person)?.currency ?? debtGroup?.currency
   const used = kind === 'transfer' ? [curOf(from), curOf(to), feeAcc?.currency]
     : kind === 'debt' ? [curOf(money), debtCur]
@@ -155,11 +155,11 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
     return d ? toMinor(d, minor(cur)) : 0
   }
   const book: quick.Book = { base, minor }
-  const qa = (a: AccountNode): quick.QuickAccount => ({ uid: a.uid, type: a.type, currency: a.currency })
+  const qa = (a: AccountNode): quick.QuickAccount => ({ id: a.id, type: a.type, currency: a.currency })
 
   // Field checks. Every blocking problem has a message; the builder checks the rest.
   const errs: Record<string, string> = {}
-  const need = (key: string, uid: string) => { if (!uid) errs[key] = t('check.account') }
+  const need = (key: string, v: string) => { if (!v) errs[key] = t('check.account') }
   const amt = (key: string, raw: string, cur: string, required = true) => {
     if (!raw.trim()) { if (required) errs[key] = t('check.amount_required'); return }
     const i = amountIssue(raw, minor(cur))
@@ -228,8 +228,8 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
         else if (suggest === null) errs.counter = t('check.counter')
       }
       if (m && debtGroup && person && !Object.keys(errs).length) {
-        // A new person is booked on a placeholder uid; save() opens the account first.
-        const debt: quick.QuickAccount = p ? qa(p) : { uid: person, type: debtGroup.type, currency: pCur }
+        // A new person is booked on the placeholder id 0; save() opens the account first.
+        const debt: quick.QuickAccount = p ? qa(p) : { id: 0, type: debtGroup.type, currency: pCur }
         const debtAmount = counterHint ? (counter.trim() ? parse(counter, pCur) : counterHint.suggest!) : undefined
         const creditCur = debtKind === 'lend' || debtKind === 'repay' ? m.currency : pCur
         input = quick.debt(book, { ...head, kind: debtKind, money: qa(m), debt, amount: parse(amount, m.currency), debtAmount, rate: rateOf(creditCur) })
@@ -258,8 +258,8 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
     try {
       let entry = input
       if (kind === 'debt' && person.startsWith(NEW) && debtGroup) {
-        const { uid } = await call('accounts.create', { parent: debtGroup.uid, name: person.slice(NEW.length) })
-        entry = { ...entry, lines: entry.lines.map((l) => (l.account === person ? { ...l, account: uid } : l)) }
+        const { id } = await call('accounts.create', { parent: debtGroup.id, name: person.slice(NEW.length) })
+        entry = { ...entry, lines: entry.lines.map((l) => (l.account === 0 ? { ...l, account: id } : l)) }
       }
       await call('entries.post', entry)
       await qc.invalidateQueries()
@@ -376,7 +376,7 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
             <AmountInput value={fee} currency={curOf(from) ?? base} exponent={minor(curOf(from) ?? base)} invalid={!!show('fee')} onChange={setFee} />
           </Field>
           <Field label={t('quick.feeAccount')}>
-            {picker('feeAccount', postable.filter((a) => a.type === 'expense'), feeAcc?.uid ?? '', setFeeAccount, t('quick.feeAccount'))}
+            {picker('feeAccount', postable.filter((a) => a.type === 'expense'), feeAcc ? String(feeAcc.id) : '', setFeeAccount, t('quick.feeAccount'))}
           </Field>
         </div>
       ) : (
@@ -453,8 +453,8 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
             <ChevronRightIcon data-icon="inline-start" className={showBooking ? 'rotate-90' : undefined} />
             {t('quick.showBooking')}
           </Button>
-          {showBooking && <Booking input={input} label={(uid) => acc(uid)?.label ?? (uid.startsWith(NEW) ? uid.slice(NEW.length) : '')}
-            currency={(uid) => acc(uid)?.currency ?? debtCur ?? base} base={base} fmt={fmt} />}
+          {showBooking && <Booking input={input} label={(id) => acc(String(id))?.label ?? (id === 0 ? person.slice(NEW.length) : '')}
+            currency={(id) => acc(String(id))?.currency ?? debtCur ?? base} base={base} fmt={fmt} />}
         </div>
       )}
 
@@ -490,7 +490,7 @@ function Field({ label, className, children, error, hint }: { label: string; cla
 
 // The entry the form will post: account, Borç, Alacak in the account currency.
 function Booking({ input, label, currency, base, fmt }: {
-  input: EntryInput; label: (uid: string) => string; currency: (uid: string) => string; base: string; fmt: (n: number, c?: string) => string
+  input: EntryInput; label: (id: number) => string; currency: (id: number) => string; base: string; fmt: (n: number, c?: string) => string
 }) {
   const { t } = useTranslation()
   return (

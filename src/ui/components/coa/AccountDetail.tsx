@@ -94,7 +94,7 @@ export function AccountDetail({ node, base, fmt, actions }: Props) {
               {kids.map((c, i) => {
                 const pct = kidSum ? Math.round((Math.abs(kidTotals[i]) / kidSum) * 100) : 0
                 return (
-                  <li key={c.uid} className="flex flex-col gap-1">
+                  <li key={c.id} className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate">{c.label}</span>
                       <span className="shrink-0">

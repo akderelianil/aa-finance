@@ -13,7 +13,6 @@ const dbCodes = new Set([
 // "UNIQUE constraint failed: <columns>" → code.
 const uniqueCodes: [string, string][] = [
   ['accounts.parent_id, accounts.name', 'account_name_taken'],
-  ['accounts.code', 'account_code_taken'],
   ['fx_rates.currency_id, fx_rates.date', 'fx_rate_exists'],
   ['settings.key', 'already_setup'],
 ]

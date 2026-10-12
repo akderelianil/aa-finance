@@ -10,13 +10,13 @@ import { migrations, tauriDb } from '../tauri-db.ts'
 // Tauri in the app; the dev HTTP bridge in a plain browser (Vite dev only).
 const db: Db = '__TAURI_INTERNALS__' in window || !import.meta.env.DEV ? tauriDb : devDb
 const MEMBER_KEY = 'aa-finance.member'
-const stored = () => { try { return localStorage.getItem(MEMBER_KEY) } catch { return null } }
+const stored = () => { try { return Number(localStorage.getItem(MEMBER_KEY)) || null } catch { return null } }
 const api = createApi(db, stored())
 
 /** Act as this member from the next call; kept on this device. */
-export function setMember(uid: string) {
-  try { localStorage.setItem(MEMBER_KEY, uid) } catch { /* private window: this session only */ }
-  api.use(uid)
+export function setMember(id: number) {
+  try { localStorage.setItem(MEMBER_KEY, String(id)) } catch { /* private window: this session only */ }
+  api.use(id)
 }
 
 /** Runs the migrations once, before the first call. */

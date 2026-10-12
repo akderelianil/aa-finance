@@ -5,7 +5,7 @@ import { migrate } from '../migrate.ts'
 import { openNodeDb, readMigrations } from '../test/node-db.ts'
 import { createApi, type Api, type Input } from './index.ts'
 
-type T = { api: Api; db: ReturnType<typeof openNodeDb>; acc: (key: string) => string }
+type T = { api: Api; db: ReturnType<typeof openNodeDb>; acc: (key: string) => number }
 
 async function fresh(): Promise<T> {
   const db = openNodeDb()
@@ -17,7 +17,7 @@ async function fresh(): Promise<T> {
 
 async function keys(api: Api) {
   const list = await api.call('accounts.list', {})
-  return (key: string) => (list.find((a) => a.systemKey === key || a.name === key) ?? assert.fail(`no account ${key}`)).uid
+  return (key: string) => (list.find((a) => a.systemKey === key || a.name === key) ?? assert.fail(`no account ${key}`)).id
 }
 
 const code = (c: string) => (e: unknown) => {
@@ -53,21 +53,21 @@ test('bad input fails with invalid_input and an unknown op with unknown_op', asy
 
 test('accounts: create under a parent, rename, move, archive, delete', async () => {
   const { api, acc } = await fresh()
-  const { uid } = await api.call('accounts.create', { parent: acc('bank'), name: ' Akbank ' })
-  let a = (await api.call('accounts.list', {})).find((x) => x.uid === uid)!
+  const { id } = await api.call('accounts.create', { parent: acc('bank'), name: ' Akbank ' })
+  let a = (await api.call('accounts.list', {})).find((x) => x.id === id)!
   assert.deepEqual([a.name, a.type, a.currency, a.parent, a.locked], ['Akbank', 'asset', 'TRY', acc('bank'), false])
   await assert.rejects(api.call('accounts.create', { parent: acc('bank'), name: 'Akbank' }), code('account_name_taken'))
   await assert.rejects(api.call('accounts.create', { parent: acc('bank'), name: 'X', currency: 'ZZZ' }), code('currency_unknown'))
-  await assert.rejects(api.call('accounts.update', { uid: acc('bank'), name: 'B' }), code('account_locked'))
-  await assert.rejects(api.call('accounts.update', { uid, parent: acc('expense') }), code('account_parent_type'))
+  await assert.rejects(api.call('accounts.update', { id: acc('bank'), name: 'B' }), code('account_locked'))
+  await assert.rejects(api.call('accounts.update', { id, parent: acc('expense') }), code('account_parent_type'))
 
-  await api.call('accounts.update', { uid, name: 'Akbank TL', parent: acc('cash') })
-  await api.call('accounts.archive', { uid, archived: true })
-  a = (await api.call('accounts.list', {})).find((x) => x.uid === uid)!
+  await api.call('accounts.update', { id, name: 'Akbank TL', parent: acc('cash') })
+  await api.call('accounts.archive', { id, archived: true })
+  a = (await api.call('accounts.list', {})).find((x) => x.id === id)!
   assert.deepEqual([a.name, a.parent, a.archived], ['Akbank TL', acc('cash'), true])
-  await api.call('accounts.delete', { uid })
-  assert.ok(!(await api.call('accounts.list', {})).some((x) => x.uid === uid))
-  await assert.rejects(api.call('accounts.delete', { uid }), code('account_not_found'))
+  await api.call('accounts.delete', { id })
+  assert.ok(!(await api.call('accounts.list', {})).some((x) => x.id === id))
+  await assert.rejects(api.call('accounts.delete', { id }), code('account_not_found'))
 })
 
 test('entries: post, number, balances, and database rules as codes', async () => {
@@ -80,22 +80,22 @@ test('entries: post, number, balances, and database rules as codes', async () =>
   assert.deepEqual([e.year, e.number], [2026, 1])
   assert.equal((await api.call('entries.post', { date: '2026-03-02', lines: [{ account: g, amount: 1 }, { account: w, amount: -1 }] })).number, 2)
 
-  const bal = Object.fromEntries((await api.call('accounts.list', {})).map((a) => [a.uid, a.balance]))
+  const bal = Object.fromEntries((await api.call('accounts.list', {})).map((a) => [a.id, a.balance]))
   assert.deepEqual([bal[w], bal[g]], [-50001, 50001])
-  assert.equal((await api.call('accounts.list', { asOf: '2026-03-01' })).find((a) => a.uid === w)!.balance, -50000)
+  assert.equal((await api.call('accounts.list', { asOf: '2026-03-01' })).find((a) => a.id === w)!.balance, -50000)
 
   await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: g, amount: 5 }, { account: w, amount: -4 }] }), code('entry_unbalanced'))
   await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: acc('Food and Drink'), amount: 5 }, { account: w, amount: -5 }] }), code('account_placeholder'))
-  await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: '00000000-0000-7000-8000-00000000abcd', amount: 5 }, { account: w, amount: -5 }] }), code('account_not_found'))
+  await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: 999999, amount: 5 }, { account: w, amount: -5 }] }), code('account_not_found'))
   await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: g, amount: 5, rate: '2' }, { account: w, amount: -5 }] }), code('line_base_mismatch'))
   await api.call('settings.update', { lockDate: '2026-03-01' })
   await assert.rejects(api.call('entries.post', { date: '2026-03-01', lines: [{ account: g, amount: 5 }, { account: w, amount: -5 }] }), code('period_locked'))
-  await assert.rejects(api.call('accounts.delete', { uid: g }), code('account_has_lines'))
+  await assert.rejects(api.call('accounts.delete', { id: g }), code('account_has_lines'))
 })
 
 test('foreign currency: stored rate, given rate, given base, rounding to FX, missing rate', async () => {
   const { api, acc } = await fresh()
-  const usd = (await api.call('accounts.create', { parent: acc('bank'), name: 'USD', currency: 'USD' })).uid
+  const usd = (await api.call('accounts.create', { parent: acc('bank'), name: 'USD', currency: 'USD' })).id
   const g = acc('Groceries')
   const fxAcc = acc('fx_gain_loss')
   const post = (date: string, lines: Input<'entries.post'>['lines']) => api.call('entries.post', { date, lines })
@@ -109,19 +109,19 @@ test('foreign currency: stored rate, given rate, given base, rounding to FX, mis
 
   // Stored rate on or before the date.
   const a = await post('2026-03-02', [{ account: g, amount: 3410 }, { account: usd, amount: -100 }])
-  let lines = (await api.call('entries.get', { uid: a.uid })).lines
+  let lines = (await api.call('entries.get', { id: a.id })).lines
   assert.deepEqual(lines.map((l) => [l.amount, l.baseAmount, l.rate]), [[3410, 3410, null], [-100, -3410, '34.1']])
 
   // Given base: the rate comes from it.
   const b = await post('2026-03-02', [{ account: g, amount: 3400 }, { account: usd, amount: -100, baseAmount: -3400 }])
-  lines = (await api.call('entries.get', { uid: b.uid })).lines
+  lines = (await api.call('entries.get', { id: b.id })).lines
   assert.deepEqual(lines[1].rate, '34')
 
   // Rounding: two converted lines at 33.335 → 0.5 each way; the difference (1 kuruş) goes to FX.
   const c = await post('2026-03-02', [
     { account: usd, amount: 1, rate: '33.335' }, { account: usd, amount: 1, rate: '33.335' }, { account: g, amount: -67 },
   ])
-  lines = (await api.call('entries.get', { uid: c.uid })).lines
+  lines = (await api.call('entries.get', { id: c.id })).lines
   assert.deepEqual(lines.map((l) => [l.account === fxAcc, l.baseAmount]), [[false, 33], [false, 33], [false, -67], [true, 1]])
 
   // More than rounding is an error.
@@ -134,22 +134,22 @@ test('entries.update changes text in place, lines and date through draft; delete
   const g = acc('Groceries')
   const r = acc('Restaurants')
   const e = await api.call('entries.post', { date: '2026-03-01', lines: [{ account: g, amount: 500 }, { account: w, amount: -500 }] })
-  await api.call('entries.update', { uid: e.uid, description: 'Migros', reference: 'F-1' })
+  await api.call('entries.update', { id: e.id, description: 'Migros', reference: 'F-1' })
   await api.call('entries.update', {
-    uid: e.uid, date: '2026-03-05',
+    id: e.id, date: '2026-03-05',
     lines: [{ account: g, amount: 300 }, { account: r, amount: 400, memo: 'dinner' }, { account: w, amount: -700 }],
   })
-  const got = await api.call('entries.get', { uid: e.uid })
+  const got = await api.call('entries.get', { id: e.id })
   assert.deepEqual([got.date, got.number, got.description, got.reference], ['2026-03-05', 1, 'Migros', 'F-1'])
   assert.deepEqual(got.lines.map((l) => [l.account, l.amount, l.memo]), [[g, 300, null], [r, 400, 'dinner'], [w, -700, null]])
-  await api.call('entries.update', { uid: e.uid, date: '2026-03-06' })
-  assert.equal((await api.call('entries.get', { uid: e.uid })).lines.length, 3)
+  await api.call('entries.update', { id: e.id, date: '2026-03-06' })
+  assert.equal((await api.call('entries.get', { id: e.id })).lines.length, 3)
 
-  await api.call('entries.delete', { uid: e.uid })
-  await assert.rejects(api.call('entries.get', { uid: e.uid }), code('entry_not_found'))
+  await api.call('entries.delete', { id: e.id })
+  await assert.rejects(api.call('entries.get', { id: e.id }), code('entry_not_found'))
   const next = await api.call('entries.post', { date: '2026-03-01', lines: [{ account: g, amount: 1 }, { account: w, amount: -1 }] })
   assert.equal(next.number, 2)
-  assert.equal((await api.call('accounts.list', {})).find((a) => a.uid === g)!.balance, 1)
+  assert.equal((await api.call('accounts.list', {})).find((a) => a.id === g)!.balance, 1)
 })
 
 test('journal list pages newest first and searches; register runs a balance', async () => {
@@ -170,14 +170,14 @@ test('journal list pages newest first and searches; register runs a balance', as
   assert.equal((await api.call('entries.list', { search: '%_' })).total, 1)
   assert.equal((await api.call('entries.list', { from: '2026-02-02', to: '2026-02-03' })).total, 3)
 
-  const reg = await api.call('accounts.register', { uid: w, from: '2026-02-01', page: 0, pageSize: 3 })
+  const reg = await api.call('accounts.register', { id: w, from: '2026-02-01', page: 0, pageSize: 3 })
   assert.equal(reg.opening, 10000)
   assert.equal(reg.total, 6)
   assert.deepEqual(reg.rows.map((x) => [x.date, x.amount, x.balance, x.other !== null]), [
     ['2026-02-01', -100, 9900, true], ['2026-02-02', -200, 9700, true], ['2026-02-03', -300, 9400, true],
   ])
   assert.equal(reg.rows[0].other, g)
-  const last = await api.call('accounts.register', { uid: w, from: '2026-02-01', page: 1, pageSize: 3 })
+  const last = await api.call('accounts.register', { id: w, from: '2026-02-01', page: 1, pageSize: 3 })
   assert.deepEqual(last.rows.map((x) => [x.amount, x.balance, x.otherCount]), [[-2, 9398, 2], [-400, 8998, 1], [-500, 8498, 1]])
 })
 
@@ -207,9 +207,9 @@ test('reports: trial balance totals match, balance sheet closes with earnings, i
 
 test('activity_log records writes and failures; audit.forRow shows row history', async () => {
   const { api, acc } = await fresh()
-  const { uid } = await api.call('accounts.create', { parent: acc('bank'), name: 'A' })
-  await api.call('accounts.update', { uid, name: 'B' })
-  await assert.rejects(api.call('accounts.update', { uid: acc('bank'), name: 'X' }), code('account_locked'))
+  const { id } = await api.call('accounts.create', { parent: acc('bank'), name: 'A' })
+  await api.call('accounts.update', { id, name: 'B' })
+  await assert.rejects(api.call('accounts.update', { id: acc('bank'), name: 'X' }), code('account_locked'))
   await api.call('accounts.list', {})
 
   const log = await api.call('activity.list', { pageSize: 10 })
@@ -218,27 +218,26 @@ test('activity_log records writes and failures; audit.forRow shows row history',
   ])
   assert.equal(log.rows[0].actor, 'Test')
 
-  const hist = await api.call('audit.forRow', { table: 'accounts', uid })
+  const hist = await api.call('audit.forRow', { table: 'accounts', id })
   assert.deepEqual(hist.map((h) => [h.op, h.new?.name]), [['insert', 'A'], ['update', 'B']])
 })
 
-test('data.export: every table, ids as uids, currencies as codes', async () => {
+test('data.export: every table, currencies as codes', async () => {
   const { api, acc } = await fresh()
   await api.call('fx.set', { currency: 'USD', date: '2026-01-01', rate: '40' })
-  const { uid } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
+  const { id } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
   const out = await api.call('data.export', {})
   assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 4)
+  assert.equal(out.schemaVersion, 5)
   const { tables: t } = out
-  const entry = t.entries.find((e) => e.uid === uid)!
-  assert.equal(entry.id, undefined)
+  const entry = t.entries.find((e) => e.id === id)!
   assert.equal(entry.state, 'posted')
-  const lines = t.lines.filter((l) => l.entry === uid)
-  assert.deepEqual(lines.map((l) => [l.account, l.amount]).sort(), [[acc('Wallet'), 500], [acc('opening_balance'), -500]].sort())
+  const lines = t.lines.filter((l) => l.entry_id === id)
+  assert.deepEqual(lines.map((l) => [l.account_id, l.amount]).sort(), [[acc('Wallet'), 500], [acc('opening_balance'), -500]].sort())
   assert.equal(t.fx_rates[0].currency, 'USD')
-  assert.equal(t.accounts.find((a) => a.uid === acc('bank'))!.parent, acc('asset'))
-  assert.ok(t.audit_log.some((g) => g.table_name === 'entries' && g.row === uid && typeof g.new === 'object'))
-  assert.ok(t.activity_log.some((g) => g.operation === 'entries.post' && typeof g.actor === 'string'))
+  assert.equal(t.accounts.find((a) => a.id === acc('bank'))!.parent_id, acc('asset'))
+  assert.ok(t.audit_log.some((g) => g.table_name === 'entries' && g.row_id === id && typeof g.new === 'object'))
+  assert.ok(t.activity_log.some((g) => g.operation === 'entries.post' && typeof g.actor_id === 'number'))
 })
 
 test('members: setup adds them, admin manages, a member edits only own name and own entries', async () => {
@@ -260,38 +259,38 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   const [admin, ece] = list
 
   const acc = await keys(api)
-  const { uid: adminEntry } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Cüzdan'), amount: 5 }, { account: acc('opening_balance'), amount: -5 }] })
+  const { id: adminEntry } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Cüzdan'), amount: 5 }, { account: acc('opening_balance'), amount: -5 }] })
 
   // As Ece (member).
-  api.use(ece.uid)
+  api.use(ece.id)
   assert.equal((await api.call('settings.get', {})).me.role, 'member')
   await assert.rejects(api.call('members.add', { name: 'Can' }), code('admin_only'))
-  await assert.rejects(api.call('members.update', { uid: admin.uid, name: 'X' }), code('admin_only'))
-  await assert.rejects(api.call('members.update', { uid: ece.uid, role: 'admin' }), code('admin_only'))
+  await assert.rejects(api.call('members.update', { id: admin.id, name: 'X' }), code('admin_only'))
+  await assert.rejects(api.call('members.update', { id: ece.id, role: 'admin' }), code('admin_only'))
   await assert.rejects(api.call('settings.update', { groupName: 'X' }), code('admin_only'))
   for (const set of [{ language: 'en' }, { lockDate: '2026-01-01' }, { activityLogDays: 7 }, { country: 'DE' }] as const)
     await assert.rejects(api.call('settings.update', set), code('admin_only'))
   await api.call('settings.update', { userName: 'Ece' })
-  assert.deepEqual((await api.call('entries.get', { uid: adminEntry })).author.name, 'Anıl')
-  await api.call('members.update', { uid: ece.uid, name: 'Ece A.', color: 'rose' })
-  await assert.rejects(api.call('entries.delete', { uid: adminEntry }), code('entry_not_owner'))
-  await assert.rejects(api.call('entries.update', { uid: adminEntry, description: 'x' }), code('entry_not_owner'))
-  const { uid: eceEntry } = await api.call('entries.post', { date: '2026-01-03', lines: [{ account: acc('Cüzdan'), amount: 7 }, { account: acc('opening_balance'), amount: -7 }] })
-  await api.call('entries.update', { uid: eceEntry, description: 'own' })
+  assert.deepEqual((await api.call('entries.get', { id: adminEntry })).author.name, 'Anıl')
+  await api.call('members.update', { id: ece.id, name: 'Ece A.', color: 'rose' })
+  await assert.rejects(api.call('entries.delete', { id: adminEntry }), code('entry_not_owner'))
+  await assert.rejects(api.call('entries.update', { id: adminEntry, description: 'x' }), code('entry_not_owner'))
+  const { id: eceEntry } = await api.call('entries.post', { date: '2026-01-03', lines: [{ account: acc('Cüzdan'), amount: 7 }, { account: acc('opening_balance'), amount: -7 }] })
+  await api.call('entries.update', { id: eceEntry, description: 'own' })
   // The trigger holds even without the API check.
-  await assert.rejects(db.batch([{ sql: `UPDATE entries SET description = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, adminEntry] }]), /entry_not_owner/)
-  await assert.rejects(db.batch([{ sql: `UPDATE settings SET value = 'en', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE key = 'language'`, params: [ece.uid] }]), /admin_only/)
-  await assert.rejects(db.batch([{ sql: `UPDATE actors SET name = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, admin.uid] }]), /admin_only/)
+  await assert.rejects(db.batch([{ sql: `UPDATE entries SET description = 'x', updated_by = (SELECT id FROM actors WHERE id = ?) WHERE id = ?`, params: [ece.id, adminEntry] }]), /entry_not_owner/)
+  await assert.rejects(db.batch([{ sql: `UPDATE settings SET value = 'en', updated_by = (SELECT id FROM actors WHERE id = ?) WHERE key = 'language'`, params: [ece.id] }]), /admin_only/)
+  await assert.rejects(db.batch([{ sql: `UPDATE actors SET name = 'x', updated_by = (SELECT id FROM actors WHERE id = ?) WHERE id = ?`, params: [ece.id, admin.id] }]), /admin_only/)
 
   // Back as the admin: edits Ece's entry, adds a member, keeps one admin.
   api.use(null)
-  await api.call('entries.update', { uid: eceEntry, description: 'by admin' })
+  await api.call('entries.update', { id: eceEntry, description: 'by admin' })
   await assert.rejects(api.call('members.add', { name: 'ece a.' }), code('member_name_taken'))
-  const { uid: can } = await api.call('members.add', { name: 'Can' })
-  assert.equal((await api.call('members.list', {})).find((m) => m.uid === can)?.color, 'amber')
-  await assert.rejects(api.call('members.update', { uid: admin.uid, role: 'member' }), code('last_admin'))
-  await api.call('members.update', { uid: can, role: 'admin' })
-  await api.call('members.update', { uid: admin.uid, role: 'member' })
-  api.use('unknown')
-  assert.equal((await api.call('settings.get', {})).me.uid, can)
+  const { id: can } = await api.call('members.add', { name: 'Can' })
+  assert.equal((await api.call('members.list', {})).find((m) => m.id === can)?.color, 'amber')
+  await assert.rejects(api.call('members.update', { id: admin.id, role: 'member' }), code('last_admin'))
+  await api.call('members.update', { id: can, role: 'admin' })
+  await api.call('members.update', { id: admin.id, role: 'member' })
+  api.use(999999)
+  assert.equal((await api.call('settings.get', {})).me.id, can)
 })

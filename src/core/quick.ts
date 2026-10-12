@@ -4,7 +4,7 @@ import type { EntryInput, LineInput } from './api/entries.ts'
 import type { AccountType } from './chart.ts'
 import { rateOf, toBase } from './money.ts'
 
-export type QuickAccount = { uid: string; type: AccountType; currency: string }
+export type QuickAccount = { id: number; type: AccountType; currency: string }
 /** Base currency and minor units, from settings.get and currencies.list. */
 export type Book = { base: string; minor(code: string): number }
 
@@ -50,8 +50,8 @@ function split(book: Book, f: Common & { total: number; rate?: string }, money: 
     return {
       ...head,
       lines: [
-        { account: money.uid, amount: sign * f.total, ...r },
-        ...splits.map((s) => ({ account: s.account.uid, amount: -sign * s.amount, memo: s.memo ?? null, ...r })),
+        { account: money.id, amount: sign * f.total, ...r },
+        ...splits.map((s) => ({ account: s.account.id, amount: -sign * s.amount, memo: s.memo ?? null, ...r })),
       ],
     }
   }
@@ -66,10 +66,10 @@ function split(book: Book, f: Common & { total: number; rate?: string }, money: 
     const b = i === splits.length - 1 ? left : toBase(s.amount, rate, from, to)
     left -= b
     return s.account.currency === book.base
-      ? { account: s.account.uid, amount: -sign * b, memo: s.memo ?? null }
-      : { account: s.account.uid, amount: -sign * s.amount, baseAmount: -sign * b, memo: s.memo ?? null }
+      ? { account: s.account.id, amount: -sign * b, memo: s.memo ?? null }
+      : { account: s.account.id, amount: -sign * s.amount, baseAmount: -sign * b, memo: s.memo ?? null }
   })
-  return { ...head, lines: [{ account: money.uid, amount: sign * f.total, baseAmount: sign * totalBase }, ...lines] }
+  return { ...head, lines: [{ account: money.id, amount: sign * f.total, baseAmount: sign * totalBase }, ...lines] }
 }
 
 /**
@@ -81,7 +81,7 @@ export function transfer(
   book: Book,
   f: Common & { from: QuickAccount; to: QuickAccount; amount: number; toAmount?: number; fee?: number; feeAccount?: QuickAccount; rate?: string },
 ): EntryInput {
-  if (f.from.uid === f.to.uid) fail('quick_same_account')
+  if (f.from.id === f.to.id) fail('quick_same_account')
   if (f.from.type !== 'asset') fail('quick_from_account')
   if (f.to.type !== 'asset' && f.to.type !== 'liability') fail('quick_to_account')
   const fee = f.fee ?? 0
@@ -100,7 +100,7 @@ export function debt(
   book: Book,
   f: Common & { kind: DebtKind; money: QuickAccount; debt: QuickAccount; amount: number; debtAmount?: number; rate?: string },
 ): EntryInput {
-  if (f.money.type !== 'asset' || f.money.uid === f.debt.uid) fail('quick_money_account')
+  if (f.money.type !== 'asset' || f.money.id === f.debt.id) fail('quick_money_account')
   const receivable = f.kind === 'lend' || f.kind === 'collect'
   if (f.debt.type !== (receivable ? 'asset' : 'liability')) fail('quick_debt_account')
   if (f.money.currency !== f.debt.currency && f.debtAmount === undefined) fail('quick_amount_required')
@@ -124,9 +124,9 @@ function pair(
     return {
       ...head,
       lines: [
-        { account: debit.uid, amount, ...r },
-        ...(fee ? [{ account: fee.account.uid, amount: fee.amount, ...r }] : []),
-        { account: credit.uid, amount: -(amount + feeAmount), ...r },
+        { account: debit.id, amount, ...r },
+        ...(fee ? [{ account: fee.account.id, amount: fee.amount, ...r }] : []),
+        { account: credit.id, amount: -(amount + feeAmount), ...r },
       ],
     }
   }
@@ -139,12 +139,12 @@ function pair(
   const conv = (n: number) => (cur === book.base ? n : toBase(n, r, from, to))
   const dBase = debit.currency === book.base ? dAmount : conv(amount)
   const feeBase = fee ? conv(fee.amount) : 0
-  const lines: LineInput[] = [{ account: debit.uid, amount: dAmount, baseAmount: dBase }]
+  const lines: LineInput[] = [{ account: debit.id, amount: dAmount, baseAmount: dBase }]
   if (fee) {
-    if (fee.account.currency === cur) lines.push({ account: fee.account.uid, amount: fee.amount, baseAmount: feeBase })
-    else if (fee.account.currency === book.base) lines.push({ account: fee.account.uid, amount: feeBase })
+    if (fee.account.currency === cur) lines.push({ account: fee.account.id, amount: fee.amount, baseAmount: feeBase })
+    else if (fee.account.currency === book.base) lines.push({ account: fee.account.id, amount: feeBase })
     else fail('quick_currency_unsupported')
   }
-  lines.push({ account: credit.uid, amount: -(amount + feeAmount), baseAmount: -(dBase + feeBase) })
+  lines.push({ account: credit.id, amount: -(amount + feeAmount), baseAmount: -(dBase + feeBase) })
   return { ...head, lines }
 }

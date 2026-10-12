@@ -18,12 +18,12 @@ const list = () => api.call('accounts.list', {})
 const find = async (pred: (a: Awaited<ReturnType<typeof list>>[number]) => boolean) => {
   const a = (await list()).find(pred)
   if (!a) throw new Error('account not found')
-  return a.uid
+  return a.id
 }
 const sys = (key: string) => find((a) => a.systemKey === key)
 const named = (name: string) => find((a) => a.name === name)
 const add = async (parent: string, name: string, currency?: string) =>
-  (await api.call('accounts.create', { parent: await sys(parent), name, currency })).uid
+  (await api.call('accounts.create', { parent: await sys(parent), name, currency })).id
 
 const bank = await add('bank', 'Ziraat Vadesiz')
 const usd = await add('bank', 'Dolar Hesabı', 'USD')

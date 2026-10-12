@@ -17,7 +17,7 @@ import { AccountPicker } from './AccountPicker'
 import { AmountInput } from './AmountInput'
 
 export type DraftLine = { key: number; account: string; memo: string; debit: string; credit: string; rate: string; base: string }
-export type Draft = { uid?: string; date: string; reference: string; description: string; lines: DraftLine[] }
+export type Draft = { id?: number; date: string; reference: string; description: string; lines: DraftLine[] }
 
 let nextKey = 1
 const emptyLine = (side?: 'debit' | 'credit', amount?: string): DraftLine => ({
@@ -27,17 +27,17 @@ const emptyLine = (side?: 'debit' | 'credit', amount?: string): DraftLine => ({
 export const newDraft = (): Draft => ({ date: today(), reference: '', description: '', lines: [emptyLine(), emptyLine()] })
 
 /** Saved entry → form draft. A foreign line keeps its booked base amount. */
-export function entryToDraft(e: Entry, base: string, byUid: Map<string, AccountNode>, minor: (code: string) => number): Draft {
+export function entryToDraft(e: Entry, base: string, byId: Map<number, AccountNode>, minor: (code: string) => number): Draft {
   return {
-    uid: e.uid,
+    id: e.id,
     date: e.date,
     reference: e.reference ?? '',
     description: e.description ?? '',
     lines: e.lines.map((l) => {
-      const cur = byUid.get(l.account)?.currency ?? base
+      const cur = byId.get(l.account)?.currency ?? base
       const amount = toDecimal(l.amount, minor(cur))
       return {
-        ...emptyLine(), account: l.account, memo: l.memo ?? '',
+        ...emptyLine(), account: String(l.account), memo: l.memo ?? '',
         debit: l.amount > 0 ? amount : '', credit: l.amount < 0 ? amount : '',
         base: cur !== base ? toDecimal(l.baseAmount, minor(base)) : '',
       }
@@ -50,7 +50,7 @@ type Props = {
   onChange: (d: Draft) => void
   /** Postable accounts. */
   accounts: AccountNode[]
-  byUid: Map<string, AccountNode>
+  byId: Map<number, AccountNode>
   base: string
   minor: (code: string) => number
   fmt: (amount: number, code?: string) => string
@@ -61,7 +61,7 @@ type Props = {
 // General Journal entry form (GnuCash split view): date, description, lines (account, memo, debit, credit).
 // A foreign-currency line shows the rate (stored day rate suggested) and its base amount; the user types either.
 // Totals and the difference are live. Save says what is missing instead of being disabled. Ctrl+Enter saves.
-export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, fmt, onSaved, onCancel }: Props) {
+export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fmt, onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const errorText = useErrorText()
   const baseExp = minor(base)
@@ -70,7 +70,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
 
   const setLine = (key: number, patch: Partial<DraftLine>) =>
     onChange({ ...draft, lines: draft.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) })
-  const currencyOf = (l: DraftLine) => byUid.get(l.account)?.currency ?? base
+  const currencyOf = (l: DraftLine) => byId.get(Number(l.account))?.currency ?? base
 
   // Stored day rates for foreign lines (a suggestion; the API uses the same lookup).
   const foreign = [...new Set(draft.lines.filter((l) => l.account).map(currencyOf).filter((c) => c !== base))]
@@ -129,7 +129,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
 
   const post = useWrite('entries.post')
   const update = useWrite('entries.update')
-  const save = draft.uid ? update : post
+  const save = draft.id ? update : post
 
   function submit() {
     if (save.isPending) return
@@ -142,7 +142,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
       const a = amounts[draft.lines.indexOf(l)]!
       const cur = currencyOf(l)
       return {
-        account: l.account,
+        account: Number(l.account),
         amount: a.amount,
         memo: l.memo.trim() || null,
         // A foreign line sends its base amount, so what the form showed is what is booked.
@@ -151,7 +151,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
     })
     const head = { date: draft.date, reference: draft.reference.trim() || null, description: draft.description.trim() || null }
     const done = { onSuccess: onSaved }
-    if (draft.uid) update.mutate({ uid: draft.uid, ...head, lines }, done)
+    if (draft.id) update.mutate({ id: draft.id, ...head, lines }, done)
     else post.mutate({ ...head, lines }, done)
   }
 
@@ -215,7 +215,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
         </thead>
         <tbody>
           {draft.lines.map((l, i) => {
-            const acc = byUid.get(l.account)
+            const acc = byId.get(Number(l.account))
             const cur = currencyOf(l)
             const isForeign = !!acc && cur !== base
             const a = amounts[i]
@@ -225,7 +225,7 @@ export function JournalEditor({ draft, onChange, accounts, byUid, base, minor, f
                   <AccountPicker
                     accounts={accounts} value={l.account} autoFocus={focusKey === l.key} invalid={attempted && issues[i].account}
                     aria-label={`${t('gj.account')} ${i + 1}`}
-                    onChange={(uid) => setLine(l.key, { account: uid, rate: '', base: '' })}
+                    onChange={(v) => setLine(l.key, { account: v, rate: '', base: '' })}
                   />
                 </td>
                 {more && <td><Input className="h-8" maxLength={1000} value={l.memo} aria-label={t('gj.memo')} onChange={(e) => setLine(l.key, { memo: e.target.value })} /></td>}

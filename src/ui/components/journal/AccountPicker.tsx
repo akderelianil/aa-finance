@@ -7,7 +7,7 @@ type Props = {
   /** Postable accounts: no group account, not archived. */
   accounts: AccountNode[]
   value: string
-  onChange: (uid: string) => void
+  onChange: (id: string) => void
   autoFocus?: boolean
   invalid?: boolean
   className?: string
@@ -23,7 +23,7 @@ export const NEW = 'new:'
 // Enter or Tab picks the highlighted account, Escape restores the value.
 export function AccountPicker({ accounts, value, onChange, autoFocus, className, invalid, creatable, placeholder, ...aria }: Props) {
   const { t, i18n } = useTranslation()
-  const selected = accounts.find((a) => a.uid === value)
+  const selected = accounts.find((a) => String(a.id) === value)
   const [query, setQuery] = useState<string | null>(null)
   const [active, setActive] = useState(0)
   const listRef = useRef<HTMLUListElement>(null)
@@ -34,11 +34,11 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
     const found = accounts.filter((a) => !q || `${a.path} ${a.label}`.toLocaleLowerCase(i18n.language).includes(q)).slice(0, 40)
     const name = query.trim()
     const exact = found.some((a) => a.label.toLocaleLowerCase(i18n.language) === q)
-    return creatable && name && !exact ? [...found, { uid: NEW + name, label: name, path: '', currency: '', created: true }] : found
+    return creatable && name && !exact ? [...found, { id: NEW + name, label: name, path: '', currency: '', created: true }] : found
   }, [accounts, query, i18n.language, creatable])
 
-  function pick(a: { uid: string } | undefined) {
-    if (a) onChange(a.uid)
+  function pick(a: { id: string | number } | undefined) {
+    if (a) onChange(String(a.id))
     setQuery(null)
   }
 
@@ -83,7 +83,7 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
         >
           {matches.map((a, i) => (
             <li
-              key={a.uid} role="option" aria-selected={i === active}
+              key={a.id} role="option" aria-selected={i === active}
               className={cn('flex cursor-default gap-3 rounded px-2 py-1', i === active && 'bg-accent text-accent-foreground')}
               onMouseDown={(e) => { e.preventDefault(); pick(a) }}
               onMouseEnter={() => setActive(i)}

@@ -1,8 +1,7 @@
 import * as z from 'zod/mini'
 import type { Db, Statement } from '../db.ts'
 import { rateOf, toBase } from '../money.ts'
-import { uuidv7 } from '../uuid.ts'
-import { baseCurrency, date, fail, insert, limits, need, one, paging, rate, read, text, uid, update, write, type Ctx } from './ctx.ts'
+import { baseCurrency, date, fail, insert, limits, need, one, paging, rate, read, text, id, update, write, type Ctx } from './ctx.ts'
 import { rateOn } from './fx.ts'
 
 const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
@@ -12,7 +11,7 @@ const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
  * `baseAmount`, else `rate`, else the stored rate on or before the entry date.
  */
 const lineInput = z.object({
-  account: uid,
+  account: id,
   amount,
   baseAmount: z.optional(amount),
   rate: z.optional(rate),
@@ -41,7 +40,7 @@ async function resolve(db: Db, on: string, lines: LineInput[]): Promise<Resolved
   for (const [i, l] of lines.entries()) {
     const a = await need(db, 'account_not_found',
       `SELECT a.id, c.code, c.minor_unit FROM accounts a JOIN currencies c ON c.id = a.currency_id
-       WHERE a.uid = ? AND a.deleted_at IS NULL`, [l.account])
+       WHERE a.id = ? AND a.deleted_at IS NULL`, [l.account])
     const memo = l.memo ?? null
     if (a.code === base.code) {
       if ((l.baseAmount !== undefined && l.baseAmount !== l.amount) || l.rate !== undefined) fail('line_base_mismatch', { line: i })
@@ -68,32 +67,33 @@ async function resolve(db: Db, on: string, lines: LineInput[]): Promise<Resolved
   return out
 }
 
-// entry_id comes from the entry written earlier in the same batch.
-const lineSql = `INSERT INTO lines (uid, entry_id, account_id, entry_date, amount, base_amount, rate, memo, position, created_by, updated_by)
-  VALUES (?, (SELECT id FROM entries WHERE uid = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+const lineSql = `INSERT INTO lines (entry_id, account_id, entry_date, amount, base_amount, rate, memo, position, created_by, updated_by)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
-function lineStatements(ctx: Ctx, entryUid: string, on: string, lines: Resolved[]): Statement[] {
+function lineStatements(ctx: Ctx, entryId: number, on: string, lines: Resolved[]): Statement[] {
   return lines.map((l, i) => ({
     sql: lineSql,
-    params: [uuidv7(), entryUid, l.accountId, on, l.amount, l.base, l.rate, l.memo, i, ctx.actor, ctx.actor],
+    params: [entryId, l.accountId, on, l.amount, l.base, l.rate, l.memo, i, ctx.actor, ctx.actor],
   }))
 }
 
-async function numbered(db: Db, entryUid: string) {
-  const e = await need(db, 'entry_not_found', 'SELECT year, number FROM entries WHERE uid = ?', [entryUid])
-  return { uid: entryUid, year: e.year as number, number: e.number as number }
+async function numbered(db: Db, entryId: number) {
+  const e = await need(db, 'entry_not_found', 'SELECT year, number FROM entries WHERE id = ?', [entryId])
+  return { id: entryId, year: e.year as number, number: e.number as number }
 }
 
-/** Writes and posts a new entry. Returns its uid and number. */
+/** Writes and posts a new entry. Returns its id and number. */
 export const post = write(z.object(entryInput), async (ctx, input) => {
   const lines = await resolve(ctx.db, input.date, input.lines)
-  const entryUid = uuidv7()
+  // Ids only grow (rows are never deleted), so max + 1 is free; the single writer makes it safe.
+  const [{ next }] = await ctx.db.query('SELECT coalesce(max(id), 0) + 1 AS next FROM entries')
+  const entryId = next as number
   await ctx.write([
-    insert(ctx, 'entries', { uid: entryUid, entry_date: input.date, reference: input.reference ?? null, description: input.description ?? null }),
-    ...lineStatements(ctx, entryUid, input.date, lines),
-    update(ctx, 'entries', entryUid, { state: 'posted' }),
-  ], entryUid)
-  return numbered(ctx.db, entryUid)
+    insert(ctx, 'entries', { id: entryId, entry_date: input.date, reference: input.reference ?? null, description: input.description ?? null }),
+    ...lineStatements(ctx, entryId, input.date, lines),
+    update(ctx, 'entries', entryId, { state: 'posted' }),
+  ], String(entryId))
+  return numbered(ctx.db, entryId)
 })
 
 /**
@@ -101,9 +101,9 @@ export const post = write(z.object(entryInput), async (ctx, input) => {
  * draft: the old lines get deleted_at, the new ones are written, the entry is posted again. The number stays.
  */
 export const edit = write(
-  z.object({ uid, date: z.optional(date), reference: z.optional(text), description: z.optional(text), lines: z.optional(entryInput.lines) }),
+  z.object({ id, date: z.optional(date), reference: z.optional(text), description: z.optional(text), lines: z.optional(entryInput.lines) }),
   async (ctx, input) => {
-    const e = await need(ctx.db, 'entry_not_found', 'SELECT id, entry_date, created_by FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+    const e = await need(ctx.db, 'entry_not_found', 'SELECT id, entry_date, created_by FROM entries WHERE id = ? AND deleted_at IS NULL', [input.id])
     await needOwner(ctx, e.created_by as number)
     const set: Record<string, string | null> = {}
     if (input.reference !== undefined) set.reference = input.reference
@@ -111,21 +111,21 @@ export const edit = write(
     const on = input.date ?? (e.entry_date as string)
     const statements: Statement[] = []
     if (input.lines || on !== e.entry_date) {
-      statements.push(update(ctx, 'entries', input.uid, { ...set, state: 'draft', entry_date: on }))
+      statements.push(update(ctx, 'entries', input.id, { ...set, state: 'draft', entry_date: on }))
       if (input.lines) {
         const lines = await resolve(ctx.db, on, input.lines)
         const now = Date.now()
         statements.push(
           { sql: 'UPDATE lines SET deleted_at = ?, updated_at = ?, updated_by = ? WHERE entry_id = ? AND deleted_at IS NULL', params: [now, now, ctx.actor, e.id] },
-          ...lineStatements(ctx, input.uid, on, lines),
+          ...lineStatements(ctx, input.id, on, lines),
         )
       }
-      statements.push(update(ctx, 'entries', input.uid, { state: 'posted' }))
+      statements.push(update(ctx, 'entries', input.id, { state: 'posted' }))
     } else if (Object.keys(set).length) {
-      statements.push(update(ctx, 'entries', input.uid, set))
+      statements.push(update(ctx, 'entries', input.id, set))
     }
-    if (statements.length) await ctx.write(statements, input.uid)
-    return numbered(ctx.db, input.uid)
+    if (statements.length) await ctx.write(statements, String(input.id))
+    return numbered(ctx.db, input.id)
   },
 )
 
@@ -136,16 +136,16 @@ async function needOwner(ctx: Ctx, createdBy: number) {
     fail('entry_not_owner')
 }
 
-export const remove = write(z.object({ uid }), async (ctx, input) => {
-  const e = await need(ctx.db, 'entry_not_found', 'SELECT created_by FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+export const remove = write(z.object({ id }), async (ctx, input) => {
+  const e = await need(ctx.db, 'entry_not_found', 'SELECT created_by FROM entries WHERE id = ? AND deleted_at IS NULL', [input.id])
   await needOwner(ctx, e.created_by as number)
-  await ctx.write([update(ctx, 'entries', input.uid, { deleted_at: Date.now() })], input.uid)
+  await ctx.write([update(ctx, 'entries', input.id, { deleted_at: Date.now() })], String(input.id))
   return {}
 })
 
-export type Line = { uid: string; account: string; amount: number; baseAmount: number; rate: string | null; memo: string | null }
+export type Line = { id: number; account: number; amount: number; baseAmount: number; rate: string | null; memo: string | null }
 export type Entry = {
-  uid: string
+  id: number
   date: string
   year: number
   number: number
@@ -154,33 +154,31 @@ export type Entry = {
   createdAt: number
   updatedAt: number
   /** The member who wrote it. */
-  author: { uid: string; name: string; color: string | null }
+  author: { id: number; name: string; color: string | null }
   lines: Line[]
 }
 
-const entryColumns = `e.uid, e.entry_date, e.year, e.number, e.reference, e.description, e.created_at, e.updated_at,
-  u.uid AS author_uid, u.name AS author_name, u.color AS author_color`
+const entryColumns = `e.id, e.entry_date, e.year, e.number, e.reference, e.description, e.created_at, e.updated_at,
+  u.id AS author_id, u.name AS author_name, u.color AS author_color`
 const entryFrom = 'entries e JOIN actors u ON u.id = e.created_by'
 
-/** Entries by uid with their live lines, in the given order. Two queries. */
+/** Entries with their live lines, in the given order. Two queries. */
 async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promise<Entry[]> {
-  const uids = rows.map((r) => r.uid as string)
+  const ids = rows.map((r) => r.id as number)
   const lines = await db.query(
-    `SELECT e.uid AS entry, l.uid, a.uid AS account, l.amount, l.base_amount, l.rate, l.memo
-     FROM json_each(?) j JOIN entries e ON e.uid = j.value
-     JOIN lines l ON l.entry_id = e.id AND l.deleted_at IS NULL
-     JOIN accounts a ON a.id = l.account_id
+    `SELECT l.entry_id AS entry, l.id, l.account_id AS account, l.amount, l.base_amount, l.rate, l.memo
+     FROM json_each(?) j JOIN lines l ON l.entry_id = j.value AND l.deleted_at IS NULL
      ORDER BY l.entry_id, l.position, l.id`,
-    [JSON.stringify(uids)],
+    [JSON.stringify(ids)],
   )
-  const by = new Map<string, Line[]>(uids.map((u) => [u, []]))
+  const by = new Map<number, Line[]>(ids.map((i) => [i, []]))
   for (const l of lines)
-    by.get(l.entry as string)!.push({
-      uid: l.uid as string, account: l.account as string, amount: l.amount as number,
+    by.get(l.entry as number)!.push({
+      id: l.id as number, account: l.account as number, amount: l.amount as number,
       baseAmount: l.base_amount as number, rate: l.rate as string | null, memo: l.memo as string | null,
     })
   return rows.map((r) => ({
-    uid: r.uid as string,
+    id: r.id as number,
     date: r.entry_date as string,
     year: r.year as number,
     number: r.number as number,
@@ -188,13 +186,13 @@ async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promis
     description: r.description as string | null,
     createdAt: r.created_at as number,
     updatedAt: r.updated_at as number,
-    author: { uid: r.author_uid as string, name: r.author_name as string, color: r.author_color as string | null },
-    lines: by.get(r.uid as string)!,
+    author: { id: r.author_id as number, name: r.author_name as string, color: r.author_color as string | null },
+    lines: by.get(r.id as number)!,
   }))
 }
 
-export const get = read(z.object({ uid }), async (ctx, input) => {
-  const r = await need(ctx.db, 'entry_not_found', `SELECT ${entryColumns} FROM ${entryFrom} WHERE e.uid = ? AND e.deleted_at IS NULL`, [input.uid])
+export const get = read(z.object({ id }), async (ctx, input) => {
+  const r = await need(ctx.db, 'entry_not_found', `SELECT ${entryColumns} FROM ${entryFrom} WHERE e.id = ? AND e.deleted_at IS NULL`, [input.id])
   return (await withLines(ctx.db, [r]))[0]
 })
 
