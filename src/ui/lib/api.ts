@@ -1,5 +1,5 @@
 // The UI's only door to data: the core API on the app's Db, wrapped in TanStack Query.
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ApiError, createApi, type Input, type OpName, type Output } from '../../core/api/index.ts'
 import type { Db } from '../../core/db.ts'
@@ -19,9 +19,14 @@ export async function call<K extends OpName>(op: K, input: Input<K>): Promise<Ou
   return api.call(op, input)
 }
 
-/** A read op as a query. The key is the op and its input. */
-export function useOp<K extends OpName>(op: K, input: Input<K>, opts: { enabled?: boolean } = {}) {
-  return useQuery({ queryKey: [op, input], queryFn: () => call(op, input), ...opts })
+/** A read op as a query. The key is the op and its input. `keep` shows the old data while a new page loads. */
+export function useOp<K extends OpName>(op: K, input: Input<K>, opts: { enabled?: boolean; keep?: boolean } = {}) {
+  return useQuery({
+    queryKey: [op, input],
+    queryFn: () => call(op, input),
+    enabled: opts.enabled,
+    placeholderData: opts.keep ? keepPreviousData : undefined,
+  })
 }
 
 /** A write op. Any success refetches every query: reads are local and cheap. */

@@ -14,11 +14,15 @@ export function useBook() {
   const { i18n } = useTranslation()
   const settings = useOp('settings.get', {})
   const currencies = useOp('currencies.list', {})
-  const minors = new Map((currencies.data ?? []).map((c) => [c.code, c.minorUnit]))
   const base = settings.data?.baseCurrency ?? ''
-  const minor = (code: string) => minors.get(code) ?? 2
-  const fmt = (amount: number, code = base) => formatAmount(amount, minor(code), i18n.language)
-  return { base, minor, fmt, currencies: currencies.data ?? [] }
+  const lang = i18n.language
+  // Stable functions: grids rebuild their columns when these change.
+  return useMemo(() => {
+    const minors = new Map((currencies.data ?? []).map((c) => [c.code, c.minorUnit]))
+    const minor = (code: string) => minors.get(code) ?? 2
+    const fmt = (amount: number, code = base) => formatAmount(amount, minor(code), lang)
+    return { base, minor, fmt, currencies: currencies.data ?? [] }
+  }, [base, lang, currencies.data])
 }
 
 export function formatAmount(minorAmount: number, exponent: number, locale: string): string {
