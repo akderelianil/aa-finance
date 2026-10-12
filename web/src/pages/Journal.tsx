@@ -13,6 +13,7 @@ import { FormError } from '@/components/PageShell'
 import { Badge } from '@/components/reui/badge'
 import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
 import { DataGridColumnHeader } from '@/components/reui/data-grid/data-grid-column-header'
+import { DataGridPagination } from '@/components/reui/data-grid/data-grid-pagination'
 import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
 import { DataGridTable, DataGridTableRowExpand } from '@/components/reui/data-grid/data-grid-table'
 import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
@@ -33,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { callFunction } from '@/lib/api'
 import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
+import { PAGE_SIZES, useGridI18n, useGridPages } from '@/lib/grid'
 import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
 import { canModify, useMemberAccess } from '@/lib/access'
@@ -94,6 +96,9 @@ export default function Journal({ membership }: { membership: Membership }) {
       || lineContacts(e.journal_lines, contactById).some(has)
       || e.journal_lines.some((l) => has(l.memo) || has(byId.get(l.account_id)?.name)))
   }, [entries.data, other, activeId, search, byId, contactById, i18n.language])
+
+  const pages = useGridPages(visible.length, [from, to, search, activeId].join('|'), entries.isLoading)
+  const gridI18n = useGridI18n()
 
   const volume = visible.reduce((s, e) => s + e.journal_lines.reduce((x, l) => x + (l.direction === 'debit' ? Number(l.base_amount) : 0), 0), 0)
 
@@ -210,9 +215,10 @@ export default function Journal({ membership }: { membership: Membership }) {
     data: visible,
     getRowId: (e: JournalEntry) => e.id,
     getRowCanExpand: () => true,
-    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
-    state: { expanded, pagination: { pageIndex: 0, pageSize: entries.isLoading ? 10 : 2000 } },
+    state: { expanded, pagination: pages.pagination },
     onExpandedChange: setExpanded,
+    onPaginationChange: pages.onPaginationChange,
+    autoResetPageIndex: false,
   })
 
   const remove = useMutation({
@@ -232,65 +238,66 @@ export default function Journal({ membership }: { membership: Membership }) {
           {t('members.viewing', { name: memberById.get(activeId)?.name ?? '' })} {canCreate ? t('members.canWrite') : t('members.viewOnly')}
         </p>
       )}
-      <Frame spacing="sm" stacked>
-        <FramePanel className="flex items-center gap-2 p-2">
-          <ToggleGroup
-            variant="outline" size="sm" spacing={0} value={[period]}
-            onValueChange={(v) => v[0] && setPeriod(v[0] as Period)}
-          >
-            {(['month', 'lastMonth', 'year', 'custom'] as const).map((p) => (
-              <ToggleGroupItem key={p} value={p}>{t(`gj.period.${p}`)}</ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          {period === 'custom' && (
-            <>
-              <Input type="date" className="w-36" aria-label={t('gj.from')} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} />
-              <Input type="date" className="w-36" aria-label={t('gj.to')} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} />
-            </>
-          )}
-          <div className="relative ml-auto">
-            <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="w-72 ps-8" placeholder={t('gj.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-        </FramePanel>
-        <FramePanel className="p-0">
-          <DataGrid
-            table={table}
-            recordCount={visible.length}
-            isLoading={entries.isLoading}
-            onRowClick={(e) => setExpanded((prev) => {
-              const cur = prev === true ? {} : prev
-              const { [e.id]: wasOpen, ...rest } = cur
-              return wasOpen ? rest : { ...rest, [e.id]: true }
-            })}
-            tableLayout={{ dense: true, headerBackground: false }}
-            emptyMessage={entries.isError ? (
-              <Empty>
-                <EmptyHeader><EmptyTitle>{t('gj.loadError')}</EmptyTitle></EmptyHeader>
-                <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('coa.retry')}</Button>
-              </Empty>
-            ) : (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>{t('gj.empty')}</EmptyTitle>
-                  <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
-                </EmptyHeader>
-                <Button size="sm" disabled={!canCreate} onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
-              </Empty>
+      <DataGrid
+        table={table}
+        recordCount={visible.length}
+        isLoading={entries.isLoading}
+        onRowClick={(e) => setExpanded((prev) => {
+          const cur = prev === true ? {} : prev
+          const { [e.id]: wasOpen, ...rest } = cur
+          return wasOpen ? rest : { ...rest, [e.id]: true }
+        })}
+        tableLayout={{ dense: true, headerBackground: false }}
+        emptyMessage={entries.isError ? (
+          <Empty>
+            <EmptyHeader><EmptyTitle>{t('gj.loadError')}</EmptyTitle></EmptyHeader>
+            <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('coa.retry')}</Button>
+          </Empty>
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t('gj.empty')}</EmptyTitle>
+              <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
+            </EmptyHeader>
+            <Button size="sm" disabled={!canCreate} onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
+          </Empty>
+        )}
+        i18n={gridI18n}
+      >
+        <Frame spacing="sm" stacked>
+          <FramePanel className="flex items-center gap-2 p-2">
+            <ToggleGroup
+              variant="outline" size="sm" spacing={0} value={[period]}
+              onValueChange={(v) => v[0] && setPeriod(v[0] as Period)}
+            >
+              {(['month', 'lastMonth', 'year', 'custom'] as const).map((p) => (
+                <ToggleGroupItem key={p} value={p}>{t(`gj.period.${p}`)}</ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            {period === 'custom' && (
+              <>
+                <Input type="date" className="w-36" aria-label={t('gj.from')} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} />
+                <Input type="date" className="w-36" aria-label={t('gj.to')} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} />
+              </>
             )}
-          >
+            <div className="relative ml-auto">
+              <SearchIcon className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="w-72 ps-8" placeholder={t('gj.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </FramePanel>
+          <FramePanel className="p-0">
             <DataGridContainer>
               <DataGridScrollArea>
                 <DataGridTable />
               </DataGridScrollArea>
             </DataGridContainer>
-          </DataGrid>
-        </FramePanel>
-        <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{t('gj.count', { count: visible.length })}</span>
-          <span>{t('gj.volume')}: <span className="tabular-nums text-foreground">{formatAmount(volume, baseExp, i18n.language)} {base}</span></span>
-        </FrameFooter>
-      </Frame>
+          </FramePanel>
+          <FrameFooter className="flex-row items-center gap-4 py-1.5 pr-2 pl-2.5 text-xs text-muted-foreground">
+            <DataGridPagination sizes={PAGE_SIZES} />
+            <span className="text-nowrap">{t('gj.volume')}: <span className="tabular-nums text-foreground">{formatAmount(volume, baseExp, i18n.language)} {base}</span></span>
+          </FrameFooter>
+        </Frame>
+      </DataGrid>
 
       <NewEntryChooser open={choosing} onClose={() => setChoosing(false)} onChoose={choose} />
       <QuickTransactionDialog kind={quick} onClose={() => setQuick(null)} membership={membership} />

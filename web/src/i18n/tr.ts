@@ -170,6 +170,7 @@ export const tr = {
     clear: 'Temizle',
     mixed: 'Birden fazla',
   },
+  grid: { rowsPerPage: 'Sayfa başına', info: '{{from}}–{{to}} / {{count}}', previous: 'Önceki sayfa', next: 'Sonraki sayfa', goTo: '{{page}}. sayfaya git' },
   state: { retry: 'Tekrar dene', error: 'Veriler yüklenemedi.' },
   ledger: {
     type: { asset: 'Varlık', liability: 'Borç', equity: 'Özkaynak', income: 'Gelir', expense: 'Gider' },
@@ -321,8 +322,6 @@ export const tr = {
     from: 'Başlangıç',
     to: 'Bitiş',
     search: 'Açıklama, Rehber, not, hesap ara',
-    count_one: '{{count}} kayıt',
-    count_other: '{{count}} kayıt',
     noDescription: 'Açıklama yok',
     empty: 'Bu dönemde kayıt yok.',
     amount: 'Tutar ({{currency}})',

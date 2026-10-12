@@ -172,6 +172,7 @@ export const en: Translation = {
     clear: 'Clear',
     mixed: 'Several',
   },
+  grid: { rowsPerPage: 'Rows per page', info: '{{from}}–{{to}} of {{count}}', previous: 'Previous page', next: 'Next page', goTo: 'Go to page {{page}}' },
   state: { retry: 'Try again', error: 'Data could not be loaded.' },
   ledger: {
     type: { asset: 'Asset', liability: 'Debt', equity: 'Equity', income: 'Income', expense: 'Expense' },
@@ -323,8 +324,6 @@ export const en: Translation = {
     from: 'From',
     to: 'To',
     search: 'Search description, contact, memo, account',
-    count_one: '{{count}} entry',
-    count_other: '{{count}} entries',
     noDescription: 'No description',
     empty: 'No entries in this period.',
     amount: 'Amount ({{currency}})',

@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { FormError } from '@/components/PageShell'
 import { Badge } from '@/components/reui/badge'
 import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
+import { DataGridPagination } from '@/components/reui/data-grid/data-grid-pagination'
 import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
 import { DataGridTable } from '@/components/reui/data-grid/data-grid-table'
 import { Frame, FrameFooter, FramePanel } from '@/components/reui/frame'
@@ -26,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { callFunction } from '@/lib/api'
 import { lineContacts, useContacts } from '@/lib/contacts'
 import { errorMessage } from '@/lib/errors'
+import { PAGE_SIZES, useGridI18n, useGridPages } from '@/lib/grid'
 import { emptyLine, entryToDraft, today, useAccountEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import {
   flattenTree, formatAmount, fullName, shown, useCurrencies, useLedgerAccounts, type AccountNode,
@@ -172,13 +174,17 @@ export default function AccountRegister({ membership }: { membership: Membership
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [t, i18n.language, exp, contactById, membership, access.data, base, currencies.data, account])
 
+  // Oldest first like a GnuCash register, so it opens on the last page (the newest lines).
+  const pages = useGridPages(rows.length, [id, from, to].join('|'), entries.isLoading, 'last')
+  const gridI18n = useGridI18n()
   const table = useTable({
     features: dataGridFeatures,
     columns,
     data: rows,
     getRowId: (r: Row) => r.id,
-    // While loading, the grid draws one skeleton row per pageSize row: keep it small.
-    state: { pagination: { pageIndex: 0, pageSize: entries.isLoading ? 10 : 5000 } },
+    state: { pagination: pages.pagination },
+    onPaginationChange: pages.onPaginationChange,
+    autoResetPageIndex: false,
   })
 
   if (accounts.isLoading) return <DataState loading />
@@ -216,47 +222,48 @@ export default function AccountRegister({ membership }: { membership: Membership
         />
       )}
 
-      <Frame spacing="sm" stacked>
-        <FramePanel className="flex items-center gap-2 p-2">
-          <Input type="date" className="w-36" aria-label={t('gj.from')} value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input type="date" className="w-36" aria-label={t('gj.to')} value={to} onChange={(e) => setTo(e.target.value)} />
-          {(from || to) && (
-            <Button variant="ghost" size="sm" onClick={() => { setFrom(''); setTo('') }}>{t('reg.clearRange')}</Button>
-          )}
-        </FramePanel>
-        <FramePanel className="p-0">
-          <DataGrid
-            table={table}
-            recordCount={rows.length}
-            isLoading={entries.isLoading}
-            tableLayout={{ dense: true, headerBackground: false }}
-            emptyMessage={entries.isError ? (
-              <Empty>
-                <EmptyHeader><EmptyTitle>{t('state.error')}</EmptyTitle></EmptyHeader>
-                <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('state.retry')}</Button>
-              </Empty>
-            ) : (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyTitle>{t('gj.empty')}</EmptyTitle>
-                  <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
-                </EmptyHeader>
-                {canPost && !draft && <Button size="sm" onClick={newEntry}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
-              </Empty>
+      <DataGrid
+        table={table}
+        recordCount={rows.length}
+        isLoading={entries.isLoading}
+        tableLayout={{ dense: true, headerBackground: false }}
+        emptyMessage={entries.isError ? (
+          <Empty>
+            <EmptyHeader><EmptyTitle>{t('state.error')}</EmptyTitle></EmptyHeader>
+            <Button variant="outline" size="sm" onClick={() => entries.refetch()}>{t('state.retry')}</Button>
+          </Empty>
+        ) : (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t('gj.empty')}</EmptyTitle>
+              <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
+            </EmptyHeader>
+            {canPost && !draft && <Button size="sm" onClick={newEntry}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
+          </Empty>
+        )}
+        i18n={gridI18n}
+      >
+        <Frame spacing="sm" stacked>
+          <FramePanel className="flex items-center gap-2 p-2">
+            <Input type="date" className="w-36" aria-label={t('gj.from')} value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input type="date" className="w-36" aria-label={t('gj.to')} value={to} onChange={(e) => setTo(e.target.value)} />
+            {(from || to) && (
+              <Button variant="ghost" size="sm" onClick={() => { setFrom(''); setTo('') }}>{t('reg.clearRange')}</Button>
             )}
-          >
+          </FramePanel>
+          <FramePanel className="p-0">
             <DataGridContainer>
               <DataGridScrollArea>
                 <DataGridTable />
               </DataGridScrollArea>
             </DataGridContainer>
-          </DataGrid>
-        </FramePanel>
-        <FrameFooter className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{t('gj.count', { count: rows.filter((r) => !r.opening).length })}</span>
-          <span>{t('ledger.balance')}: <span className="tabular-nums text-foreground">{fmt(total)} {account.currency}</span></span>
-        </FrameFooter>
-      </Frame>
+          </FramePanel>
+          <FrameFooter className="flex-row items-center gap-4 py-1.5 pr-2 pl-2.5 text-xs text-muted-foreground">
+            <DataGridPagination sizes={PAGE_SIZES} />
+            <span className="text-nowrap">{t('ledger.balance')}: <span className="tabular-nums text-foreground">{fmt(total)} {account.currency}</span></span>
+          </FrameFooter>
+        </Frame>
+      </DataGrid>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
