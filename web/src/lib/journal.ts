@@ -10,20 +10,30 @@ export type JournalEntry = {
   created_at: string; journal_lines: JournalLine[]; tags: { tag: { name: string } }[]
 }
 
+const ENTRY_SELECT = 'id, entry_date, description, member_id, source_type, created_at, tags:entry_tags(tag:tags(name)), journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)'
+
+// PostgREST returns at most max_rows (1000) per request; page until a short page. The query needs a stable order.
+const PAGE = 1000
+async function fetchAll<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+  const out: T[] = []
+  for (let i = 0; ; i += PAGE) {
+    const { data, error } = await page(i, i + PAGE - 1)
+    if (error) throw error
+    out.push(...(data ?? []))
+    if ((data?.length ?? 0) < PAGE) return out
+  }
+}
+
 export function useJournalEntries(from: string, to: string) {
   return useQuery({
     queryKey: ['ledger', 'journal', from, to],
     queryFn: async () => {
-      let q = supabase.from('journal_entries')
-        .select('id, entry_date, description, member_id, source_type, created_at, tags:entry_tags(tag:tags(name)), journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
-        .is('deleted_at', null)
-        .order('entry_date').order('created_at')
-        .limit(2000)
-      if (from) q = q.gte('entry_date', from)
-      if (to) q = q.lte('entry_date', to)
-      const { data, error } = await q
-      if (error) throw error
-      const entries = data as unknown as JournalEntry[]
+      const entries = await fetchAll<JournalEntry>((a, b) => {
+        let q = supabase.from('journal_entries').select(ENTRY_SELECT).is('deleted_at', null)
+        if (from) q = q.gte('entry_date', from)
+        if (to) q = q.lte('entry_date', to)
+        return q.order('entry_date').order('created_at').order('id').range(a, b).overrideTypes<JournalEntry[], { merge: false }>()
+      })
       for (const e of entries) e.journal_lines.sort((a, b) => a.position - b.position)
       return entries
     },
@@ -77,13 +87,13 @@ export function useAccountEntries(accountId: string | undefined) {
     queryKey: ['ledger', 'register', accountId],
     enabled: !!accountId,
     queryFn: async () => {
-      const { data: ids, error: e1 } = await supabase.from('journal_lines').select('entry_id').eq('account_id', accountId!)
-      if (e1) throw e1
-      const entryIds = [...new Set(ids.map((r) => r.entry_id as string))]
+      const ids = await fetchAll<{ entry_id: string }>((a, b) =>
+        supabase.from('journal_lines').select('entry_id').eq('account_id', accountId!).order('id').range(a, b))
+      const entryIds = [...new Set(ids.map((r) => r.entry_id))]
       const entries: JournalEntry[] = []
       for (let i = 0; i < entryIds.length; i += 200) {
         const { data, error } = await supabase.from('journal_entries')
-          .select('id, entry_date, description, member_id, source_type, created_at, tags:entry_tags(tag:tags(name)), journal_lines(id, account_id, direction, amount, currency, base_amount, fx_rate, memo, contact_id, position)')
+          .select(ENTRY_SELECT)
           .in('id', entryIds.slice(i, i + 200))
           .is('deleted_at', null)
         if (error) throw error
