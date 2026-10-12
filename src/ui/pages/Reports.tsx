@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { DataState } from '@/components/DataState'
 import { OptionSelect } from '@/components/OptionSelect'
+import { ScopeSelect } from '@/components/members/ScopeSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
 import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
@@ -17,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { today } from '@/lib/amount'
 import { useOp } from '@/lib/api'
 import { shown, useAccountTree, useBook, type AccountNode, type AccountType } from '@/lib/ledger'
+import { useScope } from '@/lib/scope'
 import { cn } from '@/lib/utils'
 
 type Tab = 'trial' | 'balance' | 'income'
@@ -44,11 +46,12 @@ export default function Reports() {
   const [depth, setDepth] = useState('9')
   const [showZero, setShowZero] = useState(false)
 
+  const { owner } = useScope()
   const accounts = useOp('accounts.list', {})
   const { roots } = useAccountTree(accounts.data)
-  const trial = useOp('reports.trialBalance', { asOf: to }, { enabled: tab === 'trial' })
-  const sheet = useOp('reports.balanceSheet', { asOf: to }, { enabled: tab === 'balance' })
-  const income = useOp('reports.incomeStatement', { from, to }, { enabled: tab === 'income' && !!from && !!to })
+  const trial = useOp('reports.trialBalance', { asOf: to, owner }, { enabled: tab === 'trial' })
+  const sheet = useOp('reports.balanceSheet', { asOf: to, owner }, { enabled: tab === 'balance' })
+  const income = useOp('reports.incomeStatement', { from, to, owner }, { enabled: tab === 'income' && !!from && !!to })
   const report = { trial, balance: sheet, income }[tab]
   const loading = accounts.isPending || report.isPending
   const failed = accounts.isError || report.isError
@@ -78,7 +81,8 @@ export default function Reports() {
 
   let heads: string[] = [t('rep.amount')]
   let rows: Row[] = []
-  let foot: ReactNode = null
+  // A scope shows only some accounts, so the two sides need not match: no balance check, a note instead.
+  let foot: ReactNode = owner === undefined ? null : <span>{t('rep.scoped')}</span>
   if (!loading && !failed) {
     if (tab === 'trial' && trial.data) {
       heads = [t('rep.debitTotal'), t('rep.creditTotal'), t('rep.debitBalance'), t('rep.creditBalance')]
@@ -103,7 +107,7 @@ export default function Reports() {
         ...section(t('rep.equity'), ofType(tree, 'equity'), [{ id: 'net', label: netLabel(net), depth: 1, kind: 'row', v: [net] }], equity),
         { id: 'sources', label: t('rep.totalSources'), depth: 0, kind: 'total', v: [liabilities + equity] },
       ]
-      foot = assets === liabilities + equity
+      if (owner === undefined) foot = assets === liabilities + equity
         ? <span>{t('rep.balanced')}</span>
         : <span className="font-medium text-destructive">{t('rep.unbalanced', { amount: fmt(assets - liabilities - equity) })}</span>
     }
@@ -179,6 +183,10 @@ export default function Reports() {
             className="w-32" value={depth} onChange={setDepth}
             options={[['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['9', t('rep.allLevels')]].map(([value, label]) => ({ value, label }))}
           />
+        </label>
+        <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {t('scope.label')}
+          <ScopeSelect />
         </label>
         <label className="ml-auto flex items-center gap-2 pb-2 text-sm text-muted-foreground">
           <Checkbox checked={showZero} onCheckedChange={(v) => setShowZero(v === true)} />

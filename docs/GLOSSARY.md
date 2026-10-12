@@ -58,6 +58,7 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 | Member | Üye | A person in the group. No sign-in: the app opens with the last member. |
 | Member role | Rol: Yönetici · Üye | Yönetici manages members and edits or deletes any entry. Üye edits or deletes own entries. |
 | Profile color | Profil rengi | Member avatar color. |
+| Account owner / scope | Hesap sahibi / Aile · Kişi · Ortak | | An account may belong to one member. The Aile/Kişi filter on Reports, Yevmiye and Hesap Planı shows all accounts, one member's accounts, or Ortak (no owner). A new account takes its parent's owner. |
 | Setup | Kurulum | First-run steps that create the ledger. |
 | Chart template | Şablon: Temel · Önerilen | Starting accounts chosen at setup. |
 | Owner (account) | Sahibi | Optional member label on an account. |

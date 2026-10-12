@@ -3,19 +3,20 @@
 import * as z from 'zod/mini'
 import type { AccountType } from '../chart.ts'
 import type { Db } from '../db.ts'
-import { date, read } from './ctx.ts'
+import { date, owner, ownerSql, read, type OwnerFilter } from './ctx.ts'
 
 export type ReportRow = { account: number; type: AccountType; balance: number }
 
-async function balances(db: Db, from: string, to: string, types: AccountType[]): Promise<ReportRow[]> {
+async function balances(db: Db, from: string, to: string, types: AccountType[], who: OwnerFilter): Promise<ReportRow[]> {
+  const o = ownerSql(who)
   const rows = await db.query(
     `SELECT a.id, a.type, sum(l.base_amount) AS balance
      FROM lines l JOIN accounts a ON a.id = l.account_id
      WHERE l.deleted_at IS NULL AND l.entry_date >= ? AND l.entry_date <= ?
-       AND a.type IN (SELECT value FROM json_each(?))
+       AND a.type IN (SELECT value FROM json_each(?))${o.sql}
      GROUP BY l.account_id HAVING balance <> 0
      ORDER BY a.id`,
-    [from, to, JSON.stringify(types)],
+    [from, to, JSON.stringify(types), ...o.params],
   )
   return rows.map((r) => ({ account: r.id as number, type: r.type as AccountType, balance: r.balance as number }))
 }
@@ -28,14 +29,15 @@ export type TrialRow = ReportRow & { debit: number; credit: number }
  * Mizan: every account with lines up to `asOf`: debit and credit turnover and the balance.
  * The debit and credit balance totals match.
  */
-export const trialBalance = read(z.object({ asOf: z.optional(date) }), async (ctx, input) => {
+export const trialBalance = read(z.object({ asOf: z.optional(date), owner }), async (ctx, input) => {
+  const o = ownerSql(input.owner)
   const rows = await ctx.db.query(
     `SELECT a.id, a.type, sum(l.base_amount) AS balance,
             sum(max(l.base_amount, 0)) AS debit, -sum(min(l.base_amount, 0)) AS credit
      FROM lines l JOIN accounts a ON a.id = l.account_id
-     WHERE l.deleted_at IS NULL AND l.entry_date <= ?
+     WHERE l.deleted_at IS NULL AND l.entry_date <= ?${o.sql}
      GROUP BY l.account_id ORDER BY a.id`,
-    [input.asOf ?? '9999-12-31'],
+    [input.asOf ?? '9999-12-31', ...o.params],
   )
   const out = rows.map((r): TrialRow => ({
     account: r.id as number, type: r.type as AccountType, balance: r.balance as number,
@@ -49,15 +51,15 @@ export const trialBalance = read(z.object({ asOf: z.optional(date) }), async (ct
  * Bilanço at `asOf`. Income and expense are not closed yet, so their total is `earnings`
  * (minus is profit). assets + liabilities + equity + earnings = 0.
  */
-export const balanceSheet = read(z.object({ asOf: z.optional(date) }), async (ctx, input) => {
+export const balanceSheet = read(z.object({ asOf: z.optional(date), owner }), async (ctx, input) => {
   const to = input.asOf ?? '9999-12-31'
-  const rows = await balances(ctx.db, '0000-01-01', to, ['asset', 'liability', 'equity'])
-  const earnings = sum(await balances(ctx.db, '0000-01-01', to, ['income', 'expense']))
+  const rows = await balances(ctx.db, '0000-01-01', to, ['asset', 'liability', 'equity'], input.owner)
+  const earnings = sum(await balances(ctx.db, '0000-01-01', to, ['income', 'expense'], input.owner))
   return { rows, earnings }
 })
 
 /** Gelir tablosu for a period. `net` minus is profit. */
-export const incomeStatement = read(z.object({ from: date, to: date }), async (ctx, input) => {
-  const rows = await balances(ctx.db, input.from, input.to, ['income', 'expense'])
+export const incomeStatement = read(z.object({ from: date, to: date, owner }), async (ctx, input) => {
+  const rows = await balances(ctx.db, input.from, input.to, ['income', 'expense'], input.owner)
   return { rows, net: sum(rows) }
 })

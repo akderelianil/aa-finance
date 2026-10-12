@@ -22,6 +22,13 @@ export const en: Translation = {
     settings: 'Settings',
     toggle: 'Toggle menu',
   },
+  scope: {
+    label: 'Family or person',
+    family: 'Family',
+    shared: 'Shared',
+    owner: 'Owner',
+    ownerHint: 'Leave empty and the account is shared (family).',
+  },
   coa: {
     subtitle: 'Your asset, liability, equity, income and expense accounts',
     add: 'New account',
@@ -160,6 +167,7 @@ export const en: Translation = {
     balanced: 'Total assets equal total liabilities and equity.',
     unbalanced: 'Assets and liabilities plus equity differ by {{amount}}.',
     empty: 'No entries in this period.',
+    scoped: 'Only the selected person or shared accounts are shown; the two sides need not match.',
     emptyHint: 'Reports come from journal entries.',
   },
   quick: {

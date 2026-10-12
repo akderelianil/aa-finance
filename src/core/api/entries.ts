@@ -1,7 +1,7 @@
 import * as z from 'zod/mini'
 import type { Db, Statement } from '../db.ts'
 import { rateOf, toBase } from '../money.ts'
-import { baseCurrency, date, fail, insert, limits, need, needAdmin, one, paging, rate, read, text, id, update, write, type Ctx } from './ctx.ts'
+import { baseCurrency, date, fail, insert, limits, need, needAdmin, one, owner, ownerSql, paging, rate, read, text, id, update, write, type Ctx } from './ctx.ts'
 import { rateOn } from './fx.ts'
 
 const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
@@ -215,16 +215,23 @@ export const get = read(z.object({ id }), async (ctx, input) => {
 
 /** General journal: newest first, paged. `search` matches description and reference. */
 export const list = read(
-  z.object({ from: z.optional(date), to: z.optional(date), search: z.optional(z.string().check(z.trim(), z.maxLength(200))), ...paging }),
+  z.object({ from: z.optional(date), to: z.optional(date), search: z.optional(z.string().check(z.trim(), z.maxLength(200))), owner, ...paging }),
   async (ctx, input) => {
+    // With an owner, only entries that touch one of that owner's accounts.
+    const o = ownerSql(input.owner, 'a.owner_id')
+    const byOwner = o.sql
+      ? ` AND EXISTS (SELECT 1 FROM lines l JOIN accounts a ON a.id = l.account_id
+                      WHERE l.entry_id = e.id AND l.deleted_at IS NULL${o.sql.replace('= ?', '= ?4')})`
+      : ''
     const where = `e.deleted_at IS NULL AND e.entry_date >= ?1 AND e.entry_date <= ?2
-      AND (?3 IS NULL OR e.description LIKE ?3 ESCAPE '\\' OR e.reference LIKE ?3 ESCAPE '\\')`
+      AND (?3 IS NULL OR e.description LIKE ?3 ESCAPE '\\' OR e.reference LIKE ?3 ESCAPE '\\')${byOwner}`
     const like = input.search ? `%${input.search.replace(/[\\%_]/g, '\\$&')}%` : null
-    const params = [input.from ?? '0000-01-01', input.to ?? '9999-12-31', like]
+    const params = [input.from ?? '0000-01-01', input.to ?? '9999-12-31', like, ...o.params]
     const { limit, offset } = limits(input)
     const [{ total }] = await ctx.db.query(`SELECT count(*) AS total FROM ${entryFrom} WHERE ${where}`, params)
+    const n = params.length
     const rows = await ctx.db.query(
-      `SELECT ${entryColumns} FROM ${entryFrom} WHERE ${where} ORDER BY e.entry_date DESC, e.id DESC LIMIT ?4 OFFSET ?5`,
+      `SELECT ${entryColumns} FROM ${entryFrom} WHERE ${where} ORDER BY e.entry_date DESC, e.id DESC LIMIT ?${n + 1} OFFSET ?${n + 2}`,
       [...params, limit, offset],
     )
     return { total: total as number, rows: await withLines(ctx.db, rows) }

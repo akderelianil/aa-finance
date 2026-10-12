@@ -369,3 +369,35 @@ test('contact on a debt line: balances per contact, a used contact cannot be rem
   await assert.rejects(post([{ account: acc('Wallet'), amount: 1 }, { account: acc('payables'), amount: -1, contact: veli }]), code('contact_not_found'))
   assert.equal(((await db.query('SELECT count(*) AS n FROM lines WHERE contact_id IS NOT NULL'))[0].n as number) > 0, true)
 })
+
+test('account owner: Aile, Kişi and Ortak filter reports and the journal', async () => {
+  const { api, acc } = await fresh()
+  const me = (await api.call('members.list', {}))[0].id
+  const { id: mine } = await api.call('accounts.create', { parent: acc('cash'), name: 'Kişisel', owner: me })
+  const { id: child } = await api.call('accounts.create', { parent: mine, name: 'Alt' })
+  const list = await api.call('accounts.list', {})
+  assert.equal(list.find((a) => a.id === mine)!.owner, me)
+  assert.equal(list.find((a) => a.id === child)!.owner, me, 'a child takes the parent owner')
+  assert.equal(list.find((a) => a.id === acc('bank'))!.owner, null)
+  await assert.rejects(api.call('accounts.create', { parent: acc('bank'), name: 'Y', owner: 999 }), code('member_not_found'))
+
+  const income = (await api.call('accounts.create', { parent: acc('income'), name: 'Maaş' })).id
+  const shared = (await api.call('accounts.create', { parent: acc('bank'), name: 'Ortak Banka' })).id
+  await api.call('entries.post', { date: '2026-02-01', description: 'mine', lines: [{ account: child, amount: 1000 }, { account: income, amount: -1000 }] })
+  await api.call('entries.post', { date: '2026-02-02', description: 'shared', lines: [{ account: shared, amount: 500 }, { account: income, amount: -500 }] })
+
+  assert.equal((await api.call('reports.trialBalance', {})).rows.length, 3)
+  assert.deepEqual((await api.call('reports.trialBalance', { owner: me })).rows.map((r) => r.account), [child])
+  assert.deepEqual((await api.call('reports.trialBalance', { owner: 'shared' })).rows.map((r) => r.account).sort(), [shared, income].sort())
+  assert.equal((await api.call('reports.balanceSheet', { owner: me })).earnings, 0)
+  assert.equal((await api.call('reports.incomeStatement', { from: '2026-02-01', to: '2026-02-28', owner: me })).net, 0)
+
+  assert.equal((await api.call('entries.list', {})).total, 2)
+  const own = await api.call('entries.list', { owner: me, pageSize: 10 })
+  assert.deepEqual([own.total, own.rows.map((e) => e.description)], [1, ['mine']])
+  // An entry shows under every owner it touches: the Maaş line is shared.
+  assert.equal((await api.call('entries.list', { owner: 'shared' })).total, 2)
+
+  await api.call('accounts.update', { id: child, owner: null })
+  assert.equal((await api.call('entries.list', { owner: me })).total, 0)
+})

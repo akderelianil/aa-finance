@@ -28,6 +28,14 @@ export const name = z.string().check(z.trim(), z.minLength(1), z.maxLength(200))
 export const text = z.nullable(z.string().check(z.trim(), z.maxLength(1000)))
 export const rate = z.string().check(z.regex(/^\d+(\.\d+)?$/), z.refine((r) => /[1-9]/.test(r), 'rate must be > 0'))
 export const currency = z.string().check(z.regex(/^[A-Z]{3}$/))
+/** Account owner filter: a member id, `shared` (no owner), or left out for the whole family. */
+export const owner = z.optional(z.union([id, z.literal('shared')]))
+export type OwnerFilter = z.output<typeof owner>
+/** SQL for `owner` on an accounts alias, with its params; empty when the whole family is wanted. */
+export function ownerSql(o: OwnerFilter, col = 'a.owner_id'): { sql: string; params: Value[] } {
+  if (o === undefined) return { sql: '', params: [] }
+  return o === 'shared' ? { sql: ` AND ${col} IS NULL`, params: [] } : { sql: ` AND ${col} = ?`, params: [o] }
+}
 export const paging = {
   page: z.optional(z.int().check(z.minimum(0))),
   pageSize: z.optional(z.int().check(z.minimum(1), z.maximum(1000))),

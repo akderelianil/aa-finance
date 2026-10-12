@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
-import { useErrorText, useWrite } from '@/lib/api'
+import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { flattenTree, type AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 
@@ -59,6 +59,9 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
   const parent = parentId ? byId.get(parentId) : undefined
   const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? currencies[0] ?? '')
   const [placeholder, setPlaceholder] = useState(edit?.placeholder ?? false)
+  // '' = Ortak (no owner). A new account starts with its parent's owner.
+  const members = useOp('members.list', {}).data ?? []
+  const [ownerId, setOwnerId] = useState(String((edit ? edit.owner : parent?.owner) ?? ''))
   // An account with lines keeps its currency and cannot become a group; the database checks too.
   const used = !!edit && edit.balance !== 0
 
@@ -81,7 +84,7 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
     e.preventDefault()
     const done = { onSuccess: onClose }
     if (!edit) {
-      create.mutate({ parent: parentId, name: name.trim(), currency, placeholder }, done)
+      create.mutate({ parent: parentId, name: name.trim(), currency, placeholder, owner: ownerId ? Number(ownerId) : null }, done)
       return
     }
     update.mutate({
@@ -90,6 +93,7 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
       ...(parentId !== edit.parent && { parent: parentId }),
       ...(currency !== edit.currency && { currency }),
       ...(placeholder !== edit.placeholder && { placeholder }),
+      ...(Number(ownerId || 0) !== (edit.owner ?? 0) && { owner: ownerId ? Number(ownerId) : null }),
     }, done)
   }
 
@@ -101,7 +105,7 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
           <Cascader items={groups} value={parentId ? String(parentId) : ''} onValueChange={(v) => {
             setParentId(Number(v) || 0)
             const p = v ? byId.get(Number(v)) : undefined
-            if (!edit && p) setCurrency(p.currency)
+            if (!edit && p) { setCurrency(p.currency); setOwnerId(String(p.owner ?? '')) }
           }}>
             <CascaderTrigger id="acc-parent" aria-label={t('coa.parent')} render={<Button variant="outline" className="w-full justify-between font-normal" />}>
               <CascaderValue placeholder={t('coa.pickParent')} className="min-w-0 flex-1 truncate" />
@@ -130,6 +134,14 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
           />
         </Field>
         {used && <FieldDescription className="-mt-4">{t('coa.usedHint')}</FieldDescription>}
+        <Field className="w-56">
+          <FieldLabel htmlFor="acc-owner">{t('scope.owner')}</FieldLabel>
+          <OptionSelect
+            id="acc-owner" value={ownerId} onChange={setOwnerId}
+            options={[{ value: '', label: t('scope.shared') }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+          />
+          <FieldDescription>{t('scope.ownerHint')}</FieldDescription>
+        </Field>
         <Field orientation="horizontal">
           <Checkbox id="acc-placeholder" checked={placeholder} onCheckedChange={(v) => setPlaceholder(v === true)} disabled={used && !placeholder} />
           <div className="flex flex-col gap-1">

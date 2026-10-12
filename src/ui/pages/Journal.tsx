@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { EntryHistory } from '@/components/journal/EntryHistory'
 import { EntryDialog } from '@/components/journal/EntryDialog'
 import { entryToDraft, newDraft, type Draft } from '@/components/journal/JournalEditor'
+import { ScopeSelect } from '@/components/members/ScopeSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
@@ -31,6 +32,7 @@ import type { Entry } from '@/lib/journal'
 import { MemberAvatar } from '@/components/members/MemberAvatar'
 import { useFormat } from '@/lib/format'
 import { useAccountTree, useBook } from '@/lib/ledger'
+import { useScope } from '@/lib/scope'
 
 type Period = 'month' | 'lastMonth' | 'year' | 'all' | 'custom'
 
@@ -69,7 +71,8 @@ export default function Journal() {
   const { byId } = useAccountTree(accounts.data)
   const contacts = useOp('contacts.list', {})
   const contactName = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c.name])), [contacts.data])
-  const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined }
+  const { owner } = useScope()
+  const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined, owner }
   const [total, setTotal] = useState<number>()
   const pages = useServerPages(JSON.stringify(filters), total)
   const entries = useOp('entries.list', { ...filters, page: pages.page ?? 0, pageSize: pages.pageSize }, { keep: true })
@@ -202,7 +205,7 @@ export default function Journal() {
 
   return (
     <>
-      <PageHeader title={t('nav.journal')} description={t('gj.subtitle')} actions={newEntry} />
+      <PageHeader title={t('nav.journal')} description={t('gj.subtitle')} actions={<><ScopeSelect />{newEntry}</>} />
       <DataGrid
         table={table}
         recordCount={entries.data?.total ?? 0}

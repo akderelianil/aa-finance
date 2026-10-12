@@ -20,6 +20,13 @@ export const tr = {
     settings: 'Ayarlar',
     toggle: 'Menüyü aç/kapat',
   },
+  scope: {
+    label: 'Aile veya kişi',
+    family: 'Aile',
+    shared: 'Ortak',
+    owner: 'Sahibi',
+    ownerHint: 'Boş bırakırsan hesap ortaktır (aile).',
+  },
   coa: {
     subtitle: 'Varlık, borç, özkaynak, gelir ve gider hesapların',
     add: 'Yeni hesap',
@@ -158,6 +165,7 @@ export const tr = {
     balanced: 'Varlıklar toplamı kaynaklar toplamına eşit.',
     unbalanced: 'Varlıklar ve kaynaklar arasında {{amount}} fark var.',
     empty: 'Bu dönemde kayıt yok.',
+    scoped: 'Seçili kişi veya ortak hesaplar gösteriliyor; iki taraf birbirine eşit olmayabilir.',
     emptyHint: 'Rapor, yevmiye kayıtlarından oluşur.',
   },
   quick: {

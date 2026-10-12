@@ -12,6 +12,8 @@ export type Account = {
   locked: boolean
   systemKey: string | null
   archived: boolean
+  /** Member who owns it; null = shared by the family. */
+  owner: number | null
   /** Own lines only, signed (+debit). The UI rolls children up in base. */
   balance: number
   baseBalance: number
@@ -21,7 +23,7 @@ export type Account = {
 export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input): Promise<Account[]> => {
   const rows = await ctx.db.query(
     `SELECT a.id, a.parent_id AS parent, a.name, a.type, c.code AS currency, a.is_placeholder, a.locked, a.system_key,
-            a.archived_at, coalesce(b.amount, 0) AS balance, coalesce(b.base, 0) AS base
+            a.archived_at, a.owner_id, coalesce(b.amount, 0) AS balance, coalesce(b.base, 0) AS base
      FROM accounts a
      JOIN currencies c ON c.id = a.currency_id
      LEFT JOIN (
@@ -42,6 +44,7 @@ export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input
     locked: r.locked === 1,
     systemKey: r.system_key as string | null,
     archived: r.archived_at !== null,
+    owner: r.owner_id as number | null,
     balance: r.balance as number,
     baseBalance: r.base as number,
   }))
@@ -56,17 +59,18 @@ export const usage = read(z.object({}), async (ctx): Promise<number[]> => {
   return rows.map((r) => r.account_id as number)
 })
 
-/** Type comes from the parent. Currency defaults to the base currency. */
+/** Type comes from the parent. Currency defaults to the base currency. The owner defaults to the parent's. */
 export const create = write(
-  z.object({ parent: id, name, currency: z.optional(currency), placeholder: z.optional(z.boolean()) }),
+  z.object({ parent: id, name, currency: z.optional(currency), placeholder: z.optional(z.boolean()), owner: z.optional(z.nullable(id)) }),
   async (ctx, input) => {
-    const parent = await need(ctx.db, 'account_not_found', 'SELECT id, type FROM accounts WHERE id = ? AND deleted_at IS NULL', [input.parent])
+    const parent = await need(ctx.db, 'account_not_found', 'SELECT id, type, owner_id FROM accounts WHERE id = ? AND deleted_at IS NULL', [input.parent])
     const cur = input.currency
       ? await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])
       : await need(ctx.db, 'not_setup', `SELECT c.id FROM currencies c JOIN settings s ON s.value = c.code WHERE s.key = 'base_currency'`)
     await ctx.write(
       [insert(ctx, 'accounts', {
         parent_id: parent.id, name: input.name, type: parent.type, currency_id: cur.id, is_placeholder: input.placeholder ? 1 : 0,
+        owner_id: input.owner === undefined ? (parent.owner_id as number | null) : input.owner,
       })],
       input.name,
     )
@@ -75,12 +79,13 @@ export const create = write(
 )
 
 export const edit = write(
-  z.object({ id, name: z.optional(name), parent: z.optional(id), currency: z.optional(currency), placeholder: z.optional(z.boolean()) }),
+  z.object({ id, name: z.optional(name), parent: z.optional(id), currency: z.optional(currency), placeholder: z.optional(z.boolean()), owner: z.optional(z.nullable(id)) }),
   async (ctx, input) => {
     await live(ctx.db, input.id)
     const set: Record<string, string | number | null> = {}
     if (input.name !== undefined) set.name = input.name
     if (input.placeholder !== undefined) set.is_placeholder = input.placeholder ? 1 : 0
+    if (input.owner !== undefined) set.owner_id = input.owner
     if (input.parent !== undefined) set.parent_id = (await live(ctx.db, input.parent)).id
     if (input.currency !== undefined)
       set.currency_id = (await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])).id

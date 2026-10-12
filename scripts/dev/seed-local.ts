@@ -74,8 +74,12 @@ await add('income', 'Dolar Faiz Geliri', 'USD')
 await add('income', 'Serbest Meslek Geliri (USD)', 'USD')
 const trash = await add('expense', 'Deneme Hesabı')
 
+// Personal wallets belong to their member; everything else stays shared (Ortak).
+for (const who of ['Ayşe', 'Fatma', 'Dursun']) await api.call('accounts.update', { id: byName(`${who} Cüzdan`).id, owner: memberId[who] })
+
 // Renaming the starter wallet makes the four wallets read alike.
-await api.call('accounts.update', { id: byName('Cüzdan').id, name: 'Ahmet Cüzdan' })
+const starterWallet = byName('Cüzdan').id
+await api.call('accounts.update', { id: starterWallet, name: 'Ahmet Cüzdan', owner: memberId.Ahmet })
 await refresh()
 
 // ---------- Rehber ----------

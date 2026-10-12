@@ -7,6 +7,7 @@ import { AccountDetail } from '@/components/coa/AccountDetail'
 import { AccountDialog, type AccountTarget } from '@/components/coa/AccountDialog'
 import { accountActions, type AccountHandlers } from '@/components/coa/accountActions'
 import { RootStrip } from '@/components/coa/RootStrip'
+import { ScopeSelect } from '@/components/members/ScopeSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
@@ -28,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode, type AccountType } from '@/lib/ledger'
+import { useScope, useScopedAccounts } from '@/lib/scope'
 import { cn } from '@/lib/utils'
 
 const numberMeta = {
@@ -42,7 +44,10 @@ export default function Accounts() {
   const errorText = useErrorText()
   const { base, fmt, currencies } = useBook()
   const accounts = useOp('accounts.list', {})
-  const { roots } = useAccountTree(accounts.data)
+  const { owner } = useScope()
+  // The dialog picks parents among all accounts; the page shows the scope.
+  const { roots: allRoots } = useAccountTree(accounts.data)
+  const { roots } = useAccountTree(useScopedAccounts(accounts.data, owner))
 
   // null = default: every account open.
   const [expanded, setExpanded] = useState<ExpandedState | null>(null)
@@ -163,7 +168,7 @@ export default function Accounts() {
     <>
       <PageHeader
         title={t('nav.accounts')} description={t('coa.subtitle')}
-        actions={<Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button>}
+        actions={<><ScopeSelect /><Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button></>}
       />
       <RootStrip roots={roots} active={rootFilter} onSelect={setRootFilter} fmt={(v) => fmt(v)} />
       <div className="grid grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_24rem] items-start gap-4">
@@ -232,7 +237,7 @@ export default function Accounts() {
         </div>
       </div>
 
-      <AccountDialog target={target} roots={roots} currencies={currencies.map((c) => c.code)} onClose={() => setTarget(null)} />
+      <AccountDialog target={target} roots={allRoots} currencies={currencies.map((c) => c.code)} onClose={() => setTarget(null)} />
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>
