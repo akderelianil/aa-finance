@@ -13,4 +13,4 @@
 - [ReUI migration](project-reui-migration.md) — finished 2026-10-11, all items done
 - [Member switch (2026-10-12)](project-member-switch.md) — group menu switches viewed member; journal-post member_id; Accounts/Reports not filtered yet
 - [Audit (2026-10-12)](project-audit-2026-10-12.md) — audit fixes done; release-time Auth/CORS items deferred
-- [Grid performance (2026-10-12)](project-grid-performance.md) — skeleton rows = pageSize; useGridPages for long lists; measure on preview build
+- [Grid performance (2026-10-12)](project-grid-performance.md) — slowness was grid skeletons, not DB; profile the client first
