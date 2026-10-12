@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
-import { PageHeader } from '@/components/PageHeader'
 import { ApiError, useOp } from '@/lib/api'
 import Setup from '@/pages/Setup'
 
@@ -12,17 +11,8 @@ const Accounts = lazy(() => import('@/pages/Accounts'))
 const AccountRegister = lazy(() => import('@/pages/AccountRegister'))
 const Journal = lazy(() => import('@/pages/Journal'))
 const Reports = lazy(() => import('@/pages/Reports'))
-
-// L3 fills these routes step by step.
-function Soon({ title }: { title: string }) {
-  const { t } = useTranslation()
-  return (
-    <>
-      <PageHeader title={t(title as 'nav.accounts')} />
-      <p className="text-sm text-muted-foreground">{t('nav.soon')}</p>
-    </>
-  )
-}
+const Rates = lazy(() => import('@/pages/Rates'))
+const Settings = lazy(() => import('@/pages/Settings'))
 
 // Not set up → Setup; set up → the app in the saved language.
 export default function App() {
@@ -50,8 +40,8 @@ export default function App() {
         <Route path="/hesaplar/:uid" element={<AccountRegister />} />
         <Route path="/yevmiye" element={<Journal />} />
         <Route path="/raporlar" element={<Reports />} />
-        <Route path="/kurlar" element={<Soon title="nav.rates" />} />
-        <Route path="/ayarlar" element={<Soon title="nav.settings" />} />
+        <Route path="/kurlar" element={<Rates />} />
+        <Route path="/ayarlar" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/hesaplar" replace />} />
     </Routes>
