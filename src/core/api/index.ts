@@ -32,6 +32,7 @@ export const ops = {
   'fx.set': fx.set,
   'fx.delete': fx.remove,
   'accounts.list': accounts.list,
+  'accounts.usage': accounts.usage,
   'accounts.create': accounts.create,
   'accounts.update': accounts.edit,
   'accounts.archive': accounts.archive,

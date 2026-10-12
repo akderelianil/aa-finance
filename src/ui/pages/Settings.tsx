@@ -23,15 +23,10 @@ import { SettingRow } from '@/components/SettingRow'
 import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
+import { currencySymbol } from '@/lib/amount'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import { backupAs, backupDir, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
-
-// "₺" for TRY, the code itself when the locale has no short symbol.
-function currencySymbol(code: string) {
-  const part = new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')
-  return part?.value ?? code
-}
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backup and restore.
 // The base currency is fixed at setup.

@@ -17,21 +17,23 @@ Kullanıcı bir harcama yaptı. Amaç: en az girişle doğru Yevmiye kaydı. Ter
 Üç senaryo **aynı form**. Fark yalnız seçilen hesabın türüdür. Ayrı mod, ayrı ekran yok.
 
 ## Form
+Hızlı Kayıt tek ekrandır: Gider · Gelir · Transfer · Borç sekmeleri, Gider ilk açılandır. Serbest kayıt alt çubukta.
 | Alan | Zorunlu | Varsayılan |
 |---|---|---|
-| Tutar (toplam) | evet | boş |
-| Ödeme hesabı | evet | son kullanılan |
-| Gider hesabı | evet | boş (tek satır, tutarın tamamı) |
-| Rehber | hayır | boş |
+| Tutar (toplam) | evet | boş; altında seçili hesabın bakiyesi görünür |
+| Hesap (ödeme) | evet | Cüzdan (Nakit grubundaki ilk hesap) |
+| Gider hesabı | evet | boş; yazılan yeni ad Gider altında hesap olarak açılır |
 | Tarih | hayır | bugün |
+| Açıklama | hayır | boş |
 
-- Rehber boş kalabilir. Seyyar satıcı, büfe gibi anonim alışveriş için Rehber seçmek gerekmez.
-- Tek kalemli harcama: Tutar + Ödeme hesabı + Gider hesabı + Kaydet.
+- Hesap ve Gider hesabı alanlarının altında son 180 günde en çok kullanılan 4 hesap tek tıkla seçilir.
+- Kaydet: Ctrl+Enter. Kaydet ve yeni: Ctrl+Shift+Enter (tür, tarih ve hesap kalır).
+- Kaydetmeden önce tek satır özet görünür ("Cüzdan −500,00 → Market +500,00"); Yevmiye satırları bir tık altındadır.
 
 ## Bölme (çok kalemli)
-- Önce toplam yazılır. **Satır ekle** ile gider satırlarına bölünür.
-- Kalan tutar ilk satıra düşer. Satır eklenince ilk satır küçülür.
-- Satırlar toplamı ≠ Tutar ise **Fark** görünür, Kaydet kapalıdır.
+- Önce toplam yazılır. **Birden fazla kaleme böl** ile satırlara bölünür.
+- Her satırda Hesap, Gider hesabı ve Tutar vardır. Hesap üstteki Hesap ile gelir; satır için değiştirilebilir (aynı para birimi).
+- Yeni satır, toplamdan **Kalan** tutarla açılır. Satırlar toplamı ≠ Tutar ise Kalan/Fazla görünür ve Kaydet hata verir.
 
 Örnek: Migros, 500 TL, Kredi Kartı.
 | Hesap | Borç | Alacak |

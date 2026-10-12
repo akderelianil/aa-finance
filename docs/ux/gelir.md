@@ -24,9 +24,9 @@ Tek form. Tek fark: gelir hesabı seçilir, para varlık hesabına girer.
 | Alan | Zorunlu | Varsayılan |
 |---|---|---|
 | Tutar (toplam) | evet | boş |
-| Alınan hesap | evet | son kullanılan |
+| Hesap (alınan) | evet | Cüzdan (Nakit grubundaki ilk hesap) |
 | Gelir hesabı | evet | boş (tek satır, tutarın tamamı) |
-| Rehber | hayır | boş |
+| Açıklama | hayır | boş |
 | Tarih | hayır | bugün |
 
 ## Bölme

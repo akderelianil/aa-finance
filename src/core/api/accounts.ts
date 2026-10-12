@@ -47,6 +47,15 @@ export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input
   }))
 })
 
+/** Account ids by use in the last 180 days, most used first (Hızlı Kayıt shortcuts). */
+export const usage = read(z.object({}), async (ctx): Promise<number[]> => {
+  const rows = await ctx.db.query(
+    `SELECT account_id FROM lines
+     WHERE deleted_at IS NULL AND entry_date >= date('now', '-180 days')
+     GROUP BY account_id ORDER BY count(*) DESC, max(entry_date) DESC LIMIT 40`)
+  return rows.map((r) => r.account_id as number)
+})
+
 /** Type comes from the parent. Currency defaults to the base currency. */
 export const create = write(
   z.object({ parent: id, name, currency: z.optional(currency), placeholder: z.optional(z.boolean()) }),

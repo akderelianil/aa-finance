@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query'
-import { ArrowLeftIcon, ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, NotebookPenIcon, TrendingDownIcon, TrendingUpIcon, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, NotebookPenIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EntryInput } from '../../../core/api/entries.ts'
@@ -11,10 +11,11 @@ import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { amountIssue, fromBase, parseDecimal, toMinor, today } from '@/lib/amount'
+import { amountIssue, currencySymbol, fromBase, parseDecimal, toDecimal, toMinor, today } from '@/lib/amount'
 import { call, useErrorText, useOp } from '@/lib/api'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode } from '@/lib/ledger'
 import { useQueryClient } from '@tanstack/react-query'
@@ -22,88 +23,48 @@ import { useQueryClient } from '@tanstack/react-query'
 export type QuickKind = 'expense' | 'income' | 'transfer' | 'debt'
 const DEBT_KINDS: quick.DebtKind[] = ['lend', 'borrow', 'collect', 'repay']
 
-const CHOICES: { key: QuickKind; icon: LucideIcon; tone: string }[] = [
-  { key: 'expense', icon: TrendingDownIcon, tone: 'text-chart-4' },
-  { key: 'income', icon: TrendingUpIcon, tone: 'text-chart-2' },
-  { key: 'transfer', icon: ArrowLeftRightIcon, tone: 'text-primary' },
-  { key: 'debt', icon: HandCoinsIcon, tone: 'text-primary' },
-]
-
 /**
- * Hızlı Kayıt in two steps: first say what happened in everyday words, then fill that form.
- * "Back" returns to the choice; Serbest kayıt hands over to the journal editor (`onFree`).
+ * Hızlı Kayıt: one form with the kind as tabs (Gider first). Serbest kayıt hands over to the journal editor (`onFree`).
  */
 export function QuickEntryDialog({ open, onClose, onFree }: { open: boolean; onClose: () => void; onFree: () => void }) {
   const { t } = useTranslation()
-  const [kind, setKind] = useState<QuickKind | null>(null)
-  const close = () => { onClose(); setKind(null) }
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) close() }}>
-      <DialogContent className={kind ? 'sm:max-w-2xl' : 'sm:max-w-xl'}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{kind ? t('quick.title') : t('quick.chooser.title')}</DialogTitle>
-          <DialogDescription>{kind ? t('quick.subtitle') : t('quick.chooser.subtitle')}</DialogDescription>
+          <DialogTitle>{t('quick.title')}</DialogTitle>
+          <DialogDescription>{t('quick.subtitle')}</DialogDescription>
         </DialogHeader>
-        {kind
-          ? <QuickForm key={kind} initial={kind} onClose={close} onBack={() => setKind(null)} />
-          : <Chooser onChoose={setKind} onFree={() => { close(); onFree() }} />}
+        <QuickForm onClose={onClose} onFree={() => { onClose(); onFree() }} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function Chooser({ onChoose, onFree }: { onChoose: (k: QuickKind) => void; onFree: () => void }) {
-  const { t } = useTranslation()
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        {CHOICES.map(({ key, icon: Icon, tone }, i) => (
-          <Button
-            key={key} type="button" variant="outline" size="lg" autoFocus={i === 0}
-            className="h-auto flex-col items-start gap-2 py-4 text-start whitespace-normal"
-            onClick={() => onChoose(key)}
-          >
-            <Icon className={`size-6 ${tone}`} aria-hidden />
-            <span className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">{t(`quick.kind.${key}`)}</span>
-              <span className="text-xs font-normal text-muted-foreground">{t(`quick.chooser.${key}`)}</span>
-            </span>
-          </Button>
-        ))}
-      </div>
-      <Button type="button" variant="ghost" className="h-auto justify-start gap-3 py-2 whitespace-normal" onClick={onFree}>
-        <NotebookPenIcon className="size-5 text-muted-foreground" aria-hidden />
-        <span className="flex flex-col items-start gap-0.5 text-start">
-          <span className="text-sm font-medium">{t('quick.chooser.free')}</span>
-          <span className="text-xs font-normal text-muted-foreground">{t('quick.chooser.freeHint')}</span>
-        </span>
-      </Button>
-    </div>
-  )
-}
-
-// `money` '' = the row follows the top Hesap; a value overrides it for this row.
 type Split = { key: number; account: string; money: string; amount: string }
 let nextKey = 1
 const emptySplit = (): Split => ({ key: nextKey++, account: '', money: '', amount: '' })
 
 // Hızlı Kayıt: Gider · Gelir · Transfer · Borç ([docs/ux](../../../../docs/ux/README.md)). Each form builds one
 // entries.post input with the core builders (src/core/quick.ts); the booking can be shown before saving.
-function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: () => void; onBack: () => void }) {
+function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => void }) {
   const { t } = useTranslation()
   const errorText = useErrorText()
   const qc = useQueryClient()
   const { base, minor, fmt } = useBook()
   const accounts = useOp('accounts.list', {})
+  const usage = useOp('accounts.usage', {})
   const { roots, byId } = useAccountTree(accounts.data)
   const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   const sys = (key: string) => postable.find((a) => a.systemKey === key) ?? flattenTree(roots).find((a) => a.systemKey === key)
 
-  const [kind, setKind] = useState<QuickKind>(initial)
+  const [kind, setKind] = useState<QuickKind>('expense')
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
   const [moneyRaw, setMoney] = useState('') // Gider/Gelir/Borç money account; '' = default (Gider/Gelir: the wallet)
   const [splits, setSplits] = useState<Split[]>([emptySplit()])
+  const [total, setTotal] = useState('') // split mode: the receipt total; '' = the sum of the rows
+  const [done, setDone] = useState<string | null>(null)
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('') // Transfer, Borç
@@ -183,18 +144,24 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
       const m = acc(money)
       const rows = splits.filter((s, i) => i === 0 || s.account || s.amount)
       const rowMoney = (s: Split) => acc(s.money || money)
+      const splitSum = rows.reduce((x, s) => x + parse(s.amount, rowMoney(s)?.currency ?? base), 0)
       rows.forEach((s) => {
         need(`acc${s.key}`, s.account)
         amt(`amt${s.key}`, s.amount, rowMoney(s)?.currency ?? base)
       })
+      if (splits.length > 1 && total.trim()) {
+        amt('total', total, m?.currency ?? base)
+        if (!errs.total && parse(total, m?.currency ?? base) !== splitSum) errs.total = t('quick.splitMismatch')
+      }
       if (m && !Object.keys(errs).length) {
         // Amounts are in the row's money account currency; a split in base converts at the money currency rate.
         const parsed = rows.map((s) => ({
-          account: qa(acc(s.account)!), amount: parse(s.amount, rowMoney(s)!.currency),
+          account: acc(s.account) ? qa(acc(s.account)!) : { id: -s.key, type: kind, currency: rowMoney(s)!.currency },
+          amount: parse(s.amount, rowMoney(s)!.currency),
           money: s.money && s.money !== money ? qa(rowMoney(s)!) : undefined,
         }))
-        const total = parsed.reduce((x, s) => x + s.amount, 0)
-        const f = { ...head, total, splits: parsed, rate: rateOf(m.currency) }
+        const sum = parsed.reduce((x, s) => x + s.amount, 0)
+        const f = { ...head, total: sum, splits: parsed, rate: rateOf(m.currency) }
         input = kind === 'expense' ? quick.expense(book, { ...f, from: qa(m) }) : quick.income(book, { ...f, to: qa(m) })
         const own = parsed.filter((s) => !s.money).reduce((x, s) => x + s.amount, 0)
         if (kind === 'expense' && m.type === 'asset' && own > m.balance) warn = t('check.lowBalance', { balance: fmt(m.balance, m.currency), currency: m.currency })
@@ -254,8 +221,9 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
   const errorCount = Object.keys(errs).length
   const show = (key: string) => (attempted ? errs[key] : undefined)
 
-  async function save() {
+  async function save(again = false) {
     if (saving) return
+    setDone(null)
     if (errorCount || buildError || !input) {
       setAttempted(true)
       setTimeout(() => rootRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 50)
@@ -269,12 +237,36 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
         const { id } = await call('accounts.create', { parent: debtGroup.id, name: person.slice(NEW.length) })
         entry = { ...entry, lines: entry.lines.map((l) => (l.account === 0 ? { ...l, account: id } : l)) }
       }
+      if (kind === 'expense' || kind === 'income') {
+        // New accounts typed into the category field are opened first (once per name), under the Gider/Gelir root.
+        const root = sys(kind)
+        const made = new Map<string, number>()
+        const ids = new Map<number, number>()
+        for (const s of splits) {
+          if (!s.account.startsWith(NEW) || !root) continue
+          const name = s.account.slice(NEW.length)
+          if (!made.has(name)) made.set(name, (await call('accounts.create', { parent: root.id, name, currency: curOf(s.money) ?? moneyCur })).id)
+          ids.set(-s.key, made.get(name)!)
+        }
+        entry = { ...entry, lines: entry.lines.map((l) => (ids.has(l.account) ? { ...l, account: ids.get(l.account)! } : l)) }
+      }
       await call('entries.post', entry)
       await qc.invalidateQueries()
-      onClose()
+      if (again) {
+        // Keep kind, date and the account; clear what changes from receipt to receipt.
+        setSplits([emptySplit()])
+        setTotal('')
+        setAmount('')
+        setCounter('')
+        setFee('')
+        setDescription('')
+        setAttempted(false)
+        setDone(t('quick.saved'))
+        setTimeout(() => rootRef.current?.querySelector<HTMLElement>('input[inputmode="decimal"]')?.focus(), 50)
+      } else onClose()
     } catch (e) {
       setSaveError(e)
-      // A person account opened before a failed post stays (the user made it); refresh so the form picks it up.
+      // An account opened before a failed post stays (the user made it); refresh so the form picks it up.
       await qc.invalidateQueries()
     } finally {
       setSaving(false)
@@ -285,50 +277,104 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
     setKind(k)
     setMoney('')
     setSplits([emptySplit()])
+    setTotal('')
     setAmount('')
     setCounter('')
     setAttempted(false)
+    setDone(null)
   }
-  // Removing a row down to one: its own account becomes the top Hesap.
+  const setSplit = (key: number, patch: Partial<Split>) => setSplits((all) => all.map((s) => (s.key === key ? { ...s, ...patch } : s)))
+  const moneyCur = curOf(money) ?? base
+  const rowCur = (s: Split) => curOf(s.money || money) ?? base
+  const splitTotal = splits.reduce((x, r) => x + parse(r.amount, rowCur(r)), 0)
+  const totalMinor = total.trim() ? parse(total, moneyCur) : 0
+  const left = totalMinor ? totalMinor - splitTotal : 0
+
+  // The split starts from the single amount; a new row takes what is left of the total.
+  const startSplit = () => {
+    setTotal(splits[0].amount)
+    setSplits((all) => [...all, emptySplit()])
+  }
+  const addRow = () => setSplits((all) => [...all, { ...emptySplit(), amount: left > 0 ? toDecimal(left, minor(moneyCur)) : '' }])
+  // Removing a row down to one: its own account becomes the top Hesap, the total its amount.
   const removeSplit = (key: number) => {
     const rest = splits.filter((x) => x.key !== key)
-    if (rest.length === 1 && rest[0].money) { setMoney(rest[0].money); rest[0] = { ...rest[0], money: '' } }
+    if (rest.length === 1) {
+      if (rest[0].money) setMoney(rest[0].money)
+      rest[0] = { ...rest[0], money: '', amount: total.trim() || rest[0].amount }
+      setTotal('')
+    }
     setSplits(rest)
   }
-  const splitTotal = splits.reduce((x, r) => x + parse(r.amount, curOf(r.money || money) ?? base), 0)
-  const setSplit = (key: number, patch: Partial<Split>) => setSplits((all) => all.map((s) => (s.key === key ? { ...s, ...patch } : s)))
 
-  const moneyCur = curOf(money) ?? base
   const heroCur = kind === 'transfer' ? curOf(from) ?? base : moneyCur
   const single = (kind === 'expense' || kind === 'income') && splits.length === 1
+  const heroKey = kind === 'transfer' || kind === 'debt' ? 'amount' : single ? `amt${splits[0].key}` : 'total'
+  const heroValue = kind === 'transfer' || kind === 'debt' ? amount : single ? splits[0].amount : total
+  const heroSet = (v: string) => (kind === 'transfer' || kind === 'debt' ? setAmount(v) : single ? setSplit(splits[0].key, { amount: v }) : setTotal(v))
+  const heroAccount = acc(kind === 'transfer' ? from : money)
   const categoryLabel = kind === 'expense' ? t('quick.expenseAccount') : t('quick.incomeAccount')
   const moneyLabel = kind === 'expense' ? t('quick.paidFrom') : kind === 'income' ? t('quick.paidTo')
     : debtKind === 'borrow' || debtKind === 'collect' ? t('quick.receivedIn') : t('quick.givenFrom')
   const categories = postable.filter((a) => a.type === kind)
   const moneyList = kind === 'expense' ? [...assets, ...cards] : assets
-  const picker = (key: string, list: AccountNode[], value: string, onChange: (v: string) => void, label: string) => (
-    <AccountPicker accounts={list} value={value} onChange={onChange} invalid={!!show(key)} aria-label={label} className="rounded-md border border-input" />
+
+  // The most used accounts of the last months, as one-click shortcuts under a field.
+  const rank = new Map((usage.data ?? []).map((id, i) => [id, i]))
+  const top = (list: AccountNode[]) => list.filter((a) => rank.has(a.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!).slice(0, 4)
+  const picker = (key: string, list: AccountNode[], value: string, onChange: (v: string) => void, label: string, creatable = false) => (
+    <AccountPicker accounts={list} value={value} onChange={onChange} invalid={!!show(key)} aria-label={label} creatable={creatable} className="rounded-md border border-input" />
   )
+  const chips = (list: AccountNode[], value: string, onChange: (v: string) => void) => {
+    const items = top(list)
+    return items.length ? (
+      <div className="flex flex-wrap gap-1">
+        {items.map((a) => (
+          <Button key={a.id} type="button" size="xs" tabIndex={-1} variant={String(a.id) === value ? 'secondary' : 'outline'} onClick={() => onChange(String(a.id))}>
+            {a.label}
+          </Button>
+        ))}
+      </div>
+    ) : null
+  }
+  // A labelled account field: picker plus shortcuts.
+  const account = (key: string, label: string, list: AccountNode[], value: string, onChange: (v: string) => void, creatable = false) => (
+    <Field label={label} error={show(key)} below={chips(list, value, onChange)}
+      hint={value.startsWith(NEW) ? t('quick.newAccountHint', { group: sys(kind)?.label ?? '' }) : undefined}>
+      {picker(key, list, value, onChange, label, creatable)}
+    </Field>
+  )
+
+  const bookLabel = (id: number) => acc(String(id))?.label
+    ?? (id === 0 ? person.slice(NEW.length) : splits.find((x) => -x.key === id)?.account.slice(NEW.length) ?? '')
+  const bookCurrency = (id: number) => acc(String(id))?.currency ?? (id < 0 ? moneyCur : debtCur ?? base)
+
+  if (accounts.isError) {
+    return (
+      <Alert variant="destructive" role="alert">
+        <AlertDescription className="flex items-center justify-between gap-3">
+          {errorText(accounts.error)}
+          <Button type="button" variant="outline" size="sm" onClick={() => void accounts.refetch()}>{t('state.retry')}</Button>
+        </AlertDescription>
+      </Alert>
+    )
+  }
+  if (!accounts.data) return <div className="flex flex-col gap-3"><Skeleton className="h-9 w-full" /><Skeleton className="h-12 w-full" /><Skeleton className="h-9 w-full" /></div>
 
   return (
     <div
       ref={rootRef}
       className="flex flex-col gap-4"
-      onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void save() } }}
+      onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void save(e.shiftKey) } }}
     >
-      <div className="flex items-center gap-2">
-      <Button type="button" variant="ghost" size="icon-sm" aria-label={t('quick.back')} title={t('quick.back')} onClick={onBack}>
-        <ArrowLeftIcon />
-      </Button>
       <Tabs value={kind} onValueChange={(v) => changeKind(v as QuickKind)}>
         <TabsList>
-          <TabsTrigger value="expense"><TrendingDownIcon />{t('quick.kind.expense')}</TabsTrigger>
-          <TabsTrigger value="income"><TrendingUpIcon />{t('quick.kind.income')}</TabsTrigger>
-          <TabsTrigger value="transfer"><ArrowLeftRightIcon />{t('quick.kind.transfer')}</TabsTrigger>
-          <TabsTrigger value="debt"><HandCoinsIcon />{t('quick.kind.debt')}</TabsTrigger>
+          <TabsTrigger value="expense"><TrendingDownIcon className="text-chart-4" />{t('quick.kind.expense')}</TabsTrigger>
+          <TabsTrigger value="income"><TrendingUpIcon className="text-chart-2" />{t('quick.kind.income')}</TabsTrigger>
+          <TabsTrigger value="transfer"><ArrowLeftRightIcon className="text-primary" />{t('quick.kind.transfer')}</TabsTrigger>
+          <TabsTrigger value="debt"><HandCoinsIcon className="text-primary" />{t('quick.kind.debt')}</TabsTrigger>
         </TabsList>
       </Tabs>
-      </div>
 
       {kind === 'debt' && (
         <ToggleGroup
@@ -339,16 +385,15 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
         </ToggleGroup>
       )}
 
-      {(kind === 'transfer' || kind === 'debt' || single) && (
-        <Field label={t('quick.amount')} error={show(kind === 'transfer' || kind === 'debt' ? 'amount' : `amt${splits[0].key}`)}>
-          <AmountInput
-            autoFocus className="h-12 text-2xl font-semibold md:text-2xl" currency={heroCur} exponent={minor(heroCur)} placeholder="0,00"
-            value={kind === 'transfer' || kind === 'debt' ? amount : splits[0].amount}
-            invalid={!!show(kind === 'transfer' || kind === 'debt' ? 'amount' : `amt${splits[0].key}`)}
-            onChange={(v) => (kind === 'transfer' || kind === 'debt' ? setAmount(v) : setSplit(splits[0].key, { amount: v }))}
-          />
-        </Field>
-      )}
+      <Field
+        label={t('quick.amount')} error={show(heroKey)}
+        hint={heroAccount ? t('quick.balanceOf', { account: heroAccount.label, amount: `${fmt(shown(heroAccount.type, heroAccount.balance), heroAccount.currency)} ${currencySymbol(heroAccount.currency)}` }) : undefined}
+      >
+        <AmountInput
+          autoFocus className="h-12 text-2xl font-semibold md:text-2xl" currency={currencySymbol(heroCur)} exponent={minor(heroCur)} placeholder="0,00"
+          value={heroValue} invalid={!!show(heroKey)} onChange={heroSet}
+        />
+      </Field>
 
       {kind === 'debt' && (
         <div className="grid grid-cols-2 gap-3">
@@ -359,7 +404,7 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
               creatable placeholder={t('quick.personPlaceholder')} className="rounded-md border border-input"
             />
           </Field>
-          <Field label={moneyLabel} error={show('money')}>{picker('money', assets, money, setMoney, moneyLabel)}</Field>
+          {account('money', moneyLabel, assets, money, setMoney)}
         </div>
       )}
       {openBalance && (
@@ -370,9 +415,9 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
 
       {kind === 'transfer' && (
         <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-          <Field label={t('quick.from')} error={show('from')}>{picker('from', assets, from, setFrom, t('quick.from'))}</Field>
+          {account('from', t('quick.from'), assets, from, setFrom)}
           <ArrowRightIcon className="mt-7 size-4 text-muted-foreground" aria-hidden />
-          <Field label={t('quick.to')} error={show('to')}>{picker('to', [...assets, ...cards], to, setTo, t('quick.to'))}</Field>
+          {account('to', t('quick.to'), [...assets, ...cards], to, setTo)}
         </div>
       )}
 
@@ -402,13 +447,11 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
 
       {(kind === 'expense' || kind === 'income') && (single ? (
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t('quick.account')} error={show('money')}>{picker('money', moneyList, money, setMoney, t('quick.account'))}</Field>
-          <Field label={categoryLabel} error={show(`acc${splits[0].key}`)}>
-            {picker(`acc${splits[0].key}`, categories, splits[0].account, (v) => setSplit(splits[0].key, { account: v }), categoryLabel)}
-          </Field>
+          {account('money', t('quick.account'), moneyList, money, setMoney)}
+          {account(`acc${splits[0].key}`, categoryLabel, categories, splits[0].account, (v) => setSplit(splits[0].key, { account: v }), true)}
         </div>
       ) : (
-        <Field label={t('quick.account')} error={show('money')}>{picker('money', moneyList, money, setMoney, t('quick.account'))}</Field>
+        account('money', t('quick.account'), moneyList, money, setMoney)
       ))}
 
       <div className="flex items-start gap-3">
@@ -421,46 +464,50 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
       </div>
 
       {(kind === 'expense' || kind === 'income') && (single ? (
-        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => setSplits((all) => [...all, emptySplit()])}>
+        <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={startSplit}>
           <PlusIcon data-icon="inline-start" />{t('quick.split')}
         </Button>
       ) : (
         <div className="flex flex-col gap-1">
-          <table className="w-full text-sm">
-            <thead className="text-xs text-muted-foreground">
-              <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
-                <th className="w-[30%]">{t('quick.account')}</th>
-                <th className="w-[30%]">{categoryLabel}</th>
-                <th className="!text-right">{t('quick.amount')}</th>
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {splits.map((s, i) => (
-                <tr key={s.key} className="align-top [&>td]:px-1 [&>td]:py-0.5">
-                  <td>{picker(`mon${s.key}`, moneyList, s.money || money, (v) => setSplit(s.key, { money: v === money ? '' : v }), `${t('quick.account')} ${i + 1}`)}</td>
-                  <td>{picker(`acc${s.key}`, categories, s.account, (v) => setSplit(s.key, { account: v }), `${categoryLabel} ${i + 1}`)}</td>
-                  <td>
-                    <AmountInput
-                      value={s.amount} currency={curOf(s.money || money) ?? base} exponent={minor(curOf(s.money || money) ?? base)} aria-label={t('quick.amount')}
-                      invalid={!!show(`amt${s.key}`)} onChange={(v) => setSplit(s.key, { amount: v })}
-                    />
-                  </td>
-                  <td>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label={t('gj.removeLine')} tabIndex={-1} onClick={() => removeSplit(s.key)}>
-                      <Trash2Icon />
-                    </Button>
-                  </td>
+          <div className="max-h-60 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-popover text-xs text-muted-foreground">
+                <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
+                  <th className="w-[30%]">{t('quick.account')}</th>
+                  <th className="w-[30%]">{categoryLabel}</th>
+                  <th className="!text-right">{t('quick.amount')}</th>
+                  <th className="w-8" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {splits.map((s, i) => (
+                  <tr key={s.key} className="align-top [&>td]:px-1 [&>td]:py-0.5">
+                    <td>{picker(`mon${s.key}`, moneyList, s.money || money, (v) => setSplit(s.key, { money: v === money ? '' : v }), `${t('quick.account')} ${i + 1}`)}</td>
+                    <td>{picker(`acc${s.key}`, categories, s.account, (v) => setSplit(s.key, { account: v }), `${categoryLabel} ${i + 1}`, true)}</td>
+                    <td>
+                      <AmountInput
+                        value={s.amount} currency={currencySymbol(rowCur(s))} exponent={minor(rowCur(s))} aria-label={t('quick.amount')}
+                        invalid={!!show(`amt${s.key}`)} onChange={(v) => setSplit(s.key, { amount: v })}
+                      />
+                    </td>
+                    <td>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={t('gj.removeLine')} tabIndex={-1} onClick={() => removeSplit(s.key)}>
+                        <Trash2Icon />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <div className="flex items-center justify-between px-1">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setSplits((all) => [...all, emptySplit()])}>
+            <Button type="button" variant="ghost" size="sm" onClick={addRow}>
               <PlusIcon data-icon="inline-start" />{t('quick.addAccount')}
             </Button>
-            <span className="text-sm text-muted-foreground">
-              {t('quick.total')}: <span className="font-medium text-foreground tabular-nums">{fmt(splitTotal, moneyCur)} {moneyCur}</span>
+            <span className={`text-sm tabular-nums ${left < 0 ? 'text-destructive' : 'text-muted-foreground'}`} aria-live="polite">
+              {left > 0 ? `${t('quick.remaining')}: ${fmt(left, moneyCur)} ${currencySymbol(moneyCur)}`
+                : left < 0 ? `${t('quick.over')}: ${fmt(-left, moneyCur)} ${currencySymbol(moneyCur)}`
+                : `${t('quick.total')}: ${fmt(splitTotal, moneyCur)} ${currencySymbol(moneyCur)}`}
             </span>
           </div>
         </div>
@@ -470,23 +517,31 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
 
       {input && (
         <div className="flex flex-col gap-2">
-          <Button type="button" variant="ghost" size="sm" className="w-fit" aria-expanded={showBooking} onClick={() => setShowBooking(!showBooking)}>
-            <ChevronRightIcon data-icon="inline-start" className={showBooking ? 'rotate-90' : undefined} />
-            {t('quick.showBooking')}
-          </Button>
-          {showBooking && <Booking input={input} label={(id) => acc(String(id))?.label ?? (id === 0 ? person.slice(NEW.length) : '')}
-            currency={(id) => acc(String(id))?.currency ?? debtCur ?? base} base={base} fmt={fmt} />}
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="ghost" size="sm" className="shrink-0" aria-expanded={showBooking} onClick={() => setShowBooking(!showBooking)}>
+              <ChevronRightIcon data-icon="inline-start" className={showBooking ? 'rotate-90' : undefined} />
+              {t('quick.showBooking')}
+            </Button>
+            {!showBooking && <p className="min-w-0 truncate text-xs text-muted-foreground tabular-nums">{bookingSummary(input, bookLabel, bookCurrency, fmt)}</p>}
+          </div>
+          {showBooking && <Booking input={input} label={bookLabel} currency={bookCurrency} base={base} fmt={fmt} />}
         </div>
       )}
 
       <div className="flex items-center gap-3 border-t pt-3">
+        <Button type="button" variant="ghost" size="sm" onClick={onFree} title={t('quick.chooser.freeHint')}>
+          <NotebookPenIcon data-icon="inline-start" />{t('quick.chooser.free')}
+        </Button>
         {saveError ? (
           <Alert variant="destructive" role="alert" className="flex-1"><AlertDescription>{errorText(saveError)}</AlertDescription></Alert>
         ) : attempted && (errorCount || buildError) ? (
           <p className="text-sm text-destructive" role="alert">{errorCount ? t('check.missing', { count: errorCount }) : buildError}</p>
+        ) : done ? (
+          <p className="text-sm text-muted-foreground" role="status">{done}</p>
         ) : null}
         <div className="ml-auto flex gap-2">
           <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
+          <Button type="button" variant="outline" disabled={saving} onClick={() => void save(true)} title="Ctrl+Shift+Enter">{t('quick.saveAndNew')}</Button>
           <Button type="button" disabled={saving} onClick={() => void save()} title="Ctrl+Enter">
             {saving && <Spinner data-icon="inline-start" />}
             {t('common.save')}
@@ -497,16 +552,26 @@ function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: 
   )
 }
 
-function Field({ label, className, children, error, hint }: { label: string; className?: string; children: ReactNode; error?: string; hint?: string }) {
+function Field({ label, className, children, error, hint, below }: { label: string; className?: string; children: ReactNode; error?: string; hint?: string; below?: ReactNode }) {
   return (
     <div className={`flex min-w-0 flex-col gap-1 ${className ?? ''}`}>
       <label className="flex flex-col gap-1 text-xs text-muted-foreground">
         {label}
         {children}
       </label>
+      {below}
       {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   )
+}
+
+// "Cüzdan −500,00 → Market +500,00": where the money leaves and where it lands.
+function bookingSummary(input: EntryInput, label: (id: number) => string, currency: (id: number) => string, fmt: (n: number, c?: string) => string) {
+  const side = (debit: boolean) => input.lines
+    .filter((l) => (l.amount > 0) === debit)
+    .map((l) => `${label(l.account)} ${debit ? '+' : '−'}${fmt(Math.abs(l.amount), currency(l.account))}`)
+    .join(', ')
+  return `${side(false)} → ${side(true)}`
 }
 
 // The entry the form will post: account, Borç, Alacak in the account currency.

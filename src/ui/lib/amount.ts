@@ -57,3 +57,9 @@ export function fromBase(baseMinor: number, rate: string, baseExp: number, exp: 
   const r = num % den
   return Number(2n * (r < 0n ? -r : r) >= den ? q + (num < 0n ? -1n : 1n) : q)
 }
+
+/** "₺" for TRY; the code itself when the locale has no short symbol. */
+export function currencySymbol(code: string) {
+  const part = new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')
+  return part?.value ?? code
+}
