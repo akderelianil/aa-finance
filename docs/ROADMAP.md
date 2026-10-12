@@ -38,6 +38,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | J2 Yevmiye UI | General Journal on ReUI data-grid: one row per entry, lines on expand, period presets. "Yeni kayıt" chooser (Gider, Gelir, Transfer, Borç, Serbest kayıt). Defensive entry forms with guiding messages. | Done 2026-10-11 |
 | U1 ReUI migration | Register, Reports, Member access, Directory, Dashboard, Settings, Auth and onboarding moved to ReUI: data-grid tables, shared `DataState` (loading, empty with action, error with Retry), Alert and RadioGroup in forms. Unused shadcn parts removed. | Done 2026-10-11 |
 | M1 Member switch | Sidebar group menu lists members with the caller's right (Sen, Yönetici, Görür, Düzeltir, Siler). Another member selected: Journal shows their entries; new entries are booked in their name with `edit` access (`journal-post` `member_id`), otherwise view only. | Done 2026-10-12 |
+| A1 Audit fixes | Entry edit/delete scoped to the caller's group. Edge Functions on the transaction pooler (`DB_POOL_URL`), JWT checked locally (`getClaims`). Journal and Register page past 1000 rows. TCMB rate saved under its publish date. RLS via `my_group_id()`. Private avatars (signed URLs). Unused packages, tables and the attachments bucket removed. | Done 2026-10-12 |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

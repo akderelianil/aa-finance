@@ -43,7 +43,7 @@ Minimum check after a change: `npm run lint && npm run build` (lint must show no
 ## Tests and test data
 Status and phases: [ROADMAP](ROADMAP.md). Entry flows: [ux](ux/README.md).
 
-Unit tests: `npx -y deno test --allow-env supabase/functions/_shared/money_test.ts` (money, rate, date, period lock) and `npm test` in `web/` (exact rate math in `src/lib/quick.ts`).
+Unit tests: `npx -y deno test --allow-env supabase/functions/_shared/` (money, rate, date, period lock, edit rights) and `npm test` in `web/` (exact rate math in `src/lib/quick.ts`).
 
 End-to-end tests: temporary node scripts (not in the repo) that use `.env` (with service_role) + `@supabase/supabase-js`, create a confirmed test user and call the functions. Dev test users: `e2e-test@aa-finance.test`, `e2e-join@aa-finance.test`.
 
