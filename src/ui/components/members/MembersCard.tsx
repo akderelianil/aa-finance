@@ -7,7 +7,7 @@ import { DataState } from '@/components/DataState'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from '@/components/reui/frame'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -29,11 +29,12 @@ export function MembersCard({ admin }: { admin: boolean }) {
   const [target, setTarget] = useState<Target | null>(null)
 
   return (
-    <Card>
-      <CardHeader className="flex items-start justify-between gap-4">
+    <Frame>
+      <FramePanel className="p-0">
+      <FrameHeader className="flex-row items-start justify-between gap-4 border-b">
         <div className="flex flex-col gap-0.5">
-          <CardTitle>{t('members.title')}</CardTitle>
-          <CardDescription>{t('members.subtitle')}</CardDescription>
+          <FrameTitle>{t('members.title')}</FrameTitle>
+          <FrameDescription>{t('members.subtitle')}</FrameDescription>
         </div>
         {admin && (
           <Button variant="outline" size="sm" onClick={() => setTarget({ mode: 'add' })}>
@@ -41,12 +42,12 @@ export function MembersCard({ admin }: { admin: boolean }) {
             {t('members.add')}
           </Button>
         )}
-      </CardHeader>
-      <CardContent>
+      </FrameHeader>
+      <div>
         {members.data ? (
           <ul className="flex flex-col divide-y">
             {members.data.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 py-2">
+              <li key={m.id} className="flex items-center gap-3 px-4 py-2">
                 <MemberAvatar name={m.name} color={m.color} size="md" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
                 {m.me && <Badge variant="info-light">{t('members.you')}</Badge>}
@@ -63,7 +64,7 @@ export function MembersCard({ admin }: { admin: boolean }) {
         ) : (
           <DataState loading={members.isPending} error={members.isError} onRetry={() => void members.refetch()} />
         )}
-      </CardContent>
+      </div>
       <Dialog open={!!target} onOpenChange={(o) => { if (!o) setTarget(null) }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -78,7 +79,8 @@ export function MembersCard({ admin }: { admin: boolean }) {
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+      </FramePanel>
+    </Frame>
   )
 }
 

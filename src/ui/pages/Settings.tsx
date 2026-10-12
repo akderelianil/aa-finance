@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArchiveRestoreIcon, DatabaseBackupIcon, Trash2Icon } from 'lucide-react'
+import { ArchiveRestoreIcon, BookOpenIcon, DatabaseBackupIcon, DatabaseIcon, TriangleAlertIcon, Trash2Icon, UsersIcon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
@@ -10,13 +10,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Frame, FrameFooter, FrameHeader, FramePanel, FrameTitle, FrameDescription } from '@/components/reui/frame'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/toast'
 import { DataState } from '@/components/DataState'
+import { SettingRow } from '@/components/SettingRow'
 import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
@@ -26,15 +28,42 @@ import type { Settings as Values } from '../../core/api/settings.ts'
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backup and restore.
 // The base currency is fixed at setup.
+const SECTIONS = [
+  { key: 'book', icon: BookOpenIcon },
+  { key: 'members', icon: UsersIcon },
+  { key: 'data', icon: DatabaseIcon },
+  { key: 'danger', icon: TriangleAlertIcon },
+] as const
+type Section = (typeof SECTIONS)[number]['key']
+
 export default function Settings() {
   const { t } = useTranslation()
   const settings = useOp('settings.get', {})
+  const [section, setSection] = useState<Section>('book')
+  const admin = settings.data?.me.role === 'admin'
   return (
     <>
       <PageHeader title={t('nav.settings')} description={t('settings.subtitle')} />
-      {settings.data
-        ? <SettingsForm key={JSON.stringify(settings.data)} values={settings.data} />
-        : <DataState loading={settings.isPending} error={settings.isError} onRetry={() => void settings.refetch()} />}
+      {settings.data ? (
+        <Tabs value={section} onValueChange={(v) => setSection(v as Section)} orientation="vertical" className="gap-8">
+          <TabsList variant="line" className="w-48 shrink-0 items-stretch">
+            {SECTIONS.map(({ key, icon: Icon }) => (
+              <TabsTrigger key={key} value={key} className="h-8 flex-none justify-start gap-2 px-2">
+                <Icon />
+                {t(`settings.section_${key}`)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <div className="min-w-0 max-w-3xl flex-1">
+            <TabsContent value="book"><SettingsForm key={JSON.stringify(settings.data)} values={settings.data} /></TabsContent>
+            <TabsContent value="members"><MembersCard admin={admin} /></TabsContent>
+            <TabsContent value="data"><DataCard /></TabsContent>
+            <TabsContent value="danger"><DangerCard admin={admin} /></TabsContent>
+          </div>
+        </Tabs>
+      ) : (
+        <DataState loading={settings.isPending} error={settings.isError} onRetry={() => void settings.refetch()} />
+      )}
     </>
   )
 }
@@ -80,77 +109,58 @@ function SettingsForm({ values }: { values: Values }) {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-6">
-      <form onSubmit={onSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.book')}</CardTitle>
-            <CardDescription>{t('settings.baseCurrency', { currency: values.baseCurrency })}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="set-name">{t('setup.groupName')}</FieldLabel>
-                <Input
-                  id="set-name" className="max-w-sm" value={groupName} maxLength={200} disabled={!admin}
-                  aria-invalid={!!nameError || undefined} onChange={(e) => setGroupName(e.target.value)}
-                />
-                {(nameError || !admin) && (
-                  <FieldDescription className={nameError ? 'text-destructive' : undefined}>{nameError ?? t('members.adminOnly')}</FieldDescription>
-                )}
-              </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel htmlFor="set-language">{t('setup.language')}</FieldLabel>
-                  <OptionSelect
-                    id="set-language" value={language} onChange={(v) => setLanguage(v as Language)} disabled={!admin}
-                    options={LANGUAGES.map((l) => ({ value: l, label: t(`language.${l}`) }))}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel>{t('settings.theme')}</FieldLabel>
-                  <div><ThemeToggle /></div>
-                </Field>
-              </div>
-              <Field>
-                <FieldLabel htmlFor="set-country">{t('setup.country')}</FieldLabel>
-                <OptionSelect
-                  id="set-country" className="max-w-sm" value={country} onChange={setCountry} disabled={!admin}
-                  placeholder={t('settings.countryNone')} options={countries}
-                />
-                <FieldDescription>{t('settings.countryHint')}</FieldDescription>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="set-lock">{t('settings.lockDate')}</FieldLabel>
-                <div className="flex items-center gap-2">
-                  <Input id="set-lock" type="date" className="w-44" value={lockDate} disabled={!admin} onChange={(e) => setLockDate(e.target.value)} />
-                  {lockDate && admin && <Button type="button" variant="ghost" size="sm" onClick={() => setLockDate('')}>{t('settings.unlock')}</Button>}
-                </div>
-                <FieldDescription>{t('settings.lockHint')}</FieldDescription>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="set-days">{t('settings.activityDays')}</FieldLabel>
-                <Input
-                  id="set-days" inputMode="numeric" className="max-w-28 text-end tabular-nums" value={days} disabled={!admin}
-                  aria-invalid={!!daysError || undefined} onChange={(e) => setDays(e.target.value.replace(/\D/g, ''))}
-                />
-                <FieldDescription className={daysError ? 'text-destructive' : undefined}>{daysError ?? t('settings.activityHint')}</FieldDescription>
-              </Field>
-              {save.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(save.error)}</AlertDescription></Alert>}
-            </FieldGroup>
-          </CardContent>
-          <CardFooter className="justify-end">
-            <Button type="submit" disabled={save.isPending || !admin}>
+    <form onSubmit={onSubmit}>
+      <Frame>
+        <FramePanel className="p-0">
+          <FrameHeader className="border-b">
+            <FrameTitle>{t('settings.book')}</FrameTitle>
+            <FrameDescription>{t('settings.baseCurrency', { currency: values.baseCurrency })}</FrameDescription>
+          </FrameHeader>
+          <div className="flex flex-col divide-y">
+            <SettingRow title={t('setup.groupName')} htmlFor="set-name" description={nameError ?? (admin ? undefined : t('members.adminOnly'))} invalid={!!nameError}>
+              <Input
+                id="set-name" className="w-64" value={groupName} maxLength={200} disabled={!admin}
+                aria-invalid={!!nameError || undefined} onChange={(e) => setGroupName(e.target.value)}
+              />
+            </SettingRow>
+            <SettingRow title={t('setup.country')} htmlFor="set-country" description={t('settings.countryHint')}>
+              <OptionSelect
+                id="set-country" className="w-64" value={country} onChange={setCountry} disabled={!admin}
+                placeholder={t('settings.countryNone')} options={countries}
+              />
+            </SettingRow>
+            <SettingRow title={t('setup.language')} htmlFor="set-language">
+              <OptionSelect
+                id="set-language" className="w-64" value={language} onChange={(v) => setLanguage(v as Language)} disabled={!admin}
+                options={LANGUAGES.map((l) => ({ value: l, label: t(`language.${l}`) }))}
+              />
+            </SettingRow>
+            <SettingRow title={t('settings.theme')}><ThemeToggle /></SettingRow>
+            <SettingRow title={t('settings.lockDate')} htmlFor="set-lock" description={t('settings.lockHint')}>
+              {lockDate && admin && <Button type="button" variant="ghost" size="sm" onClick={() => setLockDate('')}>{t('settings.unlock')}</Button>}
+              <Input id="set-lock" type="date" className="w-44" value={lockDate} disabled={!admin} onChange={(e) => setLockDate(e.target.value)} />
+            </SettingRow>
+            <SettingRow title={t('settings.activityDays')} htmlFor="set-days" description={daysError ?? t('settings.activityHint')} invalid={!!daysError}>
+              <Input
+                id="set-days" inputMode="numeric" className="w-28 text-end tabular-nums" value={days} disabled={!admin}
+                aria-invalid={!!daysError || undefined} onChange={(e) => setDays(e.target.value.replace(/\D/g, ''))}
+              />
+            </SettingRow>
+          </div>
+          {save.error && (
+            <div className="border-t p-4">
+              <Alert variant="destructive" role="alert"><AlertDescription>{errorText(save.error)}</AlertDescription></Alert>
+            </div>
+          )}
+          <FrameFooter className="flex-row justify-end border-t">
+            <Button type="submit" size="sm" disabled={save.isPending || !admin}>
               {save.isPending && <Spinner data-icon="inline-start" />}
               {t('common.save')}
             </Button>
-          </CardFooter>
-        </Card>
-      </form>
-      <MembersCard admin={admin} />
-      <DataCard />
-      <DangerCard admin={admin} />
-    </div>
+          </FrameFooter>
+        </FramePanel>
+      </Frame>
+    </form>
   )
 }
 
@@ -175,29 +185,32 @@ function DataCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('data.title')}</CardTitle>
-        <CardDescription>{t('data.subtitle')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
-          <Field>
-            <FieldLabel>{t('data.backup')}</FieldLabel>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void run('backup', backupAs, t('data.backupDone'))}>
-                {busy === 'backup' ? <Spinner data-icon="inline-start" /> : <DatabaseBackupIcon data-icon="inline-start" />}
-                {t('data.backupNow')}
-              </Button>
-              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => setConfirming(true)}>
-                {busy === 'restore' ? <Spinner data-icon="inline-start" /> : <ArchiveRestoreIcon data-icon="inline-start" />}
-                {t('data.restore')}
-              </Button>
-            </div>
-            {inApp && <FieldDescription>{t('data.autoHint', { dir: dir.data ?? '…' })}</FieldDescription>}
-          </Field>
-        </FieldGroup>
-      </CardContent>
+    <Frame>
+      <FramePanel className="p-0">
+        <FrameHeader className="border-b">
+          <FrameTitle>{t('data.title')}</FrameTitle>
+          <FrameDescription>{t('data.subtitle')}</FrameDescription>
+        </FrameHeader>
+        <div className="flex flex-col divide-y">
+          <SettingRow title={t('data.backupNow')} description={t('data.backupHint')}>
+            <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void run('backup', backupAs, t('data.backupDone'))}>
+              {busy === 'backup' ? <Spinner data-icon="inline-start" /> : <DatabaseBackupIcon data-icon="inline-start" />}
+              {t('data.backupNow')}
+            </Button>
+          </SettingRow>
+          <SettingRow title={t('data.restore')} description={t('data.restoreHint')}>
+            <Button variant="outline" size="sm" disabled={!!busy} onClick={() => setConfirming(true)}>
+              {busy === 'restore' ? <Spinner data-icon="inline-start" /> : <ArchiveRestoreIcon data-icon="inline-start" />}
+              {t('data.restore')}
+            </Button>
+          </SettingRow>
+        </div>
+        {inApp && (
+          <FrameFooter className="border-t">
+            <p className="text-xs text-muted-foreground">{t('data.autoHint', { dir: dir.data ?? '…' })}</p>
+          </FrameFooter>
+        )}
+      </FramePanel>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -212,7 +225,7 @@ function DataCard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </Frame>
   )
 }
 
@@ -250,30 +263,26 @@ function DangerCard({ admin }: { admin: boolean }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('danger.title')}</CardTitle>
-        <CardDescription>{admin ? t('danger.hint') : t('danger.adminOnly')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <FieldGroup>
+    <Frame>
+      <FramePanel className="p-0">
+        <FrameHeader className="border-b">
+          <FrameTitle>{t('danger.title')}</FrameTitle>
+          <FrameDescription>{admin ? t('danger.hint') : t('danger.adminOnly')}</FrameDescription>
+        </FrameHeader>
+        <div className="flex flex-col divide-y">
           {rows.map((r) => (
-            <div key={r} className="flex items-center justify-between gap-4">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{t(`danger.${r}`)}</span>
-                <span className="text-xs text-muted-foreground">{t(`danger.${r}Hint`)}</span>
-              </div>
+            <SettingRow key={r} title={t(`danger.${r}`)} description={t(`danger.${r}Hint`)}>
               <Button
-                variant="destructive" size="sm" className="shrink-0" disabled={!admin}
+                variant="destructive" size="sm" disabled={!admin}
                 onClick={() => { setTyped(''); setError(null); setKind(r) }}
               >
                 <Trash2Icon data-icon="inline-start" />
                 {t(`danger.${r}`)}
               </Button>
-            </div>
+            </SettingRow>
           ))}
-        </FieldGroup>
-      </CardContent>
+        </div>
+      </FramePanel>
       <AlertDialog open={kind !== null} onOpenChange={(o) => !busy && !o && setKind(null)}>
         <AlertDialogContent>
           <form onSubmit={(e) => { e.preventDefault(); void run() }} className="flex flex-col gap-4">
@@ -296,6 +305,6 @@ function DangerCard({ admin }: { admin: boolean }) {
           </form>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </Frame>
   )
 }
