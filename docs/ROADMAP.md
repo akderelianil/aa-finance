@@ -45,7 +45,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | L2 Core API | Services and read queries behind named JSON operations. Tests first. | Done 2026-10-12 |
 | L3 UI | Chart of Accounts, General Journal, Account Register, Reports, Quick Entry on ReUI with SQL paging. Sidebar Quick Entry opens a chooser first (Gider, Gelir, Transfer, Borç, Serbest kayıt); General Journal "Yeni kayıt" opens the free entry. Steps: L3a shell and setup, L3b Chart of Accounts, L3c General Journal and entry editor with history, L3d Account Register, L3e Reports, L3f Quick Entry, L3g Settings and Exchange Rates. | Done 2026-10-12 |
 | L4 Profile and backup | Profile name in Settings (the local user actor). Data card: back up now (save dialog), daily automatic backup (last 10 days), restore from a backup (current data copied first), JSON export of all tables. Activity page (who did what). `npm run bench` on 10k entries. | Done 2026-10-12 |
-| X1 User flows | Next. After L4: review and rework the user flows (entry, edit, find, report) for ease and accessibility, one flow at a time with the product owner. Main focus from here on is UX/UI, not bundle or other metrics. | |
+| X1 User flows | In progress. Review and rework the user flows one at a time with the product owner; focus is UX/UI. Order: setup, then entry, edit, find, report. Setup ([kurulum](ux/kurulum.md)): X1a UX doc, X1b members schema (`0003`) and core ops, X1c 6-step keyboard onboarding, X1d sidebar member menu and Settings Üyeler card. | |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

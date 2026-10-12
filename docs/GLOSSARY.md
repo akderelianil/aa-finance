@@ -51,10 +51,14 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 
 | English | Türkçe | Meaning |
 |---|---|---|
-| Group | Aile / topluluk | The people who share the books. |
-| Member | Üye | A person in the group. "Sign up": `Kayıt ol`. |
+| Group | Aile / topluluk | The people who share the books. One ledger file. |
+| Group name | Aile/topluluk adı | Shown name of the group. Admin edits it. |
+| Member | Üye | A person in the group. No sign-in: the app opens with the last member. |
+| Member role | Rol: Yönetici · Üye | Yönetici manages members and edits or deletes any entry. Üye edits or deletes own entries. |
+| Profile color | Profil rengi | Member avatar color. |
+| Setup | Kurulum | First-run steps that create the ledger. |
+| Chart template | Şablon: Temel · Önerilen | Starting accounts chosen at setup. |
 | Owner (account) | Sahibi | Optional member label on an account. |
-| Entry permissions | Kayıt izinleri | Admin setting: what a member may do with another member's entries (view, edit, edit and delete). |
 
 ## Actions
 

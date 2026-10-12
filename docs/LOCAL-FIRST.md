@@ -57,6 +57,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Amounts are signed: plus is debit, minus is credit. The UI shows Borç and Alacak from the sign.
 - Base currency is chosen at setup and never changes. Every account has a currency. A line holds `amount` (account currency) and `base_amount` (base currency).
 - Chart: types asset, liability, equity, income, expense. Template: `src/core/chart.ts`, applied by `setup()` (`src/core/setup.ts`) in the base currency. Core accounts are locked and have a `system_key` (5 roots, cash, bank, investments, fixed assets, receivables, credit cards, loans, payables, opening balance, FX gains and losses, bank fees); the UI shows their names from i18n by key, `name` is an English fallback. The Wallet starter is always added; the recommended income and expense accounts are an option at setup, named in the setup language. Investment gains/losses is not in v1. The UI hides codes.
+- Members: one file = one group. `actors` of kind `user` are members with `role` (`admin`, `member`) and `color`; at least one admin stays. A member edits and deletes own entries (`created_by`); an admin edits and deletes all and manages members. No PIN: the OS protects the file. The UI keeps the last member on the device and opens with it. Flow: [kurulum](ux/kurulum.md).
 - Logs: `audit_log` (triggers, kept forever) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
 - Later: contacts, tags, dashboard, plugin data.
 
@@ -130,7 +131,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 | `data.export` (all tables, incl. audit log) | 543 ms |
 
 ## Out of v1
-Sync, groups and members, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
+Sync, PIN or sign-in, per-member entry grants, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
 
 ## Open
 - Encrypt the file at rest (SQLCipher): decide before release.
