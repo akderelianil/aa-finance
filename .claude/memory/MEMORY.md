@@ -15,5 +15,5 @@
 - [Audit (2026-10-12)](project-audit-2026-10-12.md) — audit fixes done; release-time Auth/CORS items deferred
 - [Grid performance (2026-10-12)](project-grid-performance.md) — slowness was grid skeletons, not DB; profile the client first
 - [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — Tauri + SQLite + TS core on branch local-first; L0–L4 done, next X1 user flows; money = safe int number
-- [X1 setup + members (2026-10-12)](project-x1-setup.md) — onboarding 6 steps, one ledger many members, no PIN, admin/member
+- [X1 setup + members (2026-10-12)](project-x1-setup.md) — setup + members done (X1a–d); open items; next entry flow
 - [UX focus (2026-10-12)](feedback-ux-focus.md) — main focus is UX/UI and user flows; don't fuss over bundle/metrics

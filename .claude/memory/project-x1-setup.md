@@ -18,5 +18,12 @@ User decisions (overrides L4 "one profile, no sign-in"):
 - 6-step onboarding: Ülke (prefills lang/currency/format) → Dil+para birimi → Sen → Aile/Topluluk (group name + members) → Hesap planı cards (Temel/Önerilen, more templates later) → Özet. Light gamification only (step bar, icons, ≤200 ms, done moment). Fully keyboard operable.
 - After setup → Hesaplar (no checklist). Opening balances and restore are NOT in setup.
 
+Open after X1d (2026-10-12):
+- Country → date/number format: `country` is saved, formatting still follows the language.
+- Journal: show who wrote an entry; hide Edit/Delete on others' entries for a member (today the API answers `entry_not_owner`).
+- Ask the user: book settings (lock date, language, activity log days) admin only? I recommended yes for the lock date.
+- Not clicked in the real Tauri app yet. CLAUDE.md access rule still describes Supabase `member_access`; left as is.
+- Next X1 flow: entry (Hızlı Kayıt). Start by asking the user to narrate how they use it today.
+
 **Why:** user wants a family-oriented, keyboard-first, fast-feeling onboarding.
 **How to apply:** Next X1 flows (entry, edit, find, report) follow the same loop: user narrates first, then critique + options. See [[project-local-first-pivot]], [[feedback-ux-focus]], [[feedback-working-style]].
