@@ -1,7 +1,7 @@
 import { HttpError, readBody, requireString, serve } from '../_shared/http.ts'
 import { setActor, sql, type Tx } from '../_shared/db.ts'
 import {
-  assertNotLocked, entryDate, insertLines, loadMember, loadOwnedEntry, parseAmount, parseTags, postRawEntry, setEntryTags,
+  assertNotLocked, canModify, entryDate, insertLines, loadMember, loadOwnedEntry, parseAmount, parseTags, postRawEntry, setEntryTags,
   softDeleteEntry,
   type RawLine,
 } from '../_shared/entries.ts'
@@ -9,7 +9,7 @@ import { dayRate, parseRate, saveRate, toBase } from '../_shared/fx.ts'
 
 // General Journal write: create, update or delete one journal entry from a line list (GnuCash splits).
 // Request: { action: 'create' | 'update' | 'delete', entry_id?, date?, description?,
-//            tags?: string[], lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo?, contact_id? }] }
+//            member_id?: book for another member (needs edit access), tags?: string[], lines: [{ account_id, side: 'debit' | 'credit', amount, rate?, base_amount?, memo?, contact_id? }] }
 // tags: names; new names open as group tags. On update, omitted tags keep the current ones.
 // contact_id tags a line with a Rehber contact of the group (receivable/payable balance, who was paid).
 // amount is in the account currency. For a foreign-currency line the base amount comes from base_amount, else
@@ -54,7 +54,19 @@ serve(async (req, user) => {
       if (body.tags !== undefined) await setEntryTags(tx, m.group_id, existing, tags)
       return existing
     }
-    return await postRawEntry(tx, m, { date, description, lines, tags })
+    // member_id: book the entry for another member; needs edit access to that member's entries.
+    let owner = m.member_id
+    if (body.member_id !== undefined && body.member_id !== null && body.member_id !== m.member_id) {
+      const [target] = typeof body.member_id === 'string'
+        ? await tx`select id from members where id = ${body.member_id} and group_id = ${m.group_id}`
+        : []
+      if (!target) throw new HttpError(422, 'member_id geçersiz', 'invalid_member')
+      const [acc] = await tx`
+        select level from member_access where member_id = ${m.member_id} and target_member_id = ${target.id}`
+      if (!canModify(m, target.id as string, acc?.level, 'edit')) throw new HttpError(403, 'Bu üye adına kayıt izni yok', 'not_allowed')
+      owner = target.id as string
+    }
+    return await postRawEntry(tx, { ...m, member_id: owner, created_by: m.member_id }, { date, description, lines, tags })
   })
 
   return { entry_id: entryId }

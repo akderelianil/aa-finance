@@ -28,6 +28,14 @@ export const tr = {
     groupSection: 'Aile / topluluk',
     toggle: 'Menüyü aç/kapat',
   },
+  members: {
+    title: 'Aile üyeleri',
+    self: 'Sen',
+    admin: 'Yönetici',
+    viewing: '{{name}} adına bakıyorsun.',
+    canWrite: 'Kayıt ekleyebilir, izin verildiği kadar düzeltip silebilirsin.',
+    viewOnly: 'Yalnızca görüntüleyebilirsin; kayıt ekleme izni yok (Ayarlar → Kayıt izinleri).',
+  },
   access: {
     title: 'Kayıt izinleri',
     hint: 'Herkes tüm kayıtları görür. Burada bir üyenin başka bir üyenin kayıtlarını düzeltmesine veya silmesine izin verirsin. Yönetici ve kaydı giren her zaman değiştirebilir.',

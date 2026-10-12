@@ -3,6 +3,7 @@ import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, Pl
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Membership } from '@/auth/useMembership'
+import { useOnBehalf } from '@/lib/viewAs'
 import { AmountInput } from '@/components/journal/AmountInput'
 import { ContactPicker } from '@/components/journal/ContactPicker'
 import { FormError } from '@/components/PageShell'
@@ -196,9 +197,10 @@ function QuickForm({ initialKind, membership, onClose }: { initialKind: Kind; me
     }
   }
 
+  const onBehalf = useOnBehalf()
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('journal-post', {
-      action: 'create', date, description: description.trim(),
+      action: 'create', ...onBehalf, date, description: description.trim(),
       lines: lines?.map((l) => (contactId ? { ...l, contact_id: contactId } : l)),
     }),
     onSuccess: () => {

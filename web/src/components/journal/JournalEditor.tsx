@@ -1,4 +1,5 @@
 import { useMutation, useQueries } from '@tanstack/react-query'
+import { useOnBehalf } from '@/lib/viewAs'
 import { ChevronRightIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -130,10 +131,12 @@ export function JournalEditor({ draft, onChange, accounts, byId, baseCurrency, g
     setFocusKey(line.key)
   }
 
+  const onBehalf = useOnBehalf()
   const save = useMutation({
     mutationFn: () => callFunction<{ entry_id: string }>('journal-post', {
       action: draft.entryId ? 'update' : 'create',
       entry_id: draft.entryId,
+      ...(draft.entryId ? {} : onBehalf),
       date: draft.date,
       description: draft.description.trim(),
       tags: draft.tags,

@@ -87,7 +87,7 @@ export type RawLine = {
   memo?: string | null
 }
 
-type EntryOwner = { group_id: string; member_id: string; base_currency: string }
+type EntryOwner = { group_id: string; member_id: string; base_currency: string; created_by?: string }
 
 // Etiketler: ["Tatil 2026", ...]. Boş/tekrar eden adlar atılır; en çok 10, her biri en çok 40 karakter.
 export function parseTags(v: unknown): string[] {
@@ -123,7 +123,7 @@ export async function postRawEntry(
   const entryId = uuidv7()
   await tx`
     insert into journal_entries (id, group_id, member_id, created_by, entry_date, description)
-    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.member_id}, ${e.date}, ${e.description ?? ''})`
+    values (${entryId}, ${m.group_id}, ${m.member_id}, ${m.created_by ?? m.member_id}, ${e.date}, ${e.description ?? ''})`
   await insertLines(tx, entryId, e.lines)
   if (e.tags?.length) await setEntryTags(tx, m.group_id, entryId, e.tags)
   return entryId

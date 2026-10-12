@@ -30,6 +30,14 @@ export const en: Translation = {
     groupSection: 'Family / group',
     toggle: 'Toggle menu',
   },
+  members: {
+    title: 'Family members',
+    self: 'You',
+    admin: 'Admin',
+    viewing: 'Viewing as {{name}}.',
+    canWrite: 'You can add entries and edit or delete as far as you are allowed.',
+    viewOnly: 'View only; you may not add entries (Settings → Entry permissions).',
+  },
   access: {
     title: 'Entry permissions',
     hint: 'Everyone sees all entries. Here you let a member edit or delete another member\'s entries. The admin and the member who entered an entry can always change it.',

@@ -11,3 +11,4 @@
 - [Yevmiye redesign (2026-10-11)](project-yevmiye-redesign.md) — data-grid + icon chooser + defensive entry forms; term bans
 - [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request, never by slash command
 - [ReUI migration](project-reui-migration.md) — finished 2026-10-11, all items done
+- [Member switch (2026-10-12)](project-member-switch.md) — group menu switches viewed member; journal-post member_id; Accounts/Reports not filtered yet

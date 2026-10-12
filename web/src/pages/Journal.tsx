@@ -36,6 +36,7 @@ import { errorMessage } from '@/lib/errors'
 import { entryToDraft, newDraft, today, useJournalEntries, type Draft, type JournalEntry } from '@/lib/journal'
 import { flattenTree, formatAmount, useCurrencies, useLedgerAccounts, useMembers, type AccountNode } from '@/lib/ledger'
 import { canModify, useMemberAccess } from '@/lib/access'
+import { useViewAs } from '@/lib/viewAs'
 
 type Period = 'month' | 'lastMonth' | 'year' | 'custom'
 
@@ -64,6 +65,7 @@ export default function Journal({ membership }: { membership: Membership }) {
   const [quick, setQuick] = useState<QuickKind | null>(null)
   const [deleting, setDeleting] = useState<JournalEntry | null>(null)
 
+  const { activeId, other, canCreate } = useViewAs()
   const accounts = useLedgerAccounts()
   const members = useMembers()
   const access = useMemberAccess()
@@ -85,13 +87,13 @@ export default function Journal({ membership }: { membership: Membership }) {
   // Newest first: the user came for what happened last.
   const visible = useMemo(() => {
     const q = search.trim().toLocaleLowerCase(i18n.language)
-    const list = [...(entries.data ?? [])].reverse()
+    const list = [...(entries.data ?? [])].reverse().filter((e) => !other || e.member_id === activeId)
     if (!q) return list
     const has = (s?: string | null) => (s ?? '').toLocaleLowerCase(i18n.language).includes(q)
     return list.filter((e) => has(e.description)
       || lineContacts(e.journal_lines, contactById).some(has)
       || e.journal_lines.some((l) => has(l.memo) || has(byId.get(l.account_id)?.name)))
-  }, [entries.data, search, byId, contactById, i18n.language])
+  }, [entries.data, other, activeId, search, byId, contactById, i18n.language])
 
   const volume = visible.reduce((s, e) => s + e.journal_lines.reduce((x, l) => x + (l.direction === 'debit' ? Number(l.base_amount) : 0), 0), 0)
 
@@ -221,9 +223,14 @@ export default function Journal({ membership }: { membership: Membership }) {
     <>
       <PageHeader
         title={t('gj.title')} description={t('gj.subtitle')}
-        actions={<Button onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
+        actions={<Button disabled={!canCreate} onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>}
       />
 
+      {other && (
+        <p className="text-sm text-muted-foreground">
+          {t('members.viewing', { name: memberById.get(activeId)?.name ?? '' })} {canCreate ? t('members.canWrite') : t('members.viewOnly')}
+        </p>
+      )}
       <Frame spacing="sm" stacked>
         <FramePanel className="flex items-center gap-2 p-2">
           <ToggleGroup
@@ -267,7 +274,7 @@ export default function Journal({ membership }: { membership: Membership }) {
                   <EmptyTitle>{t('gj.empty')}</EmptyTitle>
                   <EmptyDescription>{t('gj.emptyHint')}</EmptyDescription>
                 </EmptyHeader>
-                <Button size="sm" onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
+                <Button size="sm" disabled={!canCreate} onClick={() => setChoosing(true)}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
               </Empty>
             )}
           >

@@ -14,6 +14,7 @@ import { SidebarCalendar } from './SidebarCalendar'
 import { NavUser } from './NavUser'
 import { QuickTransactionDialog, type QuickKind } from './quick/QuickTransactionDialog'
 import { InsideAppShell } from './PageShell'
+import { ViewAsProvider, useViewAs } from '@/lib/viewAs'
 
 const ITEMS = [
   { to: '/anasayfa', key: 'home', icon: LayoutDashboardIcon, end: false },
@@ -29,6 +30,11 @@ function isActive(pathname: string, to: string, end: boolean) {
 
 // Desktop only (v1): left sidebar.
 export function AppShell({ membership }: { membership: Membership }) {
+  return <ViewAsProvider membership={membership}><Shell membership={membership} /></ViewAsProvider>
+}
+
+function Shell({ membership }: { membership: Membership }) {
+  const { canCreate } = useViewAs()
   const { t } = useTranslation()
   const { session } = useAuth()
   const { pathname } = useLocation()
@@ -43,7 +49,7 @@ export function AppShell({ membership }: { membership: Membership }) {
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
-          <GroupHeader group={membership.group} />
+          <GroupHeader membership={membership} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -51,7 +57,7 @@ export function AppShell({ membership }: { membership: Membership }) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    tooltip={t('nav.quick')} onClick={() => setQuick('expense')}
+                    tooltip={t('nav.quick')} disabled={!canCreate} onClick={() => setQuick('expense')}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
                   >
                     <PlusIcon />
