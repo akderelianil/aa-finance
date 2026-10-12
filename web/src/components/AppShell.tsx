@@ -7,7 +7,7 @@ import type { Membership } from '@/auth/useMembership'
 import { Separator } from '@/components/ui/separator'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarSeparator, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { GroupHeader } from './GroupHeader'
 import { SidebarCalendar } from './SidebarCalendar'
@@ -41,7 +41,7 @@ export function AppShell({ membership }: { membership: Membership }) {
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon">
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <GroupHeader group={membership.group} />
         </SidebarHeader>
@@ -82,12 +82,13 @@ export function AppShell({ membership }: { membership: Membership }) {
           <SidebarCalendar />
         </SidebarContent>
         <SidebarFooter>
+          <SidebarSeparator className="mx-0" />
           <NavUser user={user} />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 px-4">
+      <SidebarInset className="min-w-0">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger aria-label={t('profile.toggle')} />
           <Separator orientation="vertical" className="h-4" />
         </header>
