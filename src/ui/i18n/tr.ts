@@ -313,6 +313,8 @@ export const tr = {
   },
   activity: {
     subtitle: 'Kim ne zaman ne yaptı. Yalnız değişiklikler kaydedilir.',
+    entry: 'Kayıt',
+    author: 'Kaydeden',
     more: 'Daha fazla yükle',
     shown: '{{shown}} / {{total}} kayıt',
     at: 'Zaman',

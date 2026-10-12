@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ActivityDetail } from '@/components/ActivityDetail'
 import { ApiError, useErrorText, useOp } from '@/lib/api'
 import { useFormat } from '@/lib/format'
 
@@ -26,6 +27,7 @@ export default function Activity() {
   const { dateTime } = useFormat()
   const errorText = useErrorText()
   const [shown, setShown] = useState(FIRST)
+  const [entryId, setEntryId] = useState<number | null>(null)
   const log = useOp('activity.list', { page: 0, pageSize: shown }, { keep: true })
   const rows = log.data?.rows ?? []
   const total = log.data?.total ?? 0
@@ -51,7 +53,9 @@ export default function Activity() {
               {rows.map((r, i) => {
                 const key = `activity.op.${r.operation.replace('.', '_')}`
                 // Record uids in the summary mean nothing to a reader; a failure shows its reason instead.
-                const detail = r.ok ? r.summary?.replace(UUID, '').replace(/\s+/g, ' ').trim() : errorText(new ApiError(r.errorCode ?? 'internal'))
+                // An entry action links to the entry: its summary is the entry id.
+                const entry = r.ok && r.operation.startsWith('entries.') && /^\d+$/.test(r.summary ?? '') ? Number(r.summary) : null
+                const detail = entry ? null : r.ok ? r.summary?.replace(UUID, '').replace(/\s+/g, ' ').trim() : errorText(new ApiError(r.errorCode ?? 'internal'))
                 return (
                   <TimelineItem key={`${r.at}-${i}`} step={i + 1} className="group-data-[orientation=vertical]/timeline:ms-10">
                     <TimelineHeader>
@@ -65,7 +69,12 @@ export default function Activity() {
                     <TimelineContent>
                       <p className="flex flex-wrap items-center gap-x-1.5 text-sm">
                         <span className="font-medium text-foreground">{r.actor}</span>
-                        <span className="text-muted-foreground">{i18n.exists(key) ? t(key as 'activity.op.entries_post') : r.operation}</span>
+                        {(() => {
+                          const label = i18n.exists(key) ? t(key as 'activity.op.entries_post') : r.operation
+                          return entry
+                            ? <button type="button" className="text-primary underline-offset-4 transition-colors hover:underline" onClick={() => setEntryId(entry)}>{label}</button>
+                            : <span className="text-muted-foreground">{label}</span>
+                        })()}
                         {detail && <span className="font-medium text-foreground">{detail}</span>}
                         {!r.ok && <Badge variant="destructive-light">{t('activity.failed')}</Badge>}
                       </p>
@@ -90,6 +99,7 @@ export default function Activity() {
           </FrameFooter>
         )}
       </Frame>
+      <ActivityDetail entryId={entryId} onClose={() => setEntryId(null)} />
     </>
   )
 }
