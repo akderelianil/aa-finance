@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { CircleCheckIcon, CoinsIcon, GlobeIcon, ListTreeIcon, UserRoundIcon, UsersIcon, XIcon, type LucideIcon } from 'lucide-react'
+import { ArrowLeftIcon, CircleCheckIcon, CoinsIcon, GlobeIcon, ListTreeIcon, UserRoundIcon, UsersIcon, XIcon, type LucideIcon } from 'lucide-react'
 import { COUNTRY_CURRENCY, countryLanguage } from '../../core/countries.ts'
 import { recommendedAccounts } from '../../core/chart.ts'
 import { MEMBER_COLORS } from '../../core/setup.ts'
@@ -41,7 +41,7 @@ function osCountry(): string | null {
 }
 
 // First run: six steps, keyboard first, saved once at the end (setup.run). Flow: docs/ux/kurulum.md.
-export default function Setup({ onFinish }: { onFinish: () => void }) {
+export default function Setup({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
   const errorText = useErrorText()
@@ -146,9 +146,10 @@ export default function Setup({ onFinish }: { onFinish: () => void }) {
     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !(el.tagName === 'BUTTON' && el.getAttribute('role') !== 'radio')) {
       e.preventDefault()
       next()
-    } else if ((e.key === 'Escape' || (e.altKey && e.key === 'ArrowLeft')) && step > 1) {
+    } else if (e.key === 'Escape' || (e.altKey && e.key === 'ArrowLeft')) {
       e.preventDefault()
-      go(step - 1)
+      if (step > 1) go(step - 1)
+      else onBack()
     } else if (step === 5 && /^[1-2]$/.test(e.key) && el.tagName !== 'INPUT') {
       setRecommended(e.key === '2')
       content.current?.querySelectorAll<HTMLElement>('[role=radio]')[Number(e.key) - 1]?.focus()
@@ -198,6 +199,12 @@ export default function Setup({ onFinish }: { onFinish: () => void }) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-4 pt-[12vh] pb-8">
+      <div>
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeftIcon data-icon="inline-start" />
+          {t('welcome.back')}
+        </Button>
+      </div>
       <Stepper value={step} onValueChange={(s) => s <= reached && go(s)} className="flex flex-col gap-6">
         <StepperNav className="gap-3">
           {STEPS.map((s, i) => (

@@ -210,6 +210,14 @@ export const en: Translation = {
     empty: 'No rates.',
     emptyHint: 'Add rates for entries on foreign-currency accounts.',
   },
+  welcome: {
+    title: 'Who is using the book?',
+    subtitle: 'Pick your name to continue.',
+    empty: 'No one is registered yet. Register to set up your book.',
+    register: 'Register',
+    last: 'last used',
+    back: 'Back to user selection',
+  },
   setup: {
     steps: { country: 'Country', currency: 'Currency', you: 'You', group: 'Family', chart: 'Accounts', summary: 'Summary' },
     title: 'Set up your book',

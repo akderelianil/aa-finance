@@ -208,6 +208,14 @@ export const tr = {
     empty: 'Kur yok.',
     emptyHint: 'Yabancı para hesaplarının kayıtları için kur ekle.',
   },
+  welcome: {
+    title: 'Defteri kim kullanıyor?',
+    subtitle: 'Devam etmek için adını seç.',
+    empty: 'Henüz kayıtlı kullanıcı yok. Defterini kurmak için kayıt ol.',
+    register: 'Kayıt ol',
+    last: 'son kullanılan',
+    back: 'Kullanıcı seçimine dön',
+  },
   setup: {
     steps: { country: 'Ülke', currency: 'Para birimi', you: 'Sen', group: 'Aile', chart: 'Hesap Planı', summary: 'Özet' },
     title: 'Defterini kur',

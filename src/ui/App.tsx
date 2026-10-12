@@ -6,6 +6,7 @@ import { DataState } from '@/components/DataState'
 import { ApiError, useOp } from '@/lib/api'
 import { autoBackup } from '@/lib/files'
 import Setup from '@/pages/Setup'
+import Welcome from '@/pages/Welcome'
 
 // Pages load on first visit: a smaller first bundle.
 const Accounts = lazy(() => import('@/pages/Accounts'))
@@ -16,7 +17,12 @@ const Rates = lazy(() => import('@/pages/Rates'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const Activity = lazy(() => import('@/pages/Activity'))
 
-// Not set up → Setup; set up → the app in the saved language.
+// Once per session the user picks who they are; with no one registered, Register leads to Setup.
+// Set up and picked → the app in the saved language.
+const PICKED = 'aa-finance.picked'
+const wasPicked = () => { try { return sessionStorage.getItem(PICKED) === '1' } catch { return false } }
+const markPicked = () => { try { sessionStorage.setItem(PICKED, '1') } catch { /* this render only */ } }
+
 export default function App() {
   const { i18n } = useTranslation()
   const settings = useOp('settings.get', {})
@@ -34,8 +40,14 @@ export default function App() {
 
   // Setup stays on screen until its done moment ends, even when settings load earlier.
   const [inSetup, setInSetup] = useState(false)
-  if (settings.error instanceof ApiError && settings.error.code === 'not_setup' && !inSetup) setInSetup(true)
-  if (inSetup) return <Setup onFinish={() => setInSetup(false)} />
+  const [picked, setPicked] = useState(wasPicked)
+  const notSetup = settings.error instanceof ApiError && settings.error.code === 'not_setup'
+  if (inSetup) {
+    return <Setup onBack={() => setInSetup(false)} onFinish={() => { markPicked(); setPicked(true); setInSetup(false) }} />
+  }
+  if (notSetup || (settings.data && !picked)) {
+    return <Welcome registered={!notSetup} onPick={() => { markPicked(); setPicked(true) }} onRegister={() => setInSetup(true)} />
+  }
   if (!settings.data) {
     return (
       <main className="mx-auto w-full max-w-md px-4 py-16">

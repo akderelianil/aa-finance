@@ -17,6 +17,12 @@ Uygulama ilk kez açıldı, defter dosyası yok. Amaç: birkaç adımda kullanı
 | Kaydetme | Adımlarda hiçbir şey kaydedilmez. Son adımda hepsi tek seferde kaydedilir. |
 | Yevmiye | Kurulum Yevmiye kaydı oluşturmaz. |
 
+## Açılış: kullanıcı seçimi
+- Her oturumda ilk ekran. Defter kuruluysa Üyeler listelenir (avatar, ad, rol). Son kullanılan Üye işaretli ve odaklı gelir. Birine basmak o Üye olarak çalışmaktır (PIN yok).
+- Defterde kimse yoksa (kurulum yapılmamış): "Kayıt ol" düğmesi. Basınca Kurulum başlar.
+- Kurulumda sol üstte ok düğmesi ("Kullanıcı seçimine dön") kullanıcı seçimine döner. 1. adımda Esc veya Alt+← aynı işi yapar. Kaydedilmiş bir şey olmadığı için veri kaybı yok.
+- Kurulum bitince seçim ekranı atlanır: kurulumu yapan kişi olarak açılır.
+
 ## Adımlar
 | # | Adım | Alanlar | Zorunlu | Varsayılan |
 |---|---|---|---|---|
