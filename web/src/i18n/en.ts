@@ -49,9 +49,6 @@ export const en: Translation = {
     theme_dark: 'Dark',
     theme_system: 'System',
   },
-  calendar: {
-    week: 'Week {{n}}',
-  },
   dash: {
     family: 'Family',
     community: 'Community',

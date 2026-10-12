@@ -47,9 +47,6 @@ export const tr = {
     theme_dark: 'Koyu',
     theme_system: 'Sistem',
   },
-  calendar: {
-    week: 'Hafta {{n}}',
-  },
   dash: {
     family: 'Aile',
     community: 'Topluluk',
