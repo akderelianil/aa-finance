@@ -315,6 +315,8 @@ export const en: Translation = {
   },
   activity: {
     subtitle: 'Who did what and when. Only changes are logged.',
+    more: 'Load more',
+    shown: '{{shown}} of {{total}} records',
     at: 'Time',
     actor: 'Who',
     operation: 'Action',
