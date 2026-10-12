@@ -46,9 +46,14 @@ export async function restore(): Promise<boolean> {
   return true
 }
 
-/** Deletes the whole book (a copy goes to the backup folder first) and reloads into setup. */
+/** Deletes the whole book (the app copies it to the backup folder first) and reloads into setup. */
 export async function resetAll(): Promise<boolean> {
-  await cmd('reset_data', { stamp: stamp() })
+  if (inApp) await cmd('reset_data', { stamp: stamp() })
+  else {
+    // Plain-browser dev mode: the Vite plugin in scripts/dev-db.ts drops the dev database (no copy).
+    const res = await fetch('/__db', { method: 'POST', body: JSON.stringify({ op: 'reset' }) })
+    if (!res.ok) throw new ApiError('file_error', await res.text())
+  }
   location.reload()
   return true
 }

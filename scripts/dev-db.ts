@@ -19,6 +19,24 @@ export function devDb(): Plugin {
         req.on('end', async () => {
           try {
             const { op, sql, params, statements } = JSON.parse(body)
+            if (op === 'reset') {
+              // Like wipe() in src-tauri/src/backup.rs: drop every trigger, view and table, user_version 0.
+              const names = await db.query(
+                `SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('trigger', 'view', 'table')
+                 ORDER BY CASE type WHEN 'trigger' THEN 0 WHEN 'view' THEN 1 ELSE 2 END`)
+              await db.query('PRAGMA foreign_keys = OFF')
+              try {
+                await db.batch([
+                  ...names.map((n) => ({ sql: `DROP ${String(n.type).toUpperCase()} "${String(n.name).replaceAll('"', '""')}"` })),
+                  { sql: 'PRAGMA user_version = 0' },
+                ])
+              } finally {
+                await db.query('PRAGMA foreign_keys = ON')
+              }
+              res.setHeader('content-type', 'application/json')
+              res.end('null')
+              return
+            }
             const out = op === 'batch' ? await db.batch(statements) : await db.query(sql, params)
             res.setHeader('content-type', 'application/json')
             res.end(JSON.stringify(out ?? null))

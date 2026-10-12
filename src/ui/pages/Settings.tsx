@@ -241,10 +241,7 @@ function DangerCard({ admin }: { admin: boolean }) {
   const [error, setError] = useState<unknown>(null)
   const word = t('danger.word')
   const ready = typed.trim().toLocaleUpperCase() === word
-  const rows: { kind: Danger; app: boolean }[] = [
-    { kind: 'records', app: false },
-    { kind: 'delete', app: true },
-  ]
+  const rows: Danger[] = ['records', 'delete']
 
   async function run() {
     if (!kind || !ready) return
@@ -273,17 +270,17 @@ function DangerCard({ admin }: { admin: boolean }) {
       <CardContent>
         <FieldGroup>
           {rows.map((r) => (
-            <div key={r.kind} className="flex items-center justify-between gap-4">
+            <div key={r} className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium">{t(`danger.${r.kind}`)}</span>
-                <span className="text-xs text-muted-foreground">{t(`danger.${r.kind}Hint`)}</span>
+                <span className="text-sm font-medium">{t(`danger.${r}`)}</span>
+                <span className="text-xs text-muted-foreground">{t(`danger.${r}Hint`)}</span>
               </div>
               <Button
-                variant="destructive" size="sm" className="shrink-0" disabled={!admin || (r.app && !inApp)}
-                onClick={() => { setTyped(''); setError(null); setKind(r.kind) }}
+                variant="destructive" size="sm" className="shrink-0" disabled={!admin}
+                onClick={() => { setTyped(''); setError(null); setKind(r) }}
               >
                 <Trash2Icon data-icon="inline-start" />
-                {t(`danger.${r.kind}`)}
+                {t(`danger.${r}`)}
               </Button>
             </div>
           ))}
