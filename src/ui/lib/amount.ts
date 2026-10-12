@@ -46,3 +46,14 @@ export function tidyAmount(raw: string, exponent: number): string {
 }
 
 export const today = () => new Date().toLocaleDateString('sv')
+
+/** Base minor units → minor units of a currency at `rate` (1 unit = rate base). For suggestions; half away from zero. */
+export function fromBase(baseMinor: number, rate: string, baseExp: number, exp: number): number {
+  const [int, frac = ''] = rate.split('.')
+  const num = BigInt(baseMinor) * 10n ** BigInt(exp + frac.length)
+  const den = BigInt(int + frac) * 10n ** BigInt(baseExp)
+  if (den === 0n) return 0
+  const q = num / den
+  const r = num % den
+  return Number(2n * (r < 0n ? -r : r) >= den ? q + (num < 0n ? -1n : 1n) : q)
+}

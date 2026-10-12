@@ -12,11 +12,16 @@ type Props = {
   invalid?: boolean
   className?: string
   'aria-label'?: string
+  /** Offers "+ name" for a typed name with no match; picking it sets the value to `new:<name>`. */
+  creatable?: boolean
+  placeholder?: string
 }
+
+export const NEW = 'new:'
 
 // Keyboard account picker for the journal grid: type part of a name or of its group, arrows move,
 // Enter or Tab picks the highlighted account, Escape restores the value.
-export function AccountPicker({ accounts, value, onChange, autoFocus, className, invalid, ...aria }: Props) {
+export function AccountPicker({ accounts, value, onChange, autoFocus, className, invalid, creatable, placeholder, ...aria }: Props) {
   const { t, i18n } = useTranslation()
   const selected = accounts.find((a) => a.uid === value)
   const [query, setQuery] = useState<string | null>(null)
@@ -26,10 +31,13 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
   const matches = useMemo(() => {
     if (query === null) return []
     const q = query.trim().toLocaleLowerCase(i18n.language)
-    return accounts.filter((a) => !q || `${a.path} ${a.label}`.toLocaleLowerCase(i18n.language).includes(q)).slice(0, 40)
-  }, [accounts, query, i18n.language])
+    const found = accounts.filter((a) => !q || `${a.path} ${a.label}`.toLocaleLowerCase(i18n.language).includes(q)).slice(0, 40)
+    const name = query.trim()
+    const exact = found.some((a) => a.label.toLocaleLowerCase(i18n.language) === q)
+    return creatable && name && !exact ? [...found, { uid: NEW + name, label: name, path: '', currency: '', created: true }] : found
+  }, [accounts, query, i18n.language, creatable])
 
-  function pick(a: AccountNode | undefined) {
+  function pick(a: { uid: string } | undefined) {
     if (a) onChange(a.uid)
     setQuery(null)
   }
@@ -58,8 +66,8 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
         aria-invalid={invalid || undefined}
         autoFocus={autoFocus}
         className="h-8 w-full rounded-md border border-transparent bg-transparent px-2 text-sm outline-none hover:border-input focus:border-ring focus:bg-background aria-invalid:border-destructive"
-        value={query ?? (selected ? selected.label : '')}
-        placeholder={t('gj.pickAccount')}
+        value={query ?? (selected ? selected.label : value.startsWith(NEW) ? value.slice(NEW.length) : '')}
+        placeholder={placeholder ?? t('gj.pickAccount')}
         onFocus={(e) => e.currentTarget.select()}
         onChange={(e) => { setQuery(e.target.value); setActive(0) }}
         onKeyDown={onKeyDown}
@@ -80,7 +88,7 @@ export function AccountPicker({ accounts, value, onChange, autoFocus, className,
               onMouseDown={(e) => { e.preventDefault(); pick(a) }}
               onMouseEnter={() => setActive(i)}
             >
-              <span className="flex-1 truncate">{a.label}</span>
+              <span className="flex-1 truncate">{'created' in a ? t('quick.newAccount', { name: a.label }) : a.label}</span>
               <span className="max-w-48 truncate text-muted-foreground">{a.path}</span>
               <span className="font-mono text-muted-foreground">{a.currency}</span>
             </li>

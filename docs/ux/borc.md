@@ -20,16 +20,16 @@ Dört işlem **aynı form**. Üstteki seçim yalnız yönü ve borç hesabını 
 ## Form
 | Alan | Zorunlu | Varsayılan |
 |---|---|---|
-| Kişi (Rehber) | evet | boş |
+| Kişi | evet | boş |
 | Para hesabı | evet | boş |
 | Tutar | evet | boş |
 | Tarih | hayır | bugün |
 | Açıklama | hayır | boş |
 
-- Kişi zorunlu: kime borçlu olduğumuz ya da kimin bize borçlu olduğu Rehber bakiyesinden izlenir.
-- Borç hesabı sorulmaz. Tek hesaptır (Kişilere Borçlar ya da Kişilerden Alacaklar), sistem seçer.
+- Kişi zorunlu. Kişi, Kişilerden Alacaklar ya da Kişilere Borçlar altındaki bir alt hesaptır (karar 2026-10-12, yerel sürüm; Rehber v1'de yok). Yeni bir ad yazılırsa kayıtla birlikte doğru grubun altında hesabı açılır.
+- Borç grubu sorulmaz; işlem türü seçer.
 - Para hesabı yalnız Varlık olur (Nakit, Banka). Kart ve alacak hesabı seçilemez.
-- Kişi seçilince formda açık bakiye görünür: alacak işlemlerinde "Açık alacağımız", borç işlemlerinde "Açık borcumuz" (ana para birimi).
+- Kişi seçilince formda açık bakiye görünür: alacak işlemlerinde "Açık alacağımız", borç işlemlerinde "Açık borcumuz" (kişi hesabının para biriminde).
 - Kısmi tahsilat/ödeme serbesttir. Tahsilat/Ödeme tutarı açık bakiyeyi aşarsa uyarı çıkar; Kaydet kapanmaz.
 - Para hesabı ile borç hesabının para birimi farklıysa ikinci tutar sorulur. Boşsa gün kuruyla önerilir.
 
