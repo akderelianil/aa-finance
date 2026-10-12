@@ -34,7 +34,7 @@ Decided 2026-10-12 with the product owner. Replaces the Supabase backend for v1.
 
 ## Out of v1
 - Sync, groups, member access, mobile, server-side FX fetch.
-- Later: encrypted sync with a relay server (PocketBase, Go). The server stores ciphertext only. Entry-level versions with a hybrid logical clock settle conflicts. Key loss means data loss, so a recovery key is required.
+- Later: encrypted sync. The server technology is not chosen. The server stores ciphertext only. Entry-level versions with a hybrid logical clock settle conflicts. Key loss means data loss, so a recovery key is required.
 
 ## Open decisions
 - Encrypt the SQLite file at rest (SQLCipher) in v1 or later.
