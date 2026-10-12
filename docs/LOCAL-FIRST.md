@@ -80,7 +80,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 | Binary / first bundle (gzip) | 4.7 MB / 69 KB |
 | Idle memory, PSS (app + WebKit processes) | 360 MB; 245 MB with `WEBKIT_DISABLE_COMPOSITING_MODE=1` |
 
-- Idle memory misses the 150 MB budget on WSL. Most of it is WebKitGTK with software rendering. Measure again on Windows (WebView2) before changing the budget.
+- Idle memory misses the 150 MB budget on WSL. Most of it is WebKitGTK with software rendering. The product owner accepts it for now. Optimize memory after v1 works.
 - Keep IPC calls few: one call per operation, not one per row.
 
 ## Out of v1
