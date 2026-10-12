@@ -55,7 +55,7 @@ Family members of the demo group: `demo.elif@aa-finance.test` (salary, own bank 
 - Cloudflare Pages: build `cd web && npm run build`, output `web/dist`, vars `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`. `public/_redirects` holds the SPA redirect.
 - Edge Function CORS: `npx supabase secrets set ALLOWED_ORIGINS=https://<origin>,http://localhost:5173`. Unset = only local port 5173. The dev project sets 5173 and 5174 (`localhost`, `127.0.0.1`); another Vite port gives "Bağlantı kurulamadı".
 - Edge Function DB: secret `DB_POOL_URL` = transaction pooler (`postgres.<ref>@aws-1-eu-central-1.pooler.supabase.com:6543`, password from `SUPABASE_DB_URL`). Without it, functions use direct connections and run out of slots (`53300`). The dev project has it set.
-- Custom SMTP (built-in email: 2 per hour), leaked-password protection (dashboard), Site URL / redirect URLs.
+- Custom SMTP (built-in email: 2 per hour), leaked-password protection (dashboard, needs the Pro plan; the dev project is Free, so it stays off), Site URL / redirect URLs.
 - Delete test users and test data (or use a new project).
 
 ## Known debt and limits
