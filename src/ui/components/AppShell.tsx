@@ -1,4 +1,5 @@
 import { ArrowRightLeftIcon, BookOpenIcon, ChartPieIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
@@ -74,7 +75,7 @@ export function AppShell() {
           <ThemeToggle />
         </header>
         <div className="flex w-full flex-col gap-4 px-6 pt-4 pb-8">
-          <Outlet />
+          <Suspense><Outlet /></Suspense>
         </div>
       </SidebarInset>
     </SidebarProvider>

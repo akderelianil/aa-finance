@@ -22,11 +22,27 @@ async function balances(db: Db, from: string, to: string, types: AccountType[]):
 
 const sum = (rows: ReportRow[]) => rows.reduce((s, r) => s + r.balance, 0)
 
-/** Mizan: every account with a balance up to `asOf`. Debit and credit totals match. */
+export type TrialRow = ReportRow & { debit: number; credit: number }
+
+/**
+ * Mizan: every account with lines up to `asOf`: debit and credit turnover and the balance.
+ * The debit and credit balance totals match.
+ */
 export const trialBalance = read(z.object({ asOf: z.optional(date) }), async (ctx, input) => {
-  const rows = await balances(ctx.db, '0000-01-01', input.asOf ?? '9999-12-31', ['asset', 'liability', 'equity', 'income', 'expense'])
-  const debit = rows.reduce((s, r) => s + Math.max(r.balance, 0), 0)
-  return { rows, debit, credit: debit - sum(rows) }
+  const rows = await ctx.db.query(
+    `SELECT a.uid, a.type, sum(l.base_amount) AS balance,
+            sum(max(l.base_amount, 0)) AS debit, -sum(min(l.base_amount, 0)) AS credit
+     FROM lines l JOIN accounts a ON a.id = l.account_id
+     WHERE l.deleted_at IS NULL AND l.entry_date <= ?
+     GROUP BY l.account_id ORDER BY a.id`,
+    [input.asOf ?? '9999-12-31'],
+  )
+  const out = rows.map((r): TrialRow => ({
+    account: r.uid as string, type: r.type as AccountType, balance: r.balance as number,
+    debit: r.debit as number, credit: r.credit as number,
+  }))
+  const debit = out.reduce((s, r) => s + Math.max(r.balance, 0), 0)
+  return { rows: out, debit, credit: debit - sum(out) }
 })
 
 /**

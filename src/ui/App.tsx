@@ -1,14 +1,17 @@
-import { useEffect } from 'react'
+import { lazy, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { PageHeader } from '@/components/PageHeader'
 import { ApiError, useOp } from '@/lib/api'
-import AccountRegister from '@/pages/AccountRegister'
-import Accounts from '@/pages/Accounts'
-import Journal from '@/pages/Journal'
 import Setup from '@/pages/Setup'
+
+// Pages load on first visit: a smaller first bundle.
+const Accounts = lazy(() => import('@/pages/Accounts'))
+const AccountRegister = lazy(() => import('@/pages/AccountRegister'))
+const Journal = lazy(() => import('@/pages/Journal'))
+const Reports = lazy(() => import('@/pages/Reports'))
 
 // L3 fills these routes step by step.
 function Soon({ title }: { title: string }) {
@@ -46,7 +49,7 @@ export default function App() {
         <Route path="/hesaplar" element={<Accounts />} />
         <Route path="/hesaplar/:uid" element={<AccountRegister />} />
         <Route path="/yevmiye" element={<Journal />} />
-        <Route path="/raporlar" element={<Soon title="nav.reports" />} />
+        <Route path="/raporlar" element={<Reports />} />
         <Route path="/kurlar" element={<Soon title="nav.rates" />} />
         <Route path="/ayarlar" element={<Soon title="nav.settings" />} />
       </Route>

@@ -66,7 +66,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - `call()` validates the input and binds the actor. It writes the `activity_log` row in the same transaction as the op's write. A failed write is logged with its error code. Reads are not logged.
 - Records are named by `uid` in the API, never by integer `id`. Currencies are named by ISO code.
 - Lists are paged (`page`, `pageSize` ≤1000, offset). Journal: newest first. Account register: oldest first, with `opening` and a running balance in the account currency.
-- Reports are in the base currency and signed like lines. The balance sheet returns the unclosed income and expense total as `earnings`.
+- Reports are in the base currency and signed like lines. The trial balance gives debit and credit turnover per account too. The balance sheet returns the unclosed income and expense total as `earnings`.
 - Foreign-currency line: the base amount comes from `baseAmount`, else `rate`, else the stored rate on or before the entry date (`rate_missing` if none). A difference up to 1 minor unit per converted line goes to FX Gains and Losses. A larger difference is `entry_unbalanced`.
 - Quick Entry flows (Gider, Gelir, Transfer, Borç) are pure builders in `src/core/quick.ts`. They make an `entries.post` input with exact base amounts, so their entries need no FX rounding line.
 - An entry edit replaces all lines (old ones get `deleted_at`). The number stays.

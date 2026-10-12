@@ -186,6 +186,9 @@ test('reports: trial balance totals match, balance sheet closes with earnings, i
   const tb = await api.call('reports.trialBalance', {})
   assert.equal(tb.debit, 105000)
   assert.equal(tb.credit, 105000)
+  // Turnover per account: debit and credit sides add up to the same total.
+  assert.equal(tb.rows.reduce((s, r) => s + r.debit, 0), tb.rows.reduce((s, r) => s + r.credit, 0))
+  assert.ok(tb.rows.every((r) => r.debit - r.credit === r.balance))
   assert.equal((await api.call('reports.trialBalance', { asOf: '2026-01-31' })).debit, 100000)
 
   const bs = await api.call('reports.balanceSheet', {})
