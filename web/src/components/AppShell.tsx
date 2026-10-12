@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '@/auth/AuthProvider'
 import type { Membership } from '@/auth/useMembership'
-import { Separator } from '@/components/ui/separator'
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarSeparator, SidebarTrigger,
 } from '@/components/ui/sidebar'
+import { AppBreadcrumb } from './AppBreadcrumb'
 import { GroupHeader } from './GroupHeader'
 import { SidebarCalendar } from './SidebarCalendar'
 import { NavUser } from './NavUser'
@@ -90,7 +90,7 @@ export function AppShell({ membership }: { membership: Membership }) {
       <SidebarInset className="min-w-0">
         <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger aria-label={t('profile.toggle')} />
-          <Separator orientation="vertical" className="h-4" />
+          <AppBreadcrumb user={user} />
         </header>
         <div className="flex w-full flex-col gap-4 px-6 pt-2 pb-8">
           <InsideAppShell.Provider value><Outlet /></InsideAppShell.Provider>
