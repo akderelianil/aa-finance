@@ -50,6 +50,7 @@ export const tr = {
     parent: 'Hangi grubun altında?',
     parentHint: 'Hesap grubun türünü alır. Banka hesabı için Banka, kart için Kredi Kartları, harcama için Giderler altındaki bir grubu seç.',
     pickParent: 'Grup seç',
+    newHint: 'Borç ve alacak satırlarını gir. Kayıt dengede olmalı.',
     newTitle: 'Yeni hesap',
     editTitle: 'Hesabı düzenle',
     preview: 'Önizleme',
@@ -155,6 +156,13 @@ export const tr = {
     emptyHint: 'Rapor, yevmiye kayıtlarından oluşur.',
   },
   quick: {
+    chooser: {
+      title: 'Ne kaydetmek istiyorsun?', subtitle: 'Ne olduğunu seç; gerisini birlikte dolduralım.',
+      expense: 'Bir harcama yaptım', income: 'Hesabıma para geldi', transfer: 'Hesaplarım arasında para aktardım',
+      debt: 'Borç aldım, verdim, tahsil ettim ya da ödedim',
+      free: 'Serbest kayıt', freeHint: 'Borç ve alacak satırlarını kendin gir (muhasebe kaydı)',
+    },
+    back: 'Seçime dön',
     title: 'Hızlı Kayıt',
     subtitle: 'Gider, gelir, transfer ve borcu tek ekrandan kaydet. Kayıt Yevmiye’ye düşer.',
     kind: { expense: 'Gider', income: 'Gelir', transfer: 'Transfer', debt: 'Borç' },

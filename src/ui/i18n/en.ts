@@ -52,6 +52,7 @@ export const en: Translation = {
     parent: 'Under which group?',
     parentHint: 'The account takes the type of the group. Pick Bank for a bank account, Credit Cards for a card, a group under Expenses for spending.',
     pickParent: 'Pick a group',
+    newHint: 'Enter the debit and credit lines. The entry must balance.',
     newTitle: 'New account',
     editTitle: 'Edit account',
     preview: 'Preview',
@@ -157,6 +158,13 @@ export const en: Translation = {
     emptyHint: 'Reports come from journal entries.',
   },
   quick: {
+    chooser: {
+      title: 'What do you want to record?', subtitle: 'Pick what happened; we fill in the rest.',
+      expense: 'I spent money', income: 'Money came in', transfer: 'I moved money between my accounts',
+      debt: 'I borrowed, lent, collected or repaid',
+      free: 'Free entry', freeHint: 'Enter the debit and credit lines yourself (accounting record)',
+    },
+    back: 'Back to the choice',
     title: 'Quick Entry',
     subtitle: 'Record an expense, income, transfer or debt on one screen. The entry goes to the General Journal.',
     kind: { expense: 'Expense', income: 'Income', transfer: 'Transfer', debt: 'Debt' },

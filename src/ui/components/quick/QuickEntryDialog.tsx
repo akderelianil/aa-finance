@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query'
-import { ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, TrendingDownIcon, TrendingUpIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowLeftRightIcon, ArrowRightIcon, ChevronRightIcon, HandCoinsIcon, PlusIcon, Trash2Icon, NotebookPenIcon, TrendingDownIcon, TrendingUpIcon, type LucideIcon } from 'lucide-react'
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { EntryInput } from '../../../core/api/entries.ts'
@@ -22,18 +22,63 @@ import { useQueryClient } from '@tanstack/react-query'
 export type QuickKind = 'expense' | 'income' | 'transfer' | 'debt'
 const DEBT_KINDS: quick.DebtKind[] = ['lend', 'borrow', 'collect', 'repay']
 
-export function QuickEntryDialog({ kind, onClose }: { kind: QuickKind | null; onClose: () => void }) {
+const CHOICES: { key: QuickKind; icon: LucideIcon; tone: string }[] = [
+  { key: 'expense', icon: TrendingDownIcon, tone: 'text-chart-4' },
+  { key: 'income', icon: TrendingUpIcon, tone: 'text-chart-2' },
+  { key: 'transfer', icon: ArrowLeftRightIcon, tone: 'text-primary' },
+  { key: 'debt', icon: HandCoinsIcon, tone: 'text-primary' },
+]
+
+/**
+ * Hızlı Kayıt in two steps: first say what happened in everyday words, then fill that form.
+ * "Back" returns to the choice; Serbest kayıt hands over to the journal editor (`onFree`).
+ */
+export function QuickEntryDialog({ open, onClose, onFree }: { open: boolean; onClose: () => void; onFree: () => void }) {
   const { t } = useTranslation()
+  const [kind, setKind] = useState<QuickKind | null>(null)
+  const close = () => { onClose(); setKind(null) }
   return (
-    <Dialog open={kind !== null} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-2xl">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close() }}>
+      <DialogContent className={kind ? 'sm:max-w-2xl' : 'sm:max-w-xl'}>
         <DialogHeader>
-          <DialogTitle>{t('quick.title')}</DialogTitle>
-          <DialogDescription>{t('quick.subtitle')}</DialogDescription>
+          <DialogTitle>{kind ? t('quick.title') : t('quick.chooser.title')}</DialogTitle>
+          <DialogDescription>{kind ? t('quick.subtitle') : t('quick.chooser.subtitle')}</DialogDescription>
         </DialogHeader>
-        {kind && <QuickForm initial={kind} onClose={onClose} />}
+        {kind
+          ? <QuickForm key={kind} initial={kind} onClose={close} onBack={() => setKind(null)} />
+          : <Chooser onChoose={setKind} onFree={() => { close(); onFree() }} />}
       </DialogContent>
     </Dialog>
+  )
+}
+
+function Chooser({ onChoose, onFree }: { onChoose: (k: QuickKind) => void; onFree: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-3">
+        {CHOICES.map(({ key, icon: Icon, tone }, i) => (
+          <Button
+            key={key} type="button" variant="outline" size="lg" autoFocus={i === 0}
+            className="h-auto flex-col items-start gap-2 py-4 text-start whitespace-normal"
+            onClick={() => onChoose(key)}
+          >
+            <Icon className={`size-6 ${tone}`} aria-hidden />
+            <span className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium">{t(`quick.kind.${key}`)}</span>
+              <span className="text-xs font-normal text-muted-foreground">{t(`quick.chooser.${key}`)}</span>
+            </span>
+          </Button>
+        ))}
+      </div>
+      <Button type="button" variant="ghost" className="h-auto justify-start gap-3 py-2 whitespace-normal" onClick={onFree}>
+        <NotebookPenIcon className="size-5 text-muted-foreground" aria-hidden />
+        <span className="flex flex-col items-start gap-0.5 text-start">
+          <span className="text-sm font-medium">{t('quick.chooser.free')}</span>
+          <span className="text-xs font-normal text-muted-foreground">{t('quick.chooser.freeHint')}</span>
+        </span>
+      </Button>
+    </div>
   )
 }
 
@@ -43,7 +88,7 @@ const emptySplit = (): Split => ({ key: nextKey++, account: '', memo: '', amount
 
 // Hızlı Kayıt: Gider · Gelir · Transfer · Borç ([docs/ux](../../../../docs/ux/README.md)). Each form builds one
 // entries.post input with the core builders (src/core/quick.ts); the booking can be shown before saving.
-function QuickForm({ initial, onClose }: { initial: QuickKind; onClose: () => void }) {
+function QuickForm({ initial, onClose, onBack }: { initial: QuickKind; onClose: () => void; onBack: () => void }) {
   const { t } = useTranslation()
   const errorText = useErrorText()
   const qc = useQueryClient()
@@ -221,7 +266,7 @@ function QuickForm({ initial, onClose }: { initial: QuickKind; onClose: () => vo
       onClose()
     } catch (e) {
       setSaveError(e)
-      // An account opened before a failed post stays; refresh so the form sees it.
+      // A person account opened before a failed post stays (the user made it); refresh so the form picks it up.
       await qc.invalidateQueries()
     } finally {
       setSaving(false)
@@ -256,6 +301,10 @@ function QuickForm({ initial, onClose }: { initial: QuickKind; onClose: () => vo
       className="flex flex-col gap-4"
       onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void save() } }}
     >
+      <div className="flex items-center gap-2">
+      <Button type="button" variant="ghost" size="icon-sm" aria-label={t('quick.back')} title={t('quick.back')} onClick={onBack}>
+        <ArrowLeftIcon />
+      </Button>
       <Tabs value={kind} onValueChange={(v) => changeKind(v as QuickKind)}>
         <TabsList>
           <TabsTrigger value="expense"><TrendingDownIcon />{t('quick.kind.expense')}</TabsTrigger>
@@ -264,6 +313,7 @@ function QuickForm({ initial, onClose }: { initial: QuickKind; onClose: () => vo
           <TabsTrigger value="debt"><HandCoinsIcon />{t('quick.kind.debt')}</TabsTrigger>
         </TabsList>
       </Tabs>
+      </div>
 
       {kind === 'debt' && (
         <ToggleGroup

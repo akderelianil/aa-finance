@@ -6,7 +6,9 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { QuickEntryDialog, type QuickKind } from './quick/QuickEntryDialog'
+import { EntryDialog } from './journal/EntryDialog'
+import { newDraft, type Draft } from './journal/JournalEditor'
+import { QuickEntryDialog } from './quick/QuickEntryDialog'
 import { ThemeToggle } from './ThemeToggle'
 
 const ITEMS = [
@@ -22,7 +24,8 @@ const active = (pathname: string, to: string) => pathname === to || pathname.sta
 export function AppShell() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const [quick, setQuick] = useState<QuickKind | null>(null)
+  const [quick, setQuick] = useState(false)
+  const [draft, setDraft] = useState<Draft | null>(null)
 
   return (
     <SidebarProvider>
@@ -34,7 +37,7 @@ export function AppShell() {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     tooltip={t('nav.quick')}
-                    onClick={() => setQuick('expense')}
+                    onClick={() => setQuick(true)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
                   >
                     <PlusIcon />
@@ -81,7 +84,8 @@ export function AppShell() {
           <Suspense><Outlet /></Suspense>
         </div>
       </SidebarInset>
-      <QuickEntryDialog kind={quick} onClose={() => setQuick(null)} />
+      <QuickEntryDialog open={quick} onClose={() => setQuick(false)} onFree={() => setDraft(newDraft())} />
+      <EntryDialog draft={draft} onChange={setDraft} onClose={() => setDraft(null)} />
     </SidebarProvider>
   )
 }

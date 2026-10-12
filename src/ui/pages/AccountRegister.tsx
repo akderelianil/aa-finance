@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 import { EntryHistory } from '@/components/journal/EntryHistory'
-import { JournalEditor, entryToDraft, newDraft, type Draft } from '@/components/journal/JournalEditor'
+import { EntryDialog } from '@/components/journal/EntryDialog'
+import { entryToDraft, newDraft, type Draft } from '@/components/journal/JournalEditor'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { DataGrid, DataGridContainer, dataGridFeatures, type DataGridFeatures } from '@/components/reui/data-grid/data-grid'
@@ -18,7 +19,6 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import { PAGE_SIZES, useGridI18n, useServerPages } from '@/lib/grid'
 import type { Entry } from '@/lib/journal'
-import { flattenTree, shown, useAccountTree, useBook } from '@/lib/ledger'
+import { shown, useAccountTree, useBook } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import type { RegisterRow } from '../../core/api/accounts.ts'
 
@@ -44,9 +44,8 @@ export default function AccountRegister() {
   const errorText = useErrorText()
   const { base, minor, fmt } = useBook()
   const accounts = useOp('accounts.list', {})
-  const { roots, byUid } = useAccountTree(accounts.data)
+  const { byUid } = useAccountTree(accounts.data)
   const account = byUid.get(uid)
-  const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -271,21 +270,7 @@ export default function AccountRegister() {
         </Frame>
       </DataGrid>
 
-      <Dialog open={!!draft} onOpenChange={(o) => { if (!o) setDraft(null) }}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{draft?.uid ? t('gj.editing') : t('gj.newTitle')}</DialogTitle>
-            <DialogDescription className="sr-only">{account?.label}</DialogDescription>
-          </DialogHeader>
-          {draft && (
-            <JournalEditor
-              key={draft.uid ?? 'new'}
-              draft={draft} onChange={setDraft} accounts={postable} byUid={byUid} base={base} minor={minor} fmt={fmt}
-              onCancel={() => setDraft(null)} onSaved={() => setDraft(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <EntryDialog draft={draft} onChange={setDraft} onClose={() => setDraft(null)} />
 
       <EntryHistory entry={history} onClose={() => setHistory(null)} />
 

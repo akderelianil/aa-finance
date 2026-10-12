@@ -3,7 +3,8 @@ import { MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { EntryHistory } from '@/components/journal/EntryHistory'
-import { JournalEditor, entryToDraft, newDraft, type Draft } from '@/components/journal/JournalEditor'
+import { EntryDialog } from '@/components/journal/EntryDialog'
+import { entryToDraft, newDraft, type Draft } from '@/components/journal/JournalEditor'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
@@ -18,7 +19,6 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
@@ -28,7 +28,7 @@ import { today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { PAGE_SIZES, useGridI18n, useServerPages } from '@/lib/grid'
 import type { Entry } from '@/lib/journal'
-import { flattenTree, useAccountTree, useBook } from '@/lib/ledger'
+import { useAccountTree, useBook } from '@/lib/ledger'
 
 type Period = 'month' | 'lastMonth' | 'year' | 'all' | 'custom'
 
@@ -62,8 +62,7 @@ export default function Journal() {
   const [deleting, setDeleting] = useState<Entry | null>(null)
 
   const accounts = useOp('accounts.list', {})
-  const { roots, byUid } = useAccountTree(accounts.data)
-  const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
+  const { byUid } = useAccountTree(accounts.data)
   const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined }
   const [total, setTotal] = useState<number>()
   const pages = useServerPages(JSON.stringify(filters), total)
@@ -236,21 +235,7 @@ export default function Journal() {
         </Frame>
       </DataGrid>
 
-      <Dialog open={!!draft} onOpenChange={(o) => { if (!o) setDraft(null) }}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{draft?.uid ? t('gj.editing') : t('gj.newTitle')}</DialogTitle>
-            <DialogDescription className="sr-only">{t('gj.subtitle')}</DialogDescription>
-          </DialogHeader>
-          {draft && (
-            <JournalEditor
-              key={draft.uid ?? 'new'}
-              draft={draft} onChange={setDraft} accounts={postable} byUid={byUid} base={base} minor={minor} fmt={fmt}
-              onCancel={() => setDraft(null)} onSaved={() => setDraft(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      <EntryDialog draft={draft} onChange={setDraft} onClose={() => setDraft(null)} />
 
       <EntryHistory entry={history} onClose={() => setHistory(null)} />
 
