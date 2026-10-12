@@ -170,6 +170,8 @@ export const tr = {
     subtitle: 'Gider, gelir, transfer ve borcu tek ekrandan kaydet. Kayıt Yevmiye’ye düşer.',
     kind: { expense: 'Gider', income: 'Gelir', transfer: 'Transfer', debt: 'Borç' },
     debtKind: { lend: 'Borç Verme', borrow: 'Borç Alma', collect: 'Tahsilat', repay: 'Ödeme' },
+    account: 'Hesap',
+    total: 'Toplam',
     amount: 'Tutar',
     paidFrom: 'Ödeme hesabı',
     paidTo: 'Tahsil hesabı',

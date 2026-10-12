@@ -172,6 +172,8 @@ export const en: Translation = {
     subtitle: 'Record an expense, income, transfer or debt on one screen. The entry goes to the General Journal.',
     kind: { expense: 'Expense', income: 'Income', transfer: 'Transfer', debt: 'Debt' },
     debtKind: { lend: 'Lend', borrow: 'Borrow', collect: 'Collect', repay: 'Repay' },
+    account: 'Account',
+    total: 'Total',
     amount: 'Amount',
     paidFrom: 'Paid from',
     paidTo: 'Received into',

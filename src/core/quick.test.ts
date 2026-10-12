@@ -38,6 +38,12 @@ test('expense: splits on a card; a foreign payment converts with the last split 
     await post(expense(book, { date: '2026-03-01', from: card, total: 50000, splits: [{ account: g, amount: 30000 }, { account: r, amount: 20000 }] })),
     [[card.id, -50000, -50000], [g.id, 30000, 30000], [r.id, 20000, 20000]],
   )
+  const bank = acc('Akbank')
+  // A split paid from another account gets its own money line.
+  assert.deepEqual(
+    await post(expense(book, { date: '2026-03-01', from: card, total: 50000, splits: [{ account: g, amount: 30000 }, { account: r, amount: 20000, money: bank }] })),
+    [[card.id, -30000, -30000], [bank.id, -20000, -20000], [g.id, 30000, 30000], [r.id, 20000, 20000]],
+  )
   const usd = acc('USD Account')
   // 3 × 0.01 USD at 33.335: 0.33335 TRY each; total 0.03 USD → 1.00 TRY.
   assert.deepEqual(

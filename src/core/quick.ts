@@ -9,7 +9,8 @@ export type QuickAccount = { id: number; type: AccountType; currency: string }
 export type Book = { base: string; minor(code: string): number }
 
 type Common = { date: string; description?: string | null; reference?: string | null }
-type Split = { account: QuickAccount; amount: number; memo?: string | null }
+/** `money` overrides the entry's payment/receiving account for this one split. */
+type Split = { account: QuickAccount; amount: number; memo?: string | null; money?: QuickAccount }
 
 export class QuickError extends Error {
   readonly code: string
@@ -26,6 +27,7 @@ const fail = (code: string): never => {
 export function expense(book: Book, f: Common & { from: QuickAccount; total: number; splits: Split[]; rate?: string }): EntryInput {
   if (f.from.type !== 'asset' && f.from.type !== 'liability') fail('quick_payment_account')
   if (f.splits.some((s) => s.account.type !== 'expense')) fail('quick_expense_account')
+  if (f.splits.some((s) => s.money && s.money.type !== 'asset' && s.money.type !== 'liability')) fail('quick_payment_account')
   return split(book, f, f.from, f.splits, -1)
 }
 
@@ -33,6 +35,7 @@ export function expense(book: Book, f: Common & { from: QuickAccount; total: num
 export function income(book: Book, f: Common & { to: QuickAccount; total: number; splits: Split[]; rate?: string }): EntryInput {
   if (f.to.type !== 'asset') fail('quick_receive_account')
   if (f.splits.some((s) => s.account.type !== 'income')) fail('quick_income_account')
+  if (f.splits.some((s) => s.money && s.money.type !== 'asset')) fail('quick_receive_account')
   return split(book, f, f.to, f.splits, 1)
 }
 
@@ -44,6 +47,21 @@ function split(book: Book, f: Common & { total: number; rate?: string }, money: 
   if (!(f.total > 0) || !splits.length || splits.some((s) => !(s.amount > 0))) fail('quick_amount')
   if (splits.reduce((s, x) => s + x.amount, 0) !== f.total) fail('quick_split_mismatch')
   const head = { date: f.date, description: f.description ?? null, reference: f.reference ?? null }
+  if (splits.some((s) => s.money && s.money.id !== money.id)) {
+    // Splits paid from different accounts: one money line per account. One currency only.
+    const all = [money, ...splits.map((s) => s.money ?? money), ...splits.map((s) => s.account)]
+    if (all.some((a) => a.currency !== money.currency)) fail('quick_currency_unsupported')
+    const r = money.currency !== book.base && f.rate ? { rate: f.rate } : {}
+    const paid = new Map<number, number>()
+    for (const s of splits) paid.set((s.money ?? money).id, (paid.get((s.money ?? money).id) ?? 0) + s.amount)
+    return {
+      ...head,
+      lines: [
+        ...[...paid].map(([account, amount]) => ({ account, amount: sign * amount, ...r })),
+        ...splits.map((s) => ({ account: s.account.id, amount: -sign * s.amount, memo: s.memo ?? null, ...r })),
+      ],
+    }
+  }
   if (splits.every((s) => s.account.currency === money.currency)) {
     // One currency: the server converts (or not, in base) with `rate` or the stored rate.
     const r = money.currency !== book.base && f.rate ? { rate: f.rate } : {}
