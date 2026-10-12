@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { ApiError, useOp } from '@/lib/api'
+import { autoBackup } from '@/lib/files'
 import Setup from '@/pages/Setup'
 
 // Pages load on first visit: a smaller first bundle.
@@ -13,6 +14,7 @@ const Journal = lazy(() => import('@/pages/Journal'))
 const Reports = lazy(() => import('@/pages/Reports'))
 const Rates = lazy(() => import('@/pages/Rates'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const Activity = lazy(() => import('@/pages/Activity'))
 
 // Not set up → Setup; set up → the app in the saved language.
 export default function App() {
@@ -23,6 +25,12 @@ export default function App() {
   useEffect(() => {
     if (language && i18n.language !== language) void i18n.changeLanguage(language)
   }, [language, i18n])
+
+  // Once the book is set up: today's automatic backup (a failure must not stop the app).
+  const ready = !!settings.data
+  useEffect(() => {
+    if (ready) autoBackup().catch((e) => console.error('auto backup', e))
+  }, [ready])
 
   if (settings.error instanceof ApiError && settings.error.code === 'not_setup') return <Setup />
   if (!settings.data) {
@@ -42,6 +50,7 @@ export default function App() {
         <Route path="/raporlar" element={<Reports />} />
         <Route path="/kurlar" element={<Rates />} />
         <Route path="/ayarlar" element={<Settings />} />
+        <Route path="/etkinlik" element={<Activity />} />
       </Route>
       <Route path="*" element={<Navigate to="/hesaplar" replace />} />
     </Routes>

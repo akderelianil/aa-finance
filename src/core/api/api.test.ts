@@ -34,9 +34,12 @@ test('before setup only setup.run and currencies.list work; setup runs once', as
   await assert.rejects(api.call('setup.run', { baseCurrency: 'XXX', language: 'en', userName: 'T', recommended: false }), code('currency_unknown'))
   await api.call('setup.run', { baseCurrency: 'TRY', language: 'tr', userName: 'T', recommended: false })
   await assert.rejects(api.call('setup.run', { baseCurrency: 'EUR', language: 'tr', userName: 'T', recommended: false }), code('already_setup'))
-  assert.deepEqual(await api.call('settings.get', {}), { baseCurrency: 'TRY', language: 'tr', lockDate: null, activityLogDays: 365 })
+  assert.deepEqual(await api.call('settings.get', {}), { baseCurrency: 'TRY', language: 'tr', lockDate: null, activityLogDays: 365, userName: 'T' })
   await api.call('settings.update', { language: 'en', lockDate: '2025-12-31' })
   assert.equal((await api.call('settings.get', {})).lockDate, '2025-12-31')
+  await api.call('settings.update', { userName: ' Anıl ' })
+  assert.equal((await api.call('settings.get', {})).userName, 'Anıl')
+  await assert.rejects(api.call('settings.update', { userName: ' ' }), code('invalid_input'))
 })
 
 test('bad input fails with invalid_input and an unknown op with unknown_op', async () => {
@@ -215,4 +218,23 @@ test('activity_log records writes and failures; audit.forRow shows row history',
 
   const hist = await api.call('audit.forRow', { table: 'accounts', uid })
   assert.deepEqual(hist.map((h) => [h.op, h.new?.name]), [['insert', 'A'], ['update', 'B']])
+})
+
+test('data.export: every table, ids as uids, currencies as codes', async () => {
+  const { api, acc } = await fresh()
+  await api.call('fx.set', { currency: 'USD', date: '2026-01-01', rate: '40' })
+  const { uid } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
+  const out = await api.call('data.export', {})
+  assert.equal(out.format, 'aa-finance')
+  assert.equal(out.schemaVersion, 2)
+  const { tables: t } = out
+  const entry = t.entries.find((e) => e.uid === uid)!
+  assert.equal(entry.id, undefined)
+  assert.equal(entry.state, 'posted')
+  const lines = t.lines.filter((l) => l.entry === uid)
+  assert.deepEqual(lines.map((l) => [l.account, l.amount]).sort(), [[acc('Wallet'), 500], [acc('opening_balance'), -500]].sort())
+  assert.equal(t.fx_rates[0].currency, 'USD')
+  assert.equal(t.accounts.find((a) => a.uid === acc('bank'))!.parent, acc('asset'))
+  assert.ok(t.audit_log.some((g) => g.table_name === 'entries' && g.row === uid && typeof g.new === 'object'))
+  assert.ok(t.activity_log.some((g) => g.operation === 'entries.post' && typeof g.actor === 'string'))
 })

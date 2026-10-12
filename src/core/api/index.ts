@@ -4,6 +4,7 @@ import * as z from 'zod/mini'
 import type { Db } from '../db.ts'
 import * as accounts from './accounts.ts'
 import type { Ctx, Op } from './ctx.ts'
+import * as data from './data.ts'
 import * as entries from './entries.ts'
 import { ApiError, toApiError } from './errors.ts'
 import * as fx from './fx.ts'
@@ -38,6 +39,7 @@ export const ops = {
   'reports.incomeStatement': reports.incomeStatement,
   'activity.list': logs.activity,
   'audit.forRow': logs.audit,
+  'data.export': data.exportAll,
 } satisfies Record<string, Op>
 
 export type OpName = keyof typeof ops

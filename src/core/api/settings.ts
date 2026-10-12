@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 import { setupStatements } from '../setup.ts'
-import { currency, date, fail, name, one, read, update, write } from './ctx.ts'
+import { currency, date, fail, name, need, one, read, update, write } from './ctx.ts'
 
 export const setup = write(
   z.object({ baseCurrency: currency, language: z.enum(['tr', 'en']), userName: name, recommended: z.boolean() }),
@@ -18,9 +18,10 @@ export const setup = write(
   },
 )
 
-export type Settings = { baseCurrency: string; language: 'tr' | 'en'; lockDate: string | null; activityLogDays: number }
+export type Settings = { baseCurrency: string; language: 'tr' | 'en'; lockDate: string | null; activityLogDays: number; userName: string }
 
 export const get = read(z.object({}), async (ctx): Promise<Settings> => {
+  const user = await need(ctx.db, 'not_setup', 'SELECT name FROM actors WHERE id = ?', [ctx.actor])
   const rows = await ctx.db.query(`SELECT key, value FROM settings WHERE key IN ('base_currency', 'language', 'lock_date', 'activity_log_days')`)
   const v = Object.fromEntries(rows.map((r) => [r.key, r.value]))
   if (!v.base_currency) fail('not_setup')
@@ -29,6 +30,7 @@ export const get = read(z.object({}), async (ctx): Promise<Settings> => {
     language: v.language as Settings['language'],
     lockDate: (v.lock_date as string | null) ?? null,
     activityLogDays: Number(v.activity_log_days),
+    userName: user.name as string,
   }
 })
 
@@ -37,6 +39,8 @@ export const set = write(
     language: z.optional(z.enum(['tr', 'en'])),
     lockDate: z.optional(z.nullable(date)),
     activityLogDays: z.optional(z.int().check(z.minimum(1))),
+    /** The profile name: the local user actor. */
+    userName: z.optional(name),
   }),
   async (ctx, input) => {
     const values: [string, string | null | undefined][] = [
@@ -49,6 +53,10 @@ export const set = write(
     const statements = values
       .filter(([, v]) => v !== undefined)
       .map(([key, v]) => update(ctx, 'settings', uidOf.get(key) ?? fail('not_setup'), { value: v ?? null }))
+    if (input.userName !== undefined) {
+      values.push(['user_name', input.userName])
+      statements.push({ sql: 'UPDATE actors SET name = ?, updated_at = ?, updated_by = ? WHERE id = ?', params: [input.userName, Date.now(), ctx.actor, ctx.actor] })
+    }
     if (statements.length) await ctx.write(statements, values.filter(([, v]) => v !== undefined).map(([k]) => k).join(', '))
     return {}
   },

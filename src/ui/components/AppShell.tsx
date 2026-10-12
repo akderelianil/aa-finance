@@ -1,4 +1,4 @@
-import { ArrowRightLeftIcon, BookOpenIcon, ChartPieIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { ArrowRightLeftIcon, BookOpenIcon, ChartPieIcon, HistoryIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
@@ -64,6 +64,12 @@ export function AppShell() {
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip={t('nav.activity')} isActive={active(pathname, '/etkinlik')} render={<NavLink to="/etkinlik" />}>
+                <HistoryIcon />
+                <span>{t('nav.activity')}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip={t('nav.settings')} isActive={active(pathname, '/ayarlar')} render={<NavLink to="/ayarlar" />}>
                 <SettingsIcon />

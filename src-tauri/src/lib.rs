@@ -1,3 +1,4 @@
+mod backup;
 mod db;
 
 use std::sync::Mutex;
@@ -11,6 +12,7 @@ fn dev_log(msg: String) {
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
@@ -21,6 +23,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             db::db_query,
             db::db_batch,
+            backup::backup_dir,
+            backup::backup_to,
+            backup::backup_auto,
+            backup::restore_from,
+            backup::write_text,
             dev_log
         ])
         .run(tauri::generate_context!())
