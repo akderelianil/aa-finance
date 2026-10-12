@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ArchiveRestoreIcon, DatabaseBackupIcon, FileJsonIcon } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
@@ -19,6 +19,7 @@ import { toast } from '@/components/ui/toast'
 import { DataState } from '@/components/DataState'
 import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
+import { COUNTRY_CURRENCY } from '../../core/countries.ts'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { backupAs, backupDir, exportJson, inApp, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
@@ -45,6 +46,13 @@ function SettingsForm({ values }: { values: Values }) {
   const [lockDate, setLockDate] = useState(values.lockDate ?? '')
   const [days, setDays] = useState(String(values.activityLogDays))
   const [groupName, setGroupName] = useState(values.groupName)
+  const [country, setCountry] = useState(values.country ?? '')
+  const countries = useMemo(() => {
+    const names = new Intl.DisplayNames([i18n.language], { type: 'region' })
+    return Object.keys(COUNTRY_CURRENCY)
+      .map((c) => ({ value: c, label: names.of(c) ?? c }))
+      .sort((a, b) => a.label.localeCompare(b.label, i18n.language))
+  }, [i18n.language])
   const admin = values.me.role === 'admin'
   const save = useWrite('settings.update')
   const daysNumber = Number(days)
@@ -60,6 +68,7 @@ function SettingsForm({ values }: { values: Values }) {
         ...((lockDate || null) !== values.lockDate && { lockDate: lockDate || null }),
         ...(daysNumber !== values.activityLogDays && { activityLogDays: daysNumber }),
         ...(groupName.trim() !== values.groupName && { groupName: groupName.trim() }),
+        ...(country && country !== values.country && { country }),
       },
       {
         onSuccess: () => {
@@ -94,7 +103,7 @@ function SettingsForm({ values }: { values: Values }) {
                 <Field>
                   <FieldLabel htmlFor="set-language">{t('setup.language')}</FieldLabel>
                   <OptionSelect
-                    id="set-language" value={language} onChange={(v) => setLanguage(v as Language)}
+                    id="set-language" value={language} onChange={(v) => setLanguage(v as Language)} disabled={!admin}
                     options={LANGUAGES.map((l) => ({ value: l, label: t(`language.${l}`) }))}
                   />
                 </Field>
@@ -104,17 +113,25 @@ function SettingsForm({ values }: { values: Values }) {
                 </Field>
               </div>
               <Field>
+                <FieldLabel htmlFor="set-country">{t('setup.country')}</FieldLabel>
+                <OptionSelect
+                  id="set-country" className="max-w-sm" value={country} onChange={setCountry} disabled={!admin}
+                  placeholder={t('settings.countryNone')} options={countries}
+                />
+                <FieldDescription>{t('settings.countryHint')}</FieldDescription>
+              </Field>
+              <Field>
                 <FieldLabel htmlFor="set-lock">{t('settings.lockDate')}</FieldLabel>
                 <div className="flex items-center gap-2">
-                  <Input id="set-lock" type="date" className="w-44" value={lockDate} onChange={(e) => setLockDate(e.target.value)} />
-                  {lockDate && <Button type="button" variant="ghost" size="sm" onClick={() => setLockDate('')}>{t('settings.unlock')}</Button>}
+                  <Input id="set-lock" type="date" className="w-44" value={lockDate} disabled={!admin} onChange={(e) => setLockDate(e.target.value)} />
+                  {lockDate && admin && <Button type="button" variant="ghost" size="sm" onClick={() => setLockDate('')}>{t('settings.unlock')}</Button>}
                 </div>
                 <FieldDescription>{t('settings.lockHint')}</FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="set-days">{t('settings.activityDays')}</FieldLabel>
                 <Input
-                  id="set-days" inputMode="numeric" className="max-w-28 text-end tabular-nums" value={days}
+                  id="set-days" inputMode="numeric" className="max-w-28 text-end tabular-nums" value={days} disabled={!admin}
                   aria-invalid={!!daysError || undefined} onChange={(e) => setDays(e.target.value.replace(/\D/g, ''))}
                 />
                 <FieldDescription className={daysError ? 'text-destructive' : undefined}>{daysError ?? t('settings.activityHint')}</FieldDescription>
@@ -123,7 +140,7 @@ function SettingsForm({ values }: { values: Values }) {
             </FieldGroup>
           </CardContent>
           <CardFooter className="justify-end">
-            <Button type="submit" disabled={save.isPending}>
+            <Button type="submit" disabled={save.isPending || !admin}>
               {save.isPending && <Spinner data-icon="inline-start" />}
               {t('common.save')}
             </Button>

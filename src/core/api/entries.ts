@@ -153,10 +153,14 @@ export type Entry = {
   description: string | null
   createdAt: number
   updatedAt: number
+  /** The member who wrote it. */
+  author: { uid: string; name: string; color: string | null }
   lines: Line[]
 }
 
-const entryColumns = 'e.uid, e.entry_date, e.year, e.number, e.reference, e.description, e.created_at, e.updated_at'
+const entryColumns = `e.uid, e.entry_date, e.year, e.number, e.reference, e.description, e.created_at, e.updated_at,
+  u.uid AS author_uid, u.name AS author_name, u.color AS author_color`
+const entryFrom = 'entries e JOIN actors u ON u.id = e.created_by'
 
 /** Entries by uid with their live lines, in the given order. Two queries. */
 async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promise<Entry[]> {
@@ -184,12 +188,13 @@ async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promis
     description: r.description as string | null,
     createdAt: r.created_at as number,
     updatedAt: r.updated_at as number,
+    author: { uid: r.author_uid as string, name: r.author_name as string, color: r.author_color as string | null },
     lines: by.get(r.uid as string)!,
   }))
 }
 
 export const get = read(z.object({ uid }), async (ctx, input) => {
-  const r = await need(ctx.db, 'entry_not_found', `SELECT ${entryColumns} FROM entries e WHERE e.uid = ? AND e.deleted_at IS NULL`, [input.uid])
+  const r = await need(ctx.db, 'entry_not_found', `SELECT ${entryColumns} FROM ${entryFrom} WHERE e.uid = ? AND e.deleted_at IS NULL`, [input.uid])
   return (await withLines(ctx.db, [r]))[0]
 })
 
@@ -202,9 +207,9 @@ export const list = read(
     const like = input.search ? `%${input.search.replace(/[\\%_]/g, '\\$&')}%` : null
     const params = [input.from ?? '0000-01-01', input.to ?? '9999-12-31', like]
     const { limit, offset } = limits(input)
-    const [{ total }] = await ctx.db.query(`SELECT count(*) AS total FROM entries e WHERE ${where}`, params)
+    const [{ total }] = await ctx.db.query(`SELECT count(*) AS total FROM ${entryFrom} WHERE ${where}`, params)
     const rows = await ctx.db.query(
-      `SELECT ${entryColumns} FROM entries e WHERE ${where} ORDER BY e.entry_date DESC, e.id DESC LIMIT ?4 OFFSET ?5`,
+      `SELECT ${entryColumns} FROM ${entryFrom} WHERE ${where} ORDER BY e.entry_date DESC, e.id DESC LIMIT ?4 OFFSET ?5`,
       [...params, limit, offset],
     )
     return { total: total as number, rows: await withLines(ctx.db, rows) }

@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { parseDecimal, today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { useFormat } from '@/lib/format'
 import { useBook } from '@/lib/ledger'
 import type { FxRate } from '../../core/api/fx.ts'
 
@@ -28,6 +29,7 @@ export default function Rates() {
   const { t, i18n } = useTranslation()
   const errorText = useErrorText()
   const { base } = useBook()
+  const { date: fmtDate } = useFormat()
   const [currency, setCurrency] = useState('')
   const [adding, setAdding] = useState(false)
   const rates = useOp('fx.list', { currency: currency || undefined })
@@ -47,7 +49,7 @@ export default function Rates() {
       id: 'date', accessorFn: (r) => r.date, size: 160,
       header: ({ column }) => <DataGridColumnHeader title={t('gj.date')} column={column} />,
       cell: ({ row: { original: r } }) => (
-        <span className="tabular-nums">{new Date(`${r.date}T00:00:00`).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        <span className="tabular-nums">{fmtDate(r.date)}</span>
       ),
       meta: { skeleton: <Skeleton className="h-4 w-20" /> },
     },
@@ -70,7 +72,7 @@ export default function Rates() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base])
+  ], [t, i18n.language, base, fmtDate])
 
   const table = useTable({
     features: dataGridFeatures,

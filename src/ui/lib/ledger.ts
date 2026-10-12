@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { Account } from '../../core/api/accounts.ts'
 import type { AccountType } from '../../core/chart.ts'
 import { useOp } from './api'
+import { formatLocale } from './format'
 
 export type { Account, AccountType }
 
@@ -15,7 +16,7 @@ export function useBook() {
   const settings = useOp('settings.get', {})
   const currencies = useOp('currencies.list', {})
   const base = settings.data?.baseCurrency ?? ''
-  const lang = i18n.language
+  const lang = formatLocale(settings.data?.country, i18n.language)
   // Stable functions: grids rebuild their columns when these change.
   return useMemo(() => {
     const minors = new Map((currencies.data ?? []).map((c) => [c.code, c.minorUnit]))

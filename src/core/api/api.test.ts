@@ -228,7 +228,7 @@ test('data.export: every table, ids as uids, currencies as codes', async () => {
   const { uid } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
   const out = await api.call('data.export', {})
   assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 3)
+  assert.equal(out.schemaVersion, 4)
   const { tables: t } = out
   const entry = t.entries.find((e) => e.uid === uid)!
   assert.equal(entry.id, undefined)
@@ -269,6 +269,10 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   await assert.rejects(api.call('members.update', { uid: admin.uid, name: 'X' }), code('admin_only'))
   await assert.rejects(api.call('members.update', { uid: ece.uid, role: 'admin' }), code('admin_only'))
   await assert.rejects(api.call('settings.update', { groupName: 'X' }), code('admin_only'))
+  for (const set of [{ language: 'en' }, { lockDate: '2026-01-01' }, { activityLogDays: 7 }, { country: 'DE' }] as const)
+    await assert.rejects(api.call('settings.update', set), code('admin_only'))
+  await api.call('settings.update', { userName: 'Ece' })
+  assert.deepEqual((await api.call('entries.get', { uid: adminEntry })).author.name, 'Anıl')
   await api.call('members.update', { uid: ece.uid, name: 'Ece A.', color: 'rose' })
   await assert.rejects(api.call('entries.delete', { uid: adminEntry }), code('entry_not_owner'))
   await assert.rejects(api.call('entries.update', { uid: adminEntry, description: 'x' }), code('entry_not_owner'))
@@ -276,6 +280,7 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   await api.call('entries.update', { uid: eceEntry, description: 'own' })
   // The trigger holds even without the API check.
   await assert.rejects(db.batch([{ sql: `UPDATE entries SET description = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, adminEntry] }]), /entry_not_owner/)
+  await assert.rejects(db.batch([{ sql: `UPDATE settings SET value = 'en', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE key = 'language'`, params: [ece.uid] }]), /admin_only/)
   await assert.rejects(db.batch([{ sql: `UPDATE actors SET name = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, admin.uid] }]), /admin_only/)
 
   // Back as the admin: edits Ece's entry, adds a member, keeps one admin.

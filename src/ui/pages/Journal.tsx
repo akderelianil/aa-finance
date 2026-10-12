@@ -28,6 +28,8 @@ import { today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { PAGE_SIZES, useGridI18n, useServerPages } from '@/lib/grid'
 import type { Entry } from '@/lib/journal'
+import { MemberAvatar } from '@/components/members/MemberAvatar'
+import { useFormat } from '@/lib/format'
 import { useAccountTree, useBook } from '@/lib/ledger'
 
 type Period = 'month' | 'lastMonth' | 'year' | 'all' | 'custom'
@@ -52,6 +54,7 @@ export default function Journal() {
   const { t, i18n } = useTranslation()
   const errorText = useErrorText()
   const { base, minor, fmt } = useBook()
+  const { date: fmtDate } = useFormat()
   const [period, setPeriod] = useState<Period>('all')
   const [custom, setCustom] = useState<[string, string]>([iso(new Date(new Date().getFullYear(), 0, 1)), today()])
   const [from, to] = period === 'custom' ? custom : periodRange(period)
@@ -61,6 +64,7 @@ export default function Journal() {
   const [history, setHistory] = useState<Entry | null>(null)
   const [deleting, setDeleting] = useState<Entry | null>(null)
 
+  const me = useOp('settings.get', {}).data?.me
   const accounts = useOp('accounts.list', {})
   const { byUid } = useAccountTree(accounts.data)
   const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined }
@@ -76,6 +80,8 @@ export default function Journal() {
     return d.length === 1 && c.length === 1 ? `${d[0]} → ${c[0]}` : t('gj.lines', { count: e.lines.length })
   }
   const volume = (e: Entry) => e.lines.reduce((s, l) => s + (l.baseAmount > 0 ? l.baseAmount : 0), 0)
+  /** A member changes own entries; an admin all. */
+  const canChange = (e: Entry) => me?.role === 'admin' || e.author.uid === me?.uid
   const edit = (e: Entry) => setDraft(entryToDraft(e, base, byUid, minor))
 
   const columns = useMemo<ColumnDef<DataGridFeatures, Entry>[]>(() => [
@@ -100,7 +106,7 @@ export default function Journal() {
       header: ({ column }) => <DataGridColumnHeader title={t('gj.date')} column={column} />,
       cell: ({ row }) => (
         <span className="tabular-nums">
-          {new Date(`${row.original.date}T00:00:00`).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' })}
+          {fmtDate(row.original.date)}
         </span>
       ),
       size: 120,
@@ -125,6 +131,20 @@ export default function Journal() {
       meta: { skeleton: <Skeleton className="h-8 w-56" /> },
     },
     {
+      id: 'author',
+      accessorFn: (e) => e.author.name,
+      header: ({ column }) => <DataGridColumnHeader title={t('gj.author')} column={column} />,
+      cell: ({ row: { original: e } }) => (
+        <span className="flex min-w-0 items-center gap-2">
+          <MemberAvatar name={e.author.name} color={e.author.color} />
+          <span className="truncate">{e.author.name}</span>
+        </span>
+      ),
+      size: 150,
+      enableSorting: false,
+      meta: { skeleton: <Skeleton className="h-4 w-24" /> },
+    },
+    {
       id: 'amount',
       accessorFn: volume,
       header: ({ column }) => <DataGridColumnHeader title={t('gj.amount', { currency: base })} column={column} />,
@@ -142,10 +162,10 @@ export default function Journal() {
             <MoreHorizontalIcon />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => edit(e)}>{t('common.edit')}</DropdownMenuItem>
+            {canChange(e) && <DropdownMenuItem onClick={() => edit(e)}>{t('common.edit')}</DropdownMenuItem>}
             <DropdownMenuItem onClick={() => setHistory(e)}>{t('gj.history')}</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={() => { remove.reset(); setDeleting(e) }}>{t('common.delete')}</DropdownMenuItem>
+            {canChange(e) && <DropdownMenuSeparator />}
+            {canChange(e) && <DropdownMenuItem variant="destructive" onClick={() => { remove.reset(); setDeleting(e) }}>{t('common.delete')}</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -155,7 +175,7 @@ export default function Journal() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, byUid, fmt])
+  ], [t, i18n.language, base, byUid, fmt, fmtDate, me])
 
   const table = useTable({
     features: dataGridFeatures,

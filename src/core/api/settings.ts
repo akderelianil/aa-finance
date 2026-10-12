@@ -64,18 +64,20 @@ export const get = read(z.object({}), async (ctx): Promise<Settings> => {
 })
 
 export const set = write(
+  // Every field but userName is a book setting: admin only.
   z.object({
     language: z.optional(z.enum(['tr', 'en'])),
     lockDate: z.optional(z.nullable(date)),
     activityLogDays: z.optional(z.int().check(z.minimum(1))),
     /** The caller's own name. */
     userName: z.optional(name),
-    /** Admin only. */
     groupName: z.optional(name),
     country: z.optional(z.nullable(country)),
   }),
   async (ctx, input) => {
-    if (input.groupName !== undefined) await needAdmin(ctx)
+    // Only the caller's own name is open to a member. The settings_admin trigger checks it again.
+    const { userName, ...book } = input
+    if (Object.values(book).some((v) => v !== undefined)) await needAdmin(ctx)
     const values: [string, string | null | undefined][] = [
       ['language', input.language],
       ['lock_date', input.lockDate],

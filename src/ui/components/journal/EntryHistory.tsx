@@ -3,6 +3,7 @@ import { DataState } from '@/components/DataState'
 import { Badge } from '@/components/reui/badge'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useOp } from '@/lib/api'
+import { useFormat } from '@/lib/format'
 import type { Entry } from '@/lib/journal'
 
 type Change = { at: number; actor: string; kind: 'created' | 'edited' | 'deleted'; lines?: boolean; fields: { key: Field; from: unknown; to: unknown }[] }
@@ -31,10 +32,11 @@ function changes(rows: AuditRow[]): Change[] {
 
 // Who created, changed or deleted this entry, newest first (from audit_log).
 export function EntryHistory({ entry, onClose }: { entry: Entry | null; onClose: () => void }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const { dateTime } = useFormat()
   const audit = useOp('audit.forRow', { table: 'entries', uid: entry?.uid ?? '' }, { enabled: !!entry })
   const list = audit.data ? changes(audit.data) : []
-  const when = (ms: number) => new Date(ms).toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'short' })
+  const when = (ms: number) => dateTime(ms)
   const show = (v: unknown) => (v === null || v === '' ? '—' : String(v))
 
   return (

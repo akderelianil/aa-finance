@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError, useErrorText, useOp } from '@/lib/api'
+import { useFormat } from '@/lib/format'
 import { PAGE_SIZES, useGridI18n, useServerPages } from '@/lib/grid'
 import type { Output } from '../../core/api/index.ts'
 
@@ -23,6 +24,7 @@ const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/g
 // Activity log (who did what), newest first. Only writes are logged; old rows are pruned by the setting.
 export default function Activity() {
   const { t, i18n } = useTranslation()
+  const { dateTime } = useFormat()
   const [total, setTotal] = useState<number>()
   const pages = useServerPages('activity', total)
   const log = useOp('activity.list', { page: pages.page ?? 0, pageSize: pages.pageSize }, { keep: true })
@@ -35,7 +37,7 @@ export default function Activity() {
       id: 'at', size: 180, enableSorting: false,
       header: ({ column }) => <DataGridColumnHeader title={t('activity.at')} column={column} />,
       cell: ({ row: { original: r } }) => (
-        <span className="tabular-nums">{new Date(r.at).toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'medium' })}</span>
+        <span className="tabular-nums">{dateTime(r.at, true)}</span>
       ),
       meta: { skeleton: <Skeleton className="h-4 w-32" /> },
     },
@@ -76,7 +78,7 @@ export default function Activity() {
       meta: { headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums text-muted-foreground', skeleton: <Skeleton className="ml-auto h-4 w-10" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language])
+  ], [t, i18n.language, dateTime])
 
   const table = useTable({
     features: dataGridFeatures,

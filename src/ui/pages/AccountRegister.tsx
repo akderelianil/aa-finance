@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import { PAGE_SIZES, useGridI18n, useServerPages } from '@/lib/grid'
 import type { Entry } from '@/lib/journal'
+import { useFormat } from '@/lib/format'
 import { shown, useAccountTree, useBook } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
 import type { RegisterRow } from '../../core/api/accounts.ts'
@@ -43,6 +44,7 @@ export default function AccountRegister() {
   const { t, i18n } = useTranslation()
   const errorText = useErrorText()
   const { base, minor, fmt } = useBook()
+  const { date: fmtDate } = useFormat()
   const accounts = useOp('accounts.list', {})
   const { byUid } = useAccountTree(accounts.data)
   const account = byUid.get(uid)
@@ -72,7 +74,7 @@ export default function AccountRegister() {
       accessorFn: (r) => r.date,
       header: ({ column }) => <DataGridColumnHeader title={t('gj.date')} column={column} />,
       cell: ({ row: { original: r } }) => (
-        <span className="tabular-nums">{new Date(`${r.date}T00:00:00`).toLocaleDateString(i18n.language, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        <span className="tabular-nums">{fmtDate(r.date)}</span>
       ),
       size: 110,
       enableSorting: false,
@@ -166,7 +168,7 @@ export default function AccountRegister() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, cur, byUid, fmt, minor, account?.type])
+  ], [t, i18n.language, base, cur, byUid, fmt, fmtDate, minor, account?.type])
 
   const table = useTable({
     features: dataGridFeatures,
