@@ -84,6 +84,7 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Automatic: on the first start each day, `backups/aa-finance-<date>.sqlite`. The last 10 are kept.
 - Manual: Settings → Data → "Back up now" writes a copy where the user picks (save dialog, `tauri-plugin-dialog`).
 - Restore: the file must pass `quick_check`, have the core tables and a `user_version` not newer than the app (`not_a_backup`, `backup_too_new`). The live data goes to `backups/before-restore-<stamp>.sqlite` first. Then the SQLite backup API copies the file into the open connection, and the UI reloads (migrations run).
+- Reset (`reset_data`): Settings → Data, admin only, typed confirmation. The live data goes to `backups/before-reset-<stamp>.sqlite` first. Then every table, view and trigger is dropped and `user_version` is set to 0; the UI reloads, the migrations rebuild an empty book and setup starts.
 - JSON export (`data.export`): every row of every table. Ids stay as in the database; currency ids become ISO codes. There is no JSON import; restore uses an SQLite backup.
 - Plain-browser dev mode: only the JSON export works (as a download).
 
