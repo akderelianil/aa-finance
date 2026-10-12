@@ -14,5 +14,5 @@
 - [Member switch (2026-10-12)](project-member-switch.md) — group menu switches viewed member; journal-post member_id; Accounts/Reports not filtered yet
 - [Audit (2026-10-12)](project-audit-2026-10-12.md) — audit fixes done; release-time Auth/CORS items deferred
 - [Grid performance (2026-10-12)](project-grid-performance.md) — slowness was grid skeletons, not DB; profile the client first
-- [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — Tauri + SQLite + TS core on branch local-first; L0–L3 done, next L4 then X1 user flows; money = safe int number
+- [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — Tauri + SQLite + TS core on branch local-first; L0–L4 done, next X1 user flows; money = safe int number
 - [UX focus (2026-10-12)](feedback-ux-focus.md) — main focus is UX/UI and user flows; don't fuss over bundle/metrics
