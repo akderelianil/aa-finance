@@ -3,7 +3,7 @@ import { Suspense, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarInset,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarInset,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
@@ -33,6 +33,9 @@ export function AppShell() {
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
+        <SidebarHeader>
+          <MemberMenu />
+        </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
@@ -88,8 +91,6 @@ export function AppShell() {
           <SidebarTrigger aria-label={t('nav.toggle')} />
           <Breadcrumb className="min-w-0 flex-1">
             <BreadcrumbList className="flex-nowrap">
-              <BreadcrumbItem><MemberMenu /></BreadcrumbItem>
-              <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink render={<NavLink to="/hesaplar" />}>{t('nav.home')}</BreadcrumbLink>
               </BreadcrumbItem>
