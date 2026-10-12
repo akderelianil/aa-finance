@@ -27,6 +27,7 @@ pub fn run() {
             backup::backup_to,
             backup::backup_auto,
             backup::restore_from,
+            backup::reset_data,
             backup::write_text,
             dev_log
         ])

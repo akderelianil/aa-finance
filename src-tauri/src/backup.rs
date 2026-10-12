@@ -118,6 +118,37 @@ fn restore_into(conn: &mut Connection, path: &Path, max_version: i64, before: &P
         .map_err(|e| e.to_string())
 }
 
+/// Deletes the whole book and starts over. The current data is copied to
+/// backups/before-reset-<stamp>.sqlite first. Every table, view, trigger and index is dropped and
+/// user_version goes back to 0; the UI reloads and the migrations rebuild an empty book (setup).
+#[tauri::command]
+pub async fn reset_data(app: AppHandle, db: State<'_, Db>, stamp: String) -> Result<(), String> {
+    let conn = db.0.lock().map_err(|e| e.to_string())?;
+    let before = dir(&app)?.join(format!("before-reset-{}.sqlite", safe(&stamp)?));
+    wipe(&conn, &before)
+}
+
+fn wipe(conn: &Connection, before: &Path) -> Result<(), String> {
+    copy_to(conn, before)?;
+    let names: Vec<(String, String)> = conn
+        .prepare("SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND type IN ('trigger', 'view', 'table') ORDER BY CASE type WHEN 'trigger' THEN 0 WHEN 'view' THEN 1 ELSE 2 END")
+        .and_then(|mut q| q.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?.collect())
+        .map_err(|e| e.to_string())?;
+    // foreign_keys cannot change inside a transaction, so switch it off around the drops.
+    conn.execute_batch("PRAGMA foreign_keys = OFF; BEGIN")
+        .map_err(|e| e.to_string())?;
+    let run = || -> rusqlite::Result<()> {
+        for (kind, name) in &names {
+            conn.execute_batch(&format!("DROP {} \"{}\"", kind.to_uppercase(), name.replace('"', "\"\"")))?;
+        }
+        conn.execute_batch("PRAGMA user_version = 0")
+    };
+    let out = run();
+    let end = conn.execute_batch(if out.is_ok() { "COMMIT" } else { "ROLLBACK" });
+    let _ = conn.execute_batch("PRAGMA foreign_keys = ON");
+    out.and(end).map_err(|e| e.to_string())
+}
+
 /// Writes a text file the user picked in a save dialog (the JSON export).
 #[tauri::command]
 pub async fn write_text(path: String, text: String) -> Result<(), String> {
@@ -162,6 +193,22 @@ mod tests {
         std::fs::write(d.join("junk.sqlite"), "not a database at all, just text that is long enough").unwrap();
         assert_eq!(restore_into(&mut live, &d.join("junk.sqlite"), 2, &d.join("x.sqlite")), Err("not_a_backup".into()));
         assert_eq!(live.query_row(COUNT, [], |r| r.get::<_, i64>(0)).unwrap(), 3);
+        std::fs::remove_dir_all(&d).unwrap();
+    }
+
+    #[test]
+    fn wipe_empties_the_book_after_a_copy() {
+        let d = std::env::temp_dir().join(format!("aa-wipe-test-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let live = book(&d.join("live.sqlite"), 3);
+        live.execute_batch("CREATE TRIGGER t AFTER INSERT ON lines BEGIN SELECT 1; END; CREATE VIEW v AS SELECT * FROM lines;")
+            .unwrap();
+        wipe(&live, &d.join("before.sqlite")).unwrap();
+        let left: i64 = live.query_row("SELECT count(*) FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'", [], |r| r.get(0)).unwrap();
+        assert_eq!(left, 0);
+        assert_eq!(live.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+        let before = Connection::open(d.join("before.sqlite")).unwrap();
+        assert_eq!(before.query_row(COUNT, [], |r| r.get::<_, i64>(0)).unwrap(), 3);
         std::fs::remove_dir_all(&d).unwrap();
     }
 }

@@ -46,6 +46,13 @@ export async function restore(): Promise<boolean> {
   return true
 }
 
+/** Deletes the whole book (a copy goes to the backup folder first) and reloads into setup. */
+export async function resetAll(): Promise<boolean> {
+  await cmd('reset_data', { stamp: stamp() })
+  location.reload()
+  return true
+}
+
 /** All data as one JSON file. Null when the user cancels. */
 export async function exportJson(): Promise<string | null> {
   const text = JSON.stringify(await call('data.export', {}), null, 2)

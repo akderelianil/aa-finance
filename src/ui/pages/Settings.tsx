@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { ArchiveRestoreIcon, DatabaseBackupIcon, FileJsonIcon } from 'lucide-react'
+import { ArchiveRestoreIcon, DatabaseBackupIcon, FileJsonIcon, Trash2Icon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
@@ -21,7 +21,7 @@ import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
-import { backupAs, backupDir, exportJson, inApp, restore } from '@/lib/files'
+import { backupAs, backupDir, exportJson, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
 
 // Settings: group name, language, period lock date, how long the activity log is kept; backups and export.
@@ -149,6 +149,7 @@ function SettingsForm({ values }: { values: Values }) {
       </form>
       <MembersCard admin={admin} />
       <DataCard />
+      <ResetCard admin={admin} />
     </div>
   )
 }
@@ -221,6 +222,67 @@ function DataCard() {
               {t('data.restoreChoose')}
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  )
+}
+
+// Deletes the whole ledger and starts over. Admin only; the user types a word to confirm.
+function ResetCard({ admin }: { admin: boolean }) {
+  const { t } = useTranslation()
+  const errorText = useErrorText()
+  const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const word = t('data.resetWord')
+  const ready = typed.trim().toLocaleUpperCase() === word
+
+  async function run() {
+    if (!ready) return
+    setBusy(true)
+    setError(null)
+    try {
+      await resetAll()
+    } catch (e) {
+      setError(e)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('data.reset')}</CardTitle>
+        <CardDescription>{admin ? t('data.resetHint') : t('data.resetAdminOnly')}</CardDescription>
+      </CardHeader>
+      <CardFooter className="justify-end">
+        <Button variant="destructive" size="sm" disabled={!inApp || !admin} onClick={() => { setTyped(''); setError(null); setOpen(true) }}>
+          <Trash2Icon data-icon="inline-start" />
+          {t('data.reset')}
+        </Button>
+      </CardFooter>
+      <AlertDialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+        <AlertDialogContent>
+          <form onSubmit={(e) => { e.preventDefault(); void run() }} className="flex flex-col gap-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('data.resetTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('data.resetBody')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <Field>
+              <FieldLabel htmlFor="reset-word">{t('data.resetConfirm', { word })}</FieldLabel>
+              <Input id="reset-word" autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} />
+            </Field>
+            {error != null && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(error)}</AlertDescription></Alert>}
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
+              <Button type="submit" variant="destructive" disabled={!ready || busy}>
+                {busy && <Spinner data-icon="inline-start" />}
+                {t('data.resetDo')}
+              </Button>
+            </AlertDialogFooter>
+          </form>
         </AlertDialogContent>
       </AlertDialog>
     </Card>
