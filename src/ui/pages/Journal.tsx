@@ -67,6 +67,8 @@ export default function Journal() {
   const me = useOp('settings.get', {}).data?.me
   const accounts = useOp('accounts.list', {})
   const { byId } = useAccountTree(accounts.data)
+  const contacts = useOp('contacts.list', {})
+  const contactName = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c.name])), [contacts.data])
   const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined }
   const [total, setTotal] = useState<number>()
   const pages = useServerPages(JSON.stringify(filters), total)
@@ -75,7 +77,10 @@ export default function Journal() {
   const gridI18n = useGridI18n()
 
   const accountsOf = (e: Entry) => {
-    const names = (debit: boolean) => [...new Set(e.lines.filter((l) => (l.amount > 0) === debit).map((l) => byId.get(l.account)?.label ?? ''))]
+    const names = (debit: boolean) => [...new Set(e.lines.filter((l) => (l.amount > 0) === debit).map((l) => {
+      const who = l.contact ? contactName.get(l.contact) : undefined
+      return `${byId.get(l.account)?.label ?? ''}${who ? ` (${who})` : ''}`
+    }))]
     const [d, c] = [names(true), names(false)]
     return d.length === 1 && c.length === 1 ? `${d[0]} → ${c[0]}` : t('gj.lines', { count: e.lines.length })
   }
@@ -175,7 +180,7 @@ export default function Journal() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, byId, fmt, fmtDate, me])
+  ], [t, i18n.language, base, byId, fmt, fmtDate, me, contactName])
 
   const table = useTable({
     features: dataGridFeatures,
@@ -296,6 +301,7 @@ export default function Journal() {
                 <td />
                 <td className="truncate">
                   {acc?.label}
+                  {l.contact && contactName.get(l.contact) && <Badge variant="outline" size="sm" className="ms-2">{contactName.get(l.contact)}</Badge>}
                   {l.memo && <span className="ms-2 text-xs text-muted-foreground">{l.memo}</span>}
                   {foreign && (
                     <span className="ms-2 text-xs text-muted-foreground tabular-nums">

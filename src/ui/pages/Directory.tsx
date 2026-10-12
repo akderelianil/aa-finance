@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { useBook } from '@/lib/ledger'
 import type { Contact, ContactKind } from '../../core/api/contacts.ts'
 
 type Filter = 'all' | ContactKind
@@ -32,6 +33,8 @@ export default function Directory() {
   const { t, i18n } = useTranslation()
   const errorText = useErrorText()
   const contacts = useOp('contacts.list', {})
+  const balances = useOp('contacts.balances', {})
+  const { fmt } = useBook()
   const remove = useWrite('contacts.delete')
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -64,6 +67,16 @@ export default function Directory() {
       ),
       meta: { skeleton: <Skeleton className="h-4 w-48" /> },
     },
+    ...(['receivable', 'payable'] as const).map((kind): ColumnDef<DataGridFeatures, Contact> => ({
+      id: kind, header: t(`dir.${kind}`), size: 170, enableSorting: false,
+      cell: ({ row: { original: c } }) => {
+        const mine = (balances.data ?? []).filter((b) => b.contact === c.id && b.kind === kind)
+        return mine.length
+          ? <div className="flex flex-col">{mine.map((b) => <span key={b.currency}>{fmt(b.amount, b.currency)} {b.currency}</span>)}</div>
+          : <span className="text-muted-foreground">–</span>
+      },
+      meta: { headerClassName: 'text-end', cellClassName: 'text-end tabular-nums', skeleton: <Skeleton className="ml-auto h-4 w-20" /> },
+    })),
     {
       id: 'actions', header: () => null, size: 80, enableSorting: false,
       cell: ({ row: { original: c } }) => (
@@ -75,7 +88,7 @@ export default function Directory() {
       meta: { skeleton: <Skeleton className="ml-auto size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, names])
+  ], [t, i18n.language, names, balances.data, fmt])
 
   const table = useTable({
     features: dataGridFeatures,

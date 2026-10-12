@@ -26,7 +26,7 @@ Dört işlem **aynı form**. Üstteki seçim yalnız yönü ve borç hesabını 
 | Tarih | hayır | bugün |
 | Açıklama | hayır | boş |
 
-- Kişi zorunlu ve [Rehber](rehber.md) kaydıdır (Kişi, Marka ya da Firma). Kayıt satırı Rehber kaydına bağlanır (`lines.contact_id`); borç hesabı kişiye göre değil, grup düzeyinde tutulur. Yeni bir ad yazılırsa kayıtla birlikte Rehber'e Kişi olarak eklenir (karar 2026-10-12).
+- Kişi zorunlu ve [Rehber](rehber.md) kaydıdır (Kişi, Marka ya da Firma). Kayıt satırı Rehber kaydına bağlanır (Yevmiye'de satırın yanında kişi adı görünür) (`lines.contact_id`); borç hesabı kişiye göre değil, grup düzeyinde tutulur. Yeni bir ad yazılırsa kayıtla birlikte Rehber'e Kişi olarak eklenir (karar 2026-10-12).
 - Borç grubu sorulmaz; işlem türü seçer.
 - Para hesabı yalnız Varlık olur (Nakit, Banka). Kart ve alacak hesabı seçilemez.
 - Kişi seçilince formda açık bakiye görünür: alacak işlemlerinde "Açık alacağımız", borç işlemlerinde "Açık borcumuz" (para hesabının para biriminde, Rehber kaydının satırlarından).

@@ -211,6 +211,8 @@ export const tr = {
     search: 'Ada göre ara',
     name: 'Ad',
     kindLabel: 'Tür',
+    receivable: 'Alacağımız',
+    payable: 'Borcumuz',
     links: 'Bağlı',
     linksBrand: 'Bağlı firmalar',
     linksBusiness: 'Bağlı markalar',

@@ -213,6 +213,8 @@ export const en: Translation = {
     search: 'Search by name',
     name: 'Name',
     kindLabel: 'Kind',
+    receivable: 'Owed to us',
+    payable: 'We owe',
     links: 'Linked',
     linksBrand: 'Linked businesses',
     linksBusiness: 'Linked brands',

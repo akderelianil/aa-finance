@@ -8,7 +8,8 @@ status: active
 Borç verilen ya da alınan Kişi, Marka ve Firmaların listesi. Terimler: [GLOSSARY](../GLOSSARY.md). Kullanımı: [borc](borc.md).
 
 ## Sayfa
-- Tablo: Ad, Tür (Kişi / Marka / Firma), Bağlı (bağlı Firma ya da Markalar), düzenle ve sil.
+- Tablo: Ad, Tür (Kişi / Marka / Firma), Bağlı (bağlı Firma ya da Markalar), Alacağımız, Borcumuz, düzenle ve sil.
+- Alacağımız ve Borcumuz: kaydın açık bakiyesi, para birimi başına bir satır; yoksa "–". Borç kayıtlarının satırlarından hesaplanır.
 - Üstte tür sekmeleri (Tümü, Kişi, Marka, Firma) ve ada göre arama. Liste kısa olduğu için sayfalama yok.
 - Tek ana eylem sağ üstte: **Yeni kayıt**.
 - Boş Rehber: kısa açıklama ve **Yeni kayıt**.
@@ -26,4 +27,4 @@ Borç verilen ya da alınan Kişi, Marka ve Firmaların listesi. Terimler: [GLOS
 - Yevmiye satırı olan kayıt silinemez (`contact_has_lines`). Önce o kayıtlar silinir.
 
 ## Henüz yok
-Rehber sayfasında açık bakiye sütunu, Gider ve Gelir satırlarına Rehber bağı, kişi bazlı ekstre.
+Gider ve Gelir satırlarına Rehber bağı, kişi bazlı ekstre.
