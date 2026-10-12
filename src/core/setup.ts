@@ -15,6 +15,13 @@ export type SetupInput = {
  * A second run fails on the unique settings keys. Returns the user actor uid.
  */
 export async function setup(db: Db, input: SetupInput): Promise<string> {
+  const { user, statements } = setupStatements(input)
+  await db.batch(statements)
+  return user
+}
+
+/** The setup batch, so a caller can add to the same transaction. */
+export function setupStatements(input: SetupInput): { user: string; statements: Statement[] } {
   const user = uuidv7()
   const actor = '(SELECT id FROM actors WHERE uid = ?)'
   const currency = '(SELECT id FROM currencies WHERE code = ?)'
@@ -49,6 +56,5 @@ export async function setup(db: Db, input: SetupInput): Promise<string> {
   for (const a of [...starterAccounts, ...(input.recommended ? recommendedAccounts : [])])
     account(a.key, a.parent, null, a[input.language], !!a.placeholder, false)
 
-  await db.batch(statements)
-  return user
+  return { user, statements }
 }

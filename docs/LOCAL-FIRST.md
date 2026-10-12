@@ -59,7 +59,15 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Later: contacts, tags, dashboard, plugin data.
 
 ## API first
-- The UI calls only the API, never SQL. The API is named JSON operations (`accounts.create`, `entries.post`, `reports.trialBalance`). Each has an input schema, an output schema, error codes and a version.
+- The UI calls only the API, never SQL. The API is named JSON operations: `api.call('entries.post', input)`. The list is `ops` in `src/core/api/index.ts`, with one `API_VERSION`.
+- Each op has a Zod (`zod/mini`) input schema, a TypeScript output type and stable error codes. A failure is always an `ApiError` with a `code` (bad input: `invalid_input`). Output schemas come with the plugin bridge.
+- `call()` validates the input and binds the actor. It writes the `activity_log` row in the same transaction as the op's write. A failed write is logged with its error code. Reads are not logged.
+- Records are named by `uid` in the API, never by integer `id`. Currencies are named by ISO code.
+- Lists are paged (`page`, `pageSize` ≤1000, offset). Journal: newest first. Account register: oldest first, with `opening` and a running balance in the account currency.
+- Reports are in the base currency and signed like lines. The balance sheet returns the unclosed income and expense total as `earnings`.
+- Foreign-currency line: the base amount comes from `baseAmount`, else `rate`, else the stored rate on or before the entry date (`rate_missing` if none). A difference up to 1 minor unit per converted line goes to FX Gains and Losses. A larger difference is `entry_unbalanced`.
+- Quick Entry flows (Gider, Gelir, Transfer, Borç) are pure builders in `src/core/quick.ts`. They make an `entries.post` input with exact base amounts, so their entries need no FX rounding line.
+- An entry edit replaces all lines (old ones get `deleted_at`). The number stays.
 - The API does not depend on a transport. v1 uses direct calls in the WebView. Later: plugins and an optional local HTTP or CLI bridge.
 - The API runs in the WebView, so outside access needs the app to be open.
 
@@ -93,6 +101,13 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 |---|---|
 | Write and post 10k entries (20k lines, audit rows) | 1.8 s, linear |
 | Trial balance / one account balance / one-year totals | 3 / 0 / 2 ms |
+
+### Measured (L2, API on node:sqlite, 10k entries)
+| Check | Result |
+|---|---|
+| `entries.post` × 10k, one at a time | 8 s (0.8 ms each) |
+| `accounts.list` / `entries.list` page / trial balance | 3 / 2 / 5 ms |
+| Register, 10k lines on one account: first / last page | 5 / 25 ms |
 
 ## Out of v1
 Sync, groups and members, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
