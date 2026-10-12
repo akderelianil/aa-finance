@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { levelOf, useMemberAccess } from '@/lib/access'
-import { avatarSrc } from '@/lib/avatar'
+import { useAvatarSrc } from '@/lib/avatar'
 import { useMembers } from '@/lib/ledger'
 import { useViewAs } from '@/lib/viewAs'
 
@@ -24,6 +24,7 @@ export function GroupHeader({ membership }: { membership: Membership }) {
   const access = useMemberAccess()
   const Icon = group.kind === 'group' ? UsersIcon : HomeIcon
   const list = members.data ?? []
+  const groupSrc = useAvatarSrc(group.avatar_url)
 
   // What the signed-in member may do with that member's entries.
   const right = (id: string) => {
@@ -38,7 +39,7 @@ export function GroupHeader({ membership }: { membership: Membership }) {
         <DropdownMenu>
           <DropdownMenuTrigger render={<SidebarMenuButton size="lg" tooltip={group.name} className="aria-expanded:bg-muted" />}>
             <Avatar className="rounded-lg after:rounded-lg">
-              <AvatarImage src={avatarSrc(group.avatar_url)} alt="" className="rounded-lg" />
+              <AvatarImage src={groupSrc} alt="" className="rounded-lg" />
               <AvatarFallback className="rounded-lg bg-primary text-primary-foreground"><Icon className="size-4" /></AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">

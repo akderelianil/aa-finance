@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FormError } from '@/components/PageShell'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { avatarSrc } from '@/lib/avatar'
+import { useAvatarSrc } from '@/lib/avatar'
 import { errorMessage } from '@/lib/errors'
 
 // Fotoğraf seç/kaldır. onPick yükleyip kaydı günceller; onRemove görseli kaldırır.
@@ -17,6 +17,7 @@ export function AvatarPicker({ path, fallback, onPick, onRemove }: {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const src = useAvatarSrc(path)
 
   async function run(fn: () => Promise<void>) {
     setBusy(true)
@@ -28,7 +29,7 @@ export function AvatarPicker({ path, fallback, onPick, onRemove }: {
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-3">
         <Avatar className="size-16">
-          <AvatarImage src={avatarSrc(path)} alt="" />
+          <AvatarImage src={src} alt="" />
           <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
         <div className="flex gap-2">

@@ -1,13 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { avatarSrc, initials } from '@/lib/avatar'
+import { initials, useAvatarSrc } from '@/lib/avatar'
 import { shown, type AccountNode, type Member } from '@/lib/ledger'
 
 export function MemberAvatar({ member, className }: { member?: Member; className?: string }) {
+  const src = useAvatarSrc(member?.avatarPath)
   return (
     <Avatar size="sm" className={className}>
-      <AvatarImage src={avatarSrc(member?.avatarPath)} alt="" />
+      <AvatarImage src={src} alt="" />
       <AvatarFallback>{initials(member?.name)}</AvatarFallback>
     </Avatar>
   )

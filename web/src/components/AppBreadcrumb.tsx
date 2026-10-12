@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { avatarSrc, initials } from '@/lib/avatar'
+import { initials, useAvatarSrc } from '@/lib/avatar'
 import type { NavUserInfo } from './NavUser'
 
 const SECTIONS: Record<string, string> = {
@@ -20,6 +20,7 @@ const SECTIONS: Record<string, string> = {
 export function AppBreadcrumb({ user }: { user: NavUserInfo }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
+  const src = useAvatarSrc(user.avatarPath)
   const key = SECTIONS[pathname.split('/')[1] ?? '']
   const trail = [
     { to: '/anasayfa', label: t('nav.home'), current: !key },
@@ -31,7 +32,7 @@ export function AppBreadcrumb({ user }: { user: NavUserInfo }) {
       <BreadcrumbList>
         <BreadcrumbItem className="gap-2">
           <Avatar size="sm">
-            <AvatarImage src={avatarSrc(user.avatarPath)} alt={user.name} />
+            <AvatarImage src={src} alt={user.name} />
             <AvatarFallback>{initials(user.name)}</AvatarFallback>
           </Avatar>
           <span className="font-medium text-foreground">{user.name}</span>

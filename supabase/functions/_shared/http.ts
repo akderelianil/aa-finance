@@ -32,13 +32,20 @@ export function json(body: unknown, status = 200, cors: Record<string, string> =
   })
 }
 
+// One client per isolate: it caches the project JWKS, so getClaims verifies the ES256 token locally (no Auth round trip).
+// A signed-out token stays valid until it expires (jwt_exp = 1 h).
+const auth = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+}).auth
+
 async function authenticate(req: Request): Promise<AuthUser> {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) throw new HttpError(401, 'Giriş gerekli', 'unauthorized')
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!)
-  const { data, error } = await supabase.auth.getUser(token)
-  if (error || !data.user) throw new HttpError(401, 'Oturum geçersiz', 'unauthorized')
-  return { id: data.user.id }
+  const { data, error } = await auth.getClaims(token)
+  if (error || !data?.claims.sub || data.claims.role !== 'authenticated') {
+    throw new HttpError(401, 'Oturum geçersiz', 'unauthorized')
+  }
+  return { id: data.claims.sub }
 }
 
 export function serve(

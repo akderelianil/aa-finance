@@ -9,16 +9,17 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { avatarSrc, initials } from '@/lib/avatar'
+import { initials, useAvatarSrc } from '@/lib/avatar'
 import { supabase } from '@/lib/supabase'
 
 export type NavUserInfo = { name: string; email: string; avatarPath: string | null }
 
 function UserRow({ user }: { user: NavUserInfo }) {
+  const src = useAvatarSrc(user.avatarPath)
   return (
     <>
       <Avatar>
-        <AvatarImage src={avatarSrc(user.avatarPath)} alt={user.name} />
+        <AvatarImage src={src} alt={user.name} />
         <AvatarFallback>{initials(user.name)}</AvatarFallback>
       </Avatar>
       <div className="grid flex-1 text-left text-sm leading-tight">

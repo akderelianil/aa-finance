@@ -1,8 +1,21 @@
+import { useQuery } from '@tanstack/react-query'
 import { callFunction } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 
-export function avatarSrc(path: string | null | undefined): string | undefined {
-  return path ? supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl : undefined
+// The avatars bucket is private (only the group sees its photos): show a signed URL, renewed before it expires.
+const TTL = 60 * 60
+export function useAvatarSrc(path: string | null | undefined): string | undefined {
+  const { data } = useQuery({
+    queryKey: ['avatar', path],
+    enabled: !!path,
+    staleTime: (TTL - 300) * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from('avatars').createSignedUrl(path!, TTL)
+      if (error) throw error
+      return data.signedUrl
+    },
+  })
+  return path ? data : undefined
 }
 
 export function initials(name: string | null | undefined): string {
