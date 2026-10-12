@@ -222,24 +222,6 @@ test('activity_log records writes and failures; audit.forRow shows row history',
   assert.deepEqual(hist.map((h) => [h.op, h.new?.name]), [['insert', 'A'], ['update', 'B']])
 })
 
-test('data.export: every table, currencies as codes', async () => {
-  const { api, acc } = await fresh()
-  await api.call('fx.set', { currency: 'USD', date: '2026-01-01', rate: '40' })
-  const { id } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
-  const out = await api.call('data.export', {})
-  assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 8)
-  const { tables: t } = out
-  const entry = t.entries.find((e) => e.id === id)!
-  assert.equal(entry.state, 'posted')
-  const lines = t.lines.filter((l) => l.entry_id === id)
-  assert.deepEqual(lines.map((l) => [l.account_id, l.amount]).sort(), [[acc('Wallet'), 500], [acc('opening_balance'), -500]].sort())
-  assert.equal(t.fx_rates[0].currency, 'USD')
-  assert.equal(t.accounts.find((a) => a.id === acc('bank'))!.parent_id, acc('asset'))
-  assert.ok(t.audit_log.some((g) => g.table_name === 'entries' && g.row_id === id && typeof g.new === 'object'))
-  assert.ok(t.activity_log.some((g) => g.operation === 'entries.post' && typeof g.actor_id === 'number'))
-})
-
 test('members: setup adds them, admin manages, a member edits only own name and own entries', async () => {
   const db = openNodeDb()
   await migrate(db, readMigrations())

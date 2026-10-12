@@ -149,12 +149,6 @@ fn wipe(conn: &Connection, before: &Path) -> Result<(), String> {
     out.and(end).map_err(|e| e.to_string())
 }
 
-/// Writes a text file the user picked in a save dialog (the JSON export).
-#[tauri::command]
-pub async fn write_text(path: String, text: String) -> Result<(), String> {
-    std::fs::write(path, text).map_err(|e| e.to_string())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

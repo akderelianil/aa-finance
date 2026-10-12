@@ -18,7 +18,7 @@ Technical design of the local app. Product model: [ARCHITECTURE](ARCHITECTURE.md
 - Code: TypeScript. UI: React with ReUI on shadcn, only the parts the app uses.
 - Data: SQLite (WAL mode). No ORM, no query builder. Plain SQL files. No DuckDB.
 - Layout: one project. `src/core/` holds pure TypeScript (rules, services, SQL, tests). `src/ui/` holds pages and components. `core` never imports UI or Tauri code (lint rule).
-- Rust stays thin (`src-tauri/src/db.rs`, about 100 lines, rusqlite bundled): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. `db_query` returns `{columns, rows}` with rows as arrays. File work is in `src-tauri/src/backup.rs` (see [Backup and export](#backup-and-export)).
+- Rust stays thin (`src-tauri/src/db.rs`, about 100 lines, rusqlite bundled): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. `db_query` returns `{columns, rows}` with rows as arrays. File work is in `src-tauri/src/backup.rs` (see [Backup and export](#backup-and-restore)).
 - Core gets the database through the `Db` interface (`src/core/db.ts`). The app uses Rust over IPC (`src/ui/tauri-db.ts`). Tests use `node:sqlite` (`src/core/test/node-db.ts`). Node is a dev tool only; the app does not ship it.
 - Dev in a plain browser (Playwright): the Vite plugin `scripts/dev-db.ts` serves the `node:sqlite` Db at `/__db`, and `src/ui/dev-db.ts` calls it. The UI uses it only in Vite dev outside Tauri. File: `AA_DEV_DB`, default `.dev/aa-finance.sqlite` (delete it to start again). `npm run seed` writes a fresh book with three months of entries (stop Vite first).
 - UI: `src/ui/` (alias `@`). Data through `src/ui/lib/api.ts` (`useOp` reads, `useWrite` writes and refetches all), TanStack Query, `HashRouter`. i18n in `src/ui/i18n/`; API error codes map to `errors.<code>`.
@@ -78,15 +78,15 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - The API does not depend on a transport. v1 uses direct calls in the WebView. Later: plugins and an optional local HTTP or CLI bridge.
 - The API runs in the WebView, so outside access needs the app to be open.
 
-## Backup and export
+## Backup and restore
 - The database is `aa-finance.sqlite` in the app data folder. One user per file. The profile name is the local `user` actor (`settings.update` `userName`).
 - Backup copy: `VACUUM INTO` (a consistent copy while the app runs). It never overwrites the open file.
 - Automatic: on the first start each day, `backups/aa-finance-<date>.sqlite`. The last 10 are kept.
 - Manual: Settings → Data → "Back up now" writes a copy where the user picks (save dialog, `tauri-plugin-dialog`).
 - Restore: the file must pass `quick_check`, have the core tables and a `user_version` not newer than the app (`not_a_backup`, `backup_too_new`). The live data goes to `backups/before-restore-<stamp>.sqlite` first. Then the SQLite backup API copies the file into the open connection, and the UI reloads (migrations run).
 - Danger zone (Settings, admin only, typed confirmation): `entries.deleteAll` soft deletes every entry and keeps accounts, members, rates and settings (a locked period stops it). `reset_data` copies the live data to `backups/before-reset-<stamp>.sqlite`, drops every table, view and trigger and sets `user_version` to 0; the UI then reloads into setup (delete the ledger).
-- JSON export (`data.export`): every row of every table. Ids stay as in the database; currency ids become ISO codes. There is no JSON import; restore uses an SQLite backup.
-- Plain-browser dev mode: only the JSON export works (as a download).
+- There is no JSON export or import: the SQLite file holds everything, including `audit_log` and `activity_log`.
+- Plain-browser dev mode: backup is a download and restore is an upload, served by the Vite plugin (`scripts/dev-db.ts`, same checks, no automatic backup).
 
 ## Plugins (later, v1.x)
 - A plugin is a folder: `manifest.json` and `main.js`. It runs in the app with full trust, like Obsidian. The user carries the risk.
@@ -111,7 +111,6 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 | `accounts.list` / `entries.list` page / search | 3 / 1 / 4 ms |
 | Register, 10k lines: first / last page | 2 / 19 ms |
 | Trial balance / balance sheet / one-year income statement | 4 / 9 / 2 ms |
-| `data.export` (all tables, incl. audit log) | 543 ms |
 
 Idle memory misses the budget on WSL (WebKitGTK with software rendering). The product owner accepts it; optimize after v1 works.
 

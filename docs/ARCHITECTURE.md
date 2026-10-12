@@ -54,5 +54,5 @@ Amounts are signed: plus is debit, minus is credit. Rules the database enforces 
 - A foreign line takes its base amount from `baseAmount`, else `rate`, else the stored rate on or before the entry date. A rounding gap of up to one minor unit per converted line goes to FX Gains and Losses.
 
 ## Scope
-- **v1 (desktop only):** setup, Chart of Accounts, General Journal, Account Register, trial balance / balance sheet / income statement, Quick Entry (Gider, Gelir, Transfer, Borç), members, exchange rates, backup, JSON export, activity log.
+- **v1 (desktop only):** setup, Chart of Accounts, General Journal, Account Register, trial balance / balance sheet / income statement, Quick Entry (Gider, Gelir, Transfer, Borç), members, exchange rates, backup and restore, activity log.
 - **Later:** [ROADMAP](ROADMAP.md#later).

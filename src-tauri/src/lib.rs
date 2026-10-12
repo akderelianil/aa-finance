@@ -28,7 +28,6 @@ pub fn run() {
             backup::backup_auto,
             backup::restore_from,
             backup::reset_data,
-            backup::write_text,
             dev_log
         ])
         .run(tauri::generate_context!())

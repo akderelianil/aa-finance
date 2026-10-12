@@ -38,7 +38,7 @@ Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - The remote is a local path: commit, and push only when asked.
 
 ## Working rules
-1. Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`. Update the schema version in `data.export` tests.
+1. Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.
 2. Money is a safe-integer `number` in minor units. Rates are text. No float math.
 3. A new rule goes into a trigger first; the API pre-checks it for a clear message. Add the error code to `src/core/api/errors.ts` and to both i18n files.
 4. A new operation lives in `src/core/api/`, is listed in `index.ts`, and has a test in `api.test.ts`.

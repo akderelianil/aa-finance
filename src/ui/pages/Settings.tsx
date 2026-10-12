@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArchiveRestoreIcon, DatabaseBackupIcon, FileJsonIcon, Trash2Icon } from 'lucide-react'
+import { ArchiveRestoreIcon, DatabaseBackupIcon, Trash2Icon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OptionSelect } from '@/components/OptionSelect'
@@ -21,10 +21,10 @@ import { MembersCard } from '@/components/members/MembersCard'
 import { LANGUAGES, type Language } from '@/i18n'
 import { COUNTRY_CURRENCY } from '../../core/countries.ts'
 import { call, useErrorText, useOp, useWrite } from '@/lib/api'
-import { backupAs, backupDir, exportJson, inApp, resetAll, restore } from '@/lib/files'
+import { backupAs, backupDir, inApp, resetAll, restore } from '@/lib/files'
 import type { Settings as Values } from '../../core/api/settings.ts'
 
-// Settings: group name, language, period lock date, how long the activity log is kept; backups and export.
+// Settings: group name, language, period lock date, how long the activity log is kept; backup and restore.
 // The base currency is fixed at setup.
 export default function Settings() {
   const { t } = useTranslation()
@@ -154,11 +154,11 @@ function SettingsForm({ values }: { values: Values }) {
   )
 }
 
-// Backups and export. A restore replaces all data, so it asks first.
+// Backup and restore. A restore replaces all data, so it asks first.
 function DataCard() {
   const { t } = useTranslation()
   const errorText = useErrorText()
-  const [busy, setBusy] = useState<'backup' | 'restore' | 'export' | null>(null)
+  const [busy, setBusy] = useState<'backup' | 'restore' | null>(null)
   const [confirming, setConfirming] = useState(false)
   const dir = useQuery({ queryKey: ['backup_dir'], queryFn: backupDir, enabled: inApp })
 
@@ -185,28 +185,16 @@ function DataCard() {
           <Field>
             <FieldLabel>{t('data.backup')}</FieldLabel>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={!inApp || !!busy} onClick={() => void run('backup', backupAs, t('data.backupDone'))}>
+              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void run('backup', backupAs, t('data.backupDone'))}>
                 {busy === 'backup' ? <Spinner data-icon="inline-start" /> : <DatabaseBackupIcon data-icon="inline-start" />}
                 {t('data.backupNow')}
               </Button>
-              <Button variant="outline" size="sm" disabled={!inApp || !!busy} onClick={() => setConfirming(true)}>
+              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => setConfirming(true)}>
                 {busy === 'restore' ? <Spinner data-icon="inline-start" /> : <ArchiveRestoreIcon data-icon="inline-start" />}
                 {t('data.restore')}
               </Button>
             </div>
-            <FieldDescription>
-              {inApp ? t('data.autoHint', { dir: dir.data ?? '…' }) : t('data.appOnly')}
-            </FieldDescription>
-          </Field>
-          <Field>
-            <FieldLabel>{t('data.export')}</FieldLabel>
-            <div>
-              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void run('export', exportJson, t('data.exportDone'))}>
-                {busy === 'export' ? <Spinner data-icon="inline-start" /> : <FileJsonIcon data-icon="inline-start" />}
-                {t('data.exportJson')}
-              </Button>
-            </div>
-            <FieldDescription>{t('data.exportHint')}</FieldDescription>
+            {inApp && <FieldDescription>{t('data.autoHint', { dir: dir.data ?? '…' })}</FieldDescription>}
           </Field>
         </FieldGroup>
       </CardContent>
