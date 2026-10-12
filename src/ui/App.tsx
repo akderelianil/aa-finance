@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { PageHeader } from '@/components/PageHeader'
 import { ApiError, useOp } from '@/lib/api'
+import Accounts from '@/pages/Accounts'
 import Setup from '@/pages/Setup'
 
 // L3 fills these routes step by step.
@@ -40,7 +41,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route path="/hesaplar" element={<Soon title="nav.accounts" />} />
+        <Route path="/hesaplar" element={<Accounts />} />
         <Route path="/yevmiye" element={<Soon title="nav.journal" />} />
         <Route path="/raporlar" element={<Soon title="nav.reports" />} />
         <Route path="/kurlar" element={<Soon title="nav.rates" />} />

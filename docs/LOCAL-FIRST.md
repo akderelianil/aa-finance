@@ -20,7 +20,7 @@ Decided 2026-10-12 with the product owner, on branch `local-first`. It replaces 
 - Layout: one project. `src/core/` holds pure TypeScript (rules, services, SQL, tests). `src/ui/` holds pages and components. `core` never imports UI or Tauri code (lint rule).
 - Rust stays thin (`src-tauri/src/db.rs`, about 100 lines, rusqlite bundled): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. `db_query` returns `{columns, rows}` with rows as arrays.
 - Core gets the database through the `Db` interface (`src/core/db.ts`). The app uses Rust over IPC (`src/ui/tauri-db.ts`). Tests use `node:sqlite` (`src/core/test/node-db.ts`). Node is a dev tool only; the app does not ship it.
-- Dev in a plain browser (Playwright): the Vite plugin `scripts/dev-db.ts` serves the `node:sqlite` Db at `/__db`, and `src/ui/dev-db.ts` calls it. The UI uses it only in Vite dev outside Tauri. File: `AA_DEV_DB`, default `.dev/aa-finance.sqlite` (delete it to start again).
+- Dev in a plain browser (Playwright): the Vite plugin `scripts/dev-db.ts` serves the `node:sqlite` Db at `/__db`, and `src/ui/dev-db.ts` calls it. The UI uses it only in Vite dev outside Tauri. File: `AA_DEV_DB`, default `.dev/aa-finance.sqlite` (delete it to start again). `npm run seed` writes a fresh book with three months of entries (stop Vite first).
 - UI: `src/ui/` (alias `@`). Data through `src/ui/lib/api.ts` (`useOp` reads, `useWrite` writes and refetches all), TanStack Query, `HashRouter`. i18n in `src/ui/i18n/`; API error codes map to `errors.<code>`.
 - Migrations: `src/core/migrations/NNNN_name.sql`, applied by `migrate()` after `PRAGMA user_version`, one transaction each.
 
