@@ -7,7 +7,7 @@
 - [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer, Borç done; next loan (kredi)
 - [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice + Hesaplar polish done
 - [Hesaplar redesign (2026-10-11)](project-hesaplar-redesign.md) — ReUI tree grid, person fold, MCP via browser auth
-- [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; intermittent journal-post 500
+- [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; 500s fixed via DB_POOL_URL pooler
 - [Yevmiye redesign (2026-10-11)](project-yevmiye-redesign.md) — data-grid + icon chooser + defensive entry forms; term bans
 - [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request, never by slash command
 - [ReUI migration](project-reui-migration.md) — finished 2026-10-11, all items done
