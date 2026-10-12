@@ -8,10 +8,21 @@ export type SetupInput = {
   userName: string
   /** Also add the recommended income and expense accounts. */
   recommended: boolean
+  /** ISO 3166 alpha-2. */
+  country?: string | null
+  /** Defaults to the user name. */
+  groupName?: string
+  color?: string
+  /** Other members' names. */
+  members?: string[]
 }
 
+/** Profile colors, given in turn. The UI maps each to a token. */
+export const MEMBER_COLORS = ['blue', 'emerald', 'amber', 'rose', 'violet', 'cyan', 'orange', 'lime'] as const
+export const memberColor = (i: number) => MEMBER_COLORS[i % MEMBER_COLORS.length]
+
 /**
- * First run, in one transaction: the user actor, settings and the chart template in the base currency.
+ * First run, in one transaction: the admin, the other members, settings and the chart template in the base currency.
  * A second run fails on the unique settings keys. Returns the user actor uid.
  */
 export async function setup(db: Db, input: SetupInput): Promise<string> {
@@ -28,7 +39,12 @@ export function setupStatements(input: SetupInput): { user: string; statements: 
   const uids = new Map<string, string>()
 
   const statements: Statement[] = [
-    { sql: `INSERT INTO actors (uid, created_by, updated_by, kind, name) VALUES (?, 1, 1, 'user', ?)`, params: [user, input.userName] },
+    { sql: `INSERT INTO actors (uid, created_by, updated_by, kind, name, role, color) VALUES (?, 1, 1, 'user', ?, 'admin', ?)`,
+      params: [user, input.userName, input.color ?? memberColor(0)] },
+    ...(input.members ?? []).map((name, i) => ({
+      sql: `INSERT INTO actors (uid, created_by, updated_by, kind, name, role, color) VALUES (?, ${actor}, ${actor}, 'user', ?, 'member', ?)`,
+      params: [uuidv7(), user, user, name, memberColor(i + 1)],
+    })),
   ]
   const setting = (key: string, value: string | null) =>
     statements.push({
@@ -39,6 +55,8 @@ export function setupStatements(input: SetupInput): { user: string; statements: 
   setting('language', input.language)
   setting('lock_date', null)
   setting('activity_log_days', '365')
+  setting('group_name', input.groupName ?? input.userName)
+  setting('country', input.country ?? null)
 
   const account = (key: string, parent: string | undefined, type: string | null, name: string, placeholder: boolean, core: boolean) => {
     const uid = uuidv7()

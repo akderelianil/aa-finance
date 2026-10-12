@@ -7,6 +7,7 @@ const dbCodes = new Set([
   'entry_not_draft', 'entry_number_fixed', 'entry_posted', 'entry_too_few_lines', 'entry_unbalanced',
   'line_base_mismatch', 'line_date_mismatch', 'line_entry_fixed', 'line_insert_deleted', 'line_rate_required',
   'log_immutable', 'no_delete', 'period_locked', 'row_deleted', 'setting_key_fixed',
+  'actor_kind_fixed', 'actor_role_invalid', 'admin_only', 'entry_not_owner', 'last_admin', 'member_role_missing',
 ])
 
 // "UNIQUE constraint failed: <columns>" → code.

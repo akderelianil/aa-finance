@@ -65,6 +65,11 @@ export function update(ctx: Ctx, table: string, rowUid: string, set: Record<stri
   return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE uid = ?`, params: [...Object.values(r), rowUid] }
 }
 
+/** ApiError('admin_only') unless the caller is an admin. The DB triggers check it again. */
+export async function needAdmin(ctx: Ctx): Promise<void> {
+  if (!(await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND role = 'admin'`, [ctx.actor]))) fail('admin_only')
+}
+
 export async function baseCurrency(db: Db): Promise<{ code: string; minor: number }> {
   const r = await need(db, 'not_setup',
     `SELECT c.code, c.minor_unit FROM settings s JOIN currencies c ON c.code = s.value WHERE s.key = 'base_currency'`)

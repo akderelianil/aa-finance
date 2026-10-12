@@ -9,6 +9,7 @@ import * as entries from './entries.ts'
 import { ApiError, toApiError } from './errors.ts'
 import * as fx from './fx.ts'
 import * as logs from './logs.ts'
+import * as members from './members.ts'
 import * as reports from './reports.ts'
 import * as settings from './settings.ts'
 
@@ -19,6 +20,9 @@ export const ops = {
   'settings.get': settings.get,
   'settings.update': settings.set,
   'currencies.list': settings.currencies,
+  'members.list': members.list,
+  'members.add': members.add,
+  'members.update': members.edit,
   'fx.list': fx.list,
   'fx.get': fx.get,
   'fx.set': fx.set,
@@ -49,17 +53,27 @@ export type Output<K extends OpName> = Awaited<ReturnType<(typeof ops)[K]['run']
 /** Ops that run before setup, without an actor. */
 const open = new Set<OpName>(['setup.run', 'currencies.list'])
 
-export type Api = { call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>> }
+export type Api = {
+  call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>>
+  /** Act as this member from the next call. Unknown or null: the first admin. */
+  use(member: string | null): void
+}
 
-/** The API for one actor: by default the local user, found after setup. */
-export function createApi(db: Db): Api {
+/** The API for one member: the chosen one, else the first admin, found after setup. */
+export function createApi(db: Db, member: string | null = null): Api {
   let actor: number | null = null
   const findActor = async () => {
-    const [r] = await db.query(`SELECT id FROM actors WHERE kind = 'user' AND deleted_at IS NULL ORDER BY id LIMIT 1`)
+    const [r] = await db.query(
+      `SELECT id FROM actors WHERE kind = 'user' AND deleted_at IS NULL
+       ORDER BY uid IS NOT ?, role IS NOT 'admin', id LIMIT 1`, [member])
     return (actor = (r?.id as number | undefined) ?? null)
   }
 
   return {
+    use(uid) {
+      member = uid
+      actor = null
+    },
     async call(name, input) {
       const op = ops[name] as Op
       const start = performance.now()

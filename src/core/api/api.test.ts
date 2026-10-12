@@ -34,7 +34,9 @@ test('before setup only setup.run and currencies.list work; setup runs once', as
   await assert.rejects(api.call('setup.run', { baseCurrency: 'XXX', language: 'en', userName: 'T', recommended: false }), code('currency_unknown'))
   await api.call('setup.run', { baseCurrency: 'TRY', language: 'tr', userName: 'T', recommended: false })
   await assert.rejects(api.call('setup.run', { baseCurrency: 'EUR', language: 'tr', userName: 'T', recommended: false }), code('already_setup'))
-  assert.deepEqual(await api.call('settings.get', {}), { baseCurrency: 'TRY', language: 'tr', lockDate: null, activityLogDays: 365, userName: 'T' })
+  const { me, ...rest } = await api.call('settings.get', {})
+  assert.deepEqual(rest, { baseCurrency: 'TRY', language: 'tr', lockDate: null, activityLogDays: 365, userName: 'T', groupName: 'T', country: null })
+  assert.deepEqual([me.role, me.color], ['admin', 'blue'])
   await api.call('settings.update', { language: 'en', lockDate: '2025-12-31' })
   assert.equal((await api.call('settings.get', {})).lockDate, '2025-12-31')
   await api.call('settings.update', { userName: ' Anıl ' })
@@ -226,7 +228,7 @@ test('data.export: every table, ids as uids, currencies as codes', async () => {
   const { uid } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Wallet'), amount: 500 }, { account: acc('opening_balance'), amount: -500 }] })
   const out = await api.call('data.export', {})
   assert.equal(out.format, 'aa-finance')
-  assert.equal(out.schemaVersion, 2)
+  assert.equal(out.schemaVersion, 3)
   const { tables: t } = out
   const entry = t.entries.find((e) => e.uid === uid)!
   assert.equal(entry.id, undefined)
@@ -237,4 +239,54 @@ test('data.export: every table, ids as uids, currencies as codes', async () => {
   assert.equal(t.accounts.find((a) => a.uid === acc('bank'))!.parent, acc('asset'))
   assert.ok(t.audit_log.some((g) => g.table_name === 'entries' && g.row === uid && typeof g.new === 'object'))
   assert.ok(t.activity_log.some((g) => g.operation === 'entries.post' && typeof g.actor === 'string'))
+})
+
+test('members: setup adds them, admin manages, a member edits only own name and own entries', async () => {
+  const db = openNodeDb()
+  await migrate(db, readMigrations())
+  const api = createApi(db)
+  await assert.rejects(
+    api.call('setup.run', { baseCurrency: 'TRY', language: 'tr', userName: 'Anıl', recommended: false, members: ['anıl'] }),
+    code('member_name_taken'))
+  await assert.rejects(
+    api.call('setup.run', { baseCurrency: 'TRY', language: 'tr', userName: 'A', recommended: false, country: 'XX' }), code('invalid_input'))
+  await api.call('setup.run', {
+    baseCurrency: 'TRY', language: 'tr', userName: 'Anıl', recommended: false, country: 'TR', groupName: 'Akdereli Ailesi', members: ['Ece'],
+  })
+  const s = await api.call('settings.get', {})
+  assert.deepEqual([s.groupName, s.country, s.me.role], ['Akdereli Ailesi', 'TR', 'admin'])
+  const list = await api.call('members.list', {})
+  assert.deepEqual(list.map((m) => [m.name, m.role, m.color, m.me]), [['Anıl', 'admin', 'blue', true], ['Ece', 'member', 'emerald', false]])
+  const [admin, ece] = list
+
+  const acc = await keys(api)
+  const { uid: adminEntry } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Cüzdan'), amount: 5 }, { account: acc('opening_balance'), amount: -5 }] })
+
+  // As Ece (member).
+  api.use(ece.uid)
+  assert.equal((await api.call('settings.get', {})).me.role, 'member')
+  await assert.rejects(api.call('members.add', { name: 'Can' }), code('admin_only'))
+  await assert.rejects(api.call('members.update', { uid: admin.uid, name: 'X' }), code('admin_only'))
+  await assert.rejects(api.call('members.update', { uid: ece.uid, role: 'admin' }), code('admin_only'))
+  await assert.rejects(api.call('settings.update', { groupName: 'X' }), code('admin_only'))
+  await api.call('members.update', { uid: ece.uid, name: 'Ece A.', color: 'rose' })
+  await assert.rejects(api.call('entries.delete', { uid: adminEntry }), code('entry_not_owner'))
+  await assert.rejects(api.call('entries.update', { uid: adminEntry, description: 'x' }), code('entry_not_owner'))
+  const { uid: eceEntry } = await api.call('entries.post', { date: '2026-01-03', lines: [{ account: acc('Cüzdan'), amount: 7 }, { account: acc('opening_balance'), amount: -7 }] })
+  await api.call('entries.update', { uid: eceEntry, description: 'own' })
+  // The trigger holds even without the API check.
+  await assert.rejects(db.batch([{ sql: `UPDATE entries SET description = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, adminEntry] }]), /entry_not_owner/)
+  await assert.rejects(db.batch([{ sql: `UPDATE actors SET name = 'x', updated_by = (SELECT id FROM actors WHERE uid = ?) WHERE uid = ?`, params: [ece.uid, admin.uid] }]), /admin_only/)
+
+  // Back as the admin: edits Ece's entry, adds a member, keeps one admin.
+  api.use(null)
+  await api.call('entries.update', { uid: eceEntry, description: 'by admin' })
+  await assert.rejects(api.call('members.add', { name: 'ece a.' }), code('member_name_taken'))
+  const { uid: can } = await api.call('members.add', { name: 'Can' })
+  assert.equal((await api.call('members.list', {})).find((m) => m.uid === can)?.color, 'amber')
+  await assert.rejects(api.call('members.update', { uid: admin.uid, role: 'member' }), code('last_admin'))
+  await api.call('members.update', { uid: can, role: 'admin' })
+  await api.call('members.update', { uid: admin.uid, role: 'member' })
+  api.use('unknown')
+  assert.equal((await api.call('settings.get', {})).me.uid, can)
 })

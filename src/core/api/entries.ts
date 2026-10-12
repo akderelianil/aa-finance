@@ -2,7 +2,7 @@ import * as z from 'zod/mini'
 import type { Db, Statement } from '../db.ts'
 import { rateOf, toBase } from '../money.ts'
 import { uuidv7 } from '../uuid.ts'
-import { baseCurrency, date, fail, insert, limits, need, paging, rate, read, text, uid, update, write, type Ctx } from './ctx.ts'
+import { baseCurrency, date, fail, insert, limits, need, one, paging, rate, read, text, uid, update, write, type Ctx } from './ctx.ts'
 import { rateOn } from './fx.ts'
 
 const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
@@ -103,7 +103,8 @@ export const post = write(z.object(entryInput), async (ctx, input) => {
 export const edit = write(
   z.object({ uid, date: z.optional(date), reference: z.optional(text), description: z.optional(text), lines: z.optional(entryInput.lines) }),
   async (ctx, input) => {
-    const e = await need(ctx.db, 'entry_not_found', 'SELECT id, entry_date FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+    const e = await need(ctx.db, 'entry_not_found', 'SELECT id, entry_date, created_by FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+    await needOwner(ctx, e.created_by as number)
     const set: Record<string, string | null> = {}
     if (input.reference !== undefined) set.reference = input.reference
     if (input.description !== undefined) set.description = input.description
@@ -129,8 +130,15 @@ export const edit = write(
 )
 
 /** Soft delete; the lines follow. The number is never reused. */
+/** A member changes only own entries; an admin all. The entries_owner trigger checks it again. */
+async function needOwner(ctx: Ctx, createdBy: number) {
+  if (createdBy !== ctx.actor && !(await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND role IS NOT 'member'`, [ctx.actor])))
+    fail('entry_not_owner')
+}
+
 export const remove = write(z.object({ uid }), async (ctx, input) => {
-  await need(ctx.db, 'entry_not_found', 'SELECT 1 FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+  const e = await need(ctx.db, 'entry_not_found', 'SELECT created_by FROM entries WHERE uid = ? AND deleted_at IS NULL', [input.uid])
+  await needOwner(ctx, e.created_by as number)
   await ctx.write([update(ctx, 'entries', input.uid, { deleted_at: Date.now() })], input.uid)
   return {}
 })
