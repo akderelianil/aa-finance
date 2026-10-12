@@ -5,9 +5,9 @@ status: active
 
 # Glossary
 
-Use these terms only. The Turkish column is the term for UI text (`web/src/i18n/tr.ts`). Users know accounting: use the standard Turkish accounting term (Tek Düzen Hesap Planı, GnuCash Turkish).
+Use these terms only. The Turkish column is the term for UI text (`src/ui/i18n/tr.ts`). Users know accounting: use the standard Turkish accounting term (Tek Düzen Hesap Planı, GnuCash Turkish).
 
-The "Do not use" column is machine-checked. `cd web && npm run check:terms` fails on each hit in `tr.ts` strings, except the namespaces listed in `web/scripts/check-terms.mjs`. Each value is a word start, case-insensitive. To add a term, add a row here. To change a term, ask the product owner first.
+The "Do not use" column is machine-checked. `npm run check:terms` fails on each hit in `tr.ts` strings (`scripts/check-terms.mjs`). Each value is a word start, case-insensitive. To add a term, add a row here. To change a term, ask the product owner first.
 
 Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış yap`, `Girişe dön`.
 
@@ -18,8 +18,8 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 | Chart of Accounts | Hesap Planı | `hesap ağacı` | The account tree of the group. |
 | Account | Hesap | `kategori` | A node in the Chart of Accounts. |
 | Account code | Hesap kodu | | Internal sort key, unique in the group (1.02.01). Hidden in the UI. |
-| Account type | Hesap türü | | Varlık · Yabancı Kaynak · Özkaynak · Gelir · Gider. |
-| Asset / Liability / Equity | Varlık / Yabancı Kaynak / Özkaynak | | Balance-sheet account types. |
+| Account type | Hesap türü | | Varlık · Borç · Özkaynak · Gelir · Gider. |
+| Asset / Liability / Equity | Varlık / Borç / Özkaynak | `yabancı kaynak` | Balance-sheet account types. |
 | Income / Expense | Gelir / Gider | | Income-statement account types. |
 | Parent / child account | Üst hesap / Alt hesap | | Tree position. |
 | Placeholder | Grup hesabı | | Sums its children. Takes no line. |
@@ -53,6 +53,8 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 |---|---|---|
 | Group | Aile / topluluk | The people who share the books. One ledger file. |
 | Group name | Aile/topluluk adı | Shown name of the group. Admin edits it. |
+| Book settings | Defter ayarları | Language, country, lock date, activity log days, group name. Admin only. |
+| Country | Ülke | Sets date and number format. |
 | Member | Üye | A person in the group. No sign-in: the app opens with the last member. |
 | Member role | Rol: Yönetici · Üye | Yönetici manages members and edits or deletes any entry. Üye edits or deletes own entries. |
 | Profile color | Profil rengi | Member avatar color. |
@@ -75,7 +77,7 @@ Allowed phrases (the check skips them): `Kayıt ol`, `Giriş yap`, `Çıkış ya
 
 | Term | Meaning |
 |---|---|
-| `journal_entries` / `journal_lines` | GnuCash transactions / splits. |
-| `base_amount` | Line amount in the group base currency. Entries balance on it. |
-| Minor unit | Money as int64 (kuruş, cent). Never float. |
-| `template_key` | Stable id of a template account. Code finds a fixed account by it, never by name. |
+| `entries` / `lines` | GnuCash transactions / splits. |
+| `base_amount` | Line amount in the base currency. Entries balance on it. |
+| Minor unit | Money as a safe integer (kuruş, cent). Never float. |
+| `system_key` | Stable id of a locked core account. Code finds a fixed account by it, never by name. |

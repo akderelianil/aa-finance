@@ -1,8 +1,8 @@
 ---
 paths:
-  - "web/src/**"
-  - "web/components.json"
-  - "web/index.html"
+  - "src/ui/**"
+  - "components.json"
+  - "index.html"
 ---
 
 # UI rules (ReUI design core)

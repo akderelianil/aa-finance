@@ -13,7 +13,7 @@ metadata:
 - Be critical, not agreeable: say what is wrong or unnecessary, cover edge cases (cancel, refund, partial). Keep scope minimal; no extras (AI, auto-fill, templates) unless asked.
 - Once a roadmap is agreed, commit each phase after lint/build/screenshot and continue without asking ("onay almadan commit edip adımları ilerlet"). Stop only for new product decisions.
 - Discuss the architecture first; write plans, docs or commits only after the user agrees ("plan yapmadan önce mimariyi konuşmamız gerekiyordu"). Keep solutions simple.
-- The old "lazy non-technical user" rule is dropped; see [[project-ledger-core-pivot]].
+- The owner is a professional who knows accounting; the old "lazy non-technical user" rule is dropped.
 
 **Why:** Past drift came from deciding alone and from over-scoping.
 **How to apply:** Follow when planning or finishing phases. See [[feedback-doc-system]].

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "oxlint src",
+    "check:terms": "node scripts/check-terms.mjs",
     "test": "node --test --disable-warning=ExperimentalWarning \"src/**/*.test.ts\"",
     "tauri": "tauri",
     "seed": "node --disable-warning=ExperimentalWarning scripts/dev/seed-local.ts",

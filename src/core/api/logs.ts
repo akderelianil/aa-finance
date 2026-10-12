@@ -19,7 +19,10 @@ export const activity = read(z.object({ ...paging }), async (ctx, input) => {
   }
 })
 
-/** Who changed this row: every audit_log row, oldest first. */
+/**
+ * Who changed this row: every audit_log row, oldest first.
+ * FUTURE(audit): per-member audit view, audit export with the backup, hash chain before sync (docs/ROADMAP.md#later).
+ */
 export const audit = read(
   z.object({ table: z.enum(['actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']), uid }),
   async (ctx, input) => {

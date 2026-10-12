@@ -1,19 +1,7 @@
 - [Working style](feedback-working-style.md) — Turkish chat; options on decisions; critical; minimal scope; commit phases without asking
-- [Secrets via .env](feedback-use-dotenv-secrets.md) — load root .env per command, never print values
+- [UX focus](feedback-ux-focus.md) — main focus is UX/UI and user flows, not bundle or metrics
 - [Doc & agent system](feedback-doc-system.md) — EN docs, STE, relative links, .claude/rules, agent learning loop
-- [Stack & machine gotchas](project-aa-finance-stack.md) — Supabase + Edge Functions + React; Ubuntu/WSL2 setup; docs/DEVELOPMENT.md
-- [Ledger core pivot (2026-10-08)](project-ledger-core-pivot.md) — GnuCash-style core; convenience flows hidden; desktop only; open calls
+- [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request
+- [Secrets via .env](feedback-use-dotenv-secrets.md) — load root .env per command, never print values
+- [Local-first app](project-local-first.md) — Tauri + SQLite; Supabase retired to archive/; owner decisions; X1 status, next entry flow
 - [Git remote](project-no-git-remote.md) — origin is a local path; push only when asked
-- [UX reset (2026-10-08)](project-ux-reset.md) — docs/ux rebuilt minimal: Gider, Gelir, Transfer, Borç done; next loan (kredi)
-- [Core accounts (2026-10-11)](project-core-accounts.md) — locked core set + onboarding choice + Hesaplar polish done
-- [Hesaplar redesign (2026-10-11)](project-hesaplar-redesign.md) — ReUI tree grid, person fold, MCP via browser auth
-- [Demo account](reference-demo-account.md) — permanent dev account with 3 months of entries; seed script; 500s fixed via DB_POOL_URL pooler
-- [Yevmiye redesign (2026-10-11)](project-yevmiye-redesign.md) — data-grid + icon chooser + defensive entry forms; term bans
-- [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request, never by slash command
-- [ReUI migration](project-reui-migration.md) — finished 2026-10-11, all items done
-- [Member switch (2026-10-12)](project-member-switch.md) — group menu switches viewed member; journal-post member_id; Accounts/Reports not filtered yet
-- [Audit (2026-10-12)](project-audit-2026-10-12.md) — audit fixes done; release-time Auth/CORS items deferred
-- [Grid performance (2026-10-12)](project-grid-performance.md) — slowness was grid skeletons, not DB; profile the client first
-- [Local-first pivot (2026-10-12)](project-local-first-pivot.md) — Tauri + SQLite + TS core on branch local-first; L0–L4 done, X1 in progress; money = safe int number
-- [X1 setup + members (2026-10-12)](project-x1-setup.md) — setup + members done (X1a–d); open items; next entry flow
-- [UX focus (2026-10-12)](feedback-ux-focus.md) — main focus is UX/UI and user flows; don't fuss over bundle/metrics

@@ -9,12 +9,12 @@ Read only what the task needs. Follow links for detail.
 
 | Doc | Content | Language |
 |---|---|---|
-| [ARCHITECTURE](ARCHITECTURE.md) | Product and data-model decisions | EN |
-| [DEVELOPMENT](DEVELOPMENT.md) | Commands, machine pitfalls, status, known debt | EN |
-| [ROADMAP](ROADMAP.md) | Ledger-core phases and product decisions | EN |
-| [LOCAL-FIRST](LOCAL-FIRST.md) | Tauri + local SQLite direction, rules, budgets | EN |
+| [ARCHITECTURE](ARCHITECTURE.md) | Product, roles and ledger model, account template | EN |
+| [DEVELOPMENT](DEVELOPMENT.md) | Commands, run the real app, machine notes, working rules | EN |
+| [ROADMAP](ROADMAP.md) | Done, now, later (incl. audit trail plan) | EN |
+| [LOCAL-FIRST](LOCAL-FIRST.md) | Tauri + SQLite design, database rules, API, backup, budgets | EN |
 | [GLOSSARY](GLOSSARY.md) | One term per concept; English ↔ Turkish UI term | EN + TR |
-| [ux/](ux/README.md) | Simplified flow set, one scenario per file (Gider, Gelir, Transfer, Borç). Build the next scenario here first. | TR |
+| [ux/](ux/README.md) | Simplified flow set, one scenario per file (Kurulum, Gider, Gelir, Transfer, Borç). Build the next scenario here first. | TR |
 
 Writing and agent rules live in `.claude/rules/` (`writing.md`, `agents.md`). They load automatically when a matching file is edited.
 

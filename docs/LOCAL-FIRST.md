@@ -5,7 +5,7 @@ status: active
 
 # Local-first architecture
 
-Decided 2026-10-12 with the product owner, on branch `local-first`. It replaces the Supabase backend. Phases are in [ROADMAP](ROADMAP.md).
+Technical design of the local app. Product model: [ARCHITECTURE](ARCHITECTURE.md). Plan: [ROADMAP](ROADMAP.md).
 
 ## Goals
 - Local first: all data in one SQLite file on the user's device. No server, no sign-in.
@@ -44,8 +44,8 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 ## Tables (v1)
 | Table | Columns (besides common) |
 |---|---|
-| `actors` | `kind` (user, plugin, system), `name` |
-| `settings` | `key`, `value` (base currency, `lock_date`, language) |
+| `actors` | `kind` (user, plugin, system), `name`, `role` (admin, member), `color` |
+| `settings` | `key`, `value` (base currency, language, country, group name, `lock_date`, `activity_log_days`) |
 | `currencies` | `code`, `name`, `minor_unit` |
 | `fx_rates` | `date`, `currency_id`, `rate` (manual entry) |
 | `accounts` | `parent_id`, `name`, `type`, `currency_id`, `code`, `is_placeholder`, `locked`, `system_key`, `archived_at` |
@@ -58,7 +58,8 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 - Base currency is chosen at setup and never changes. Every account has a currency. A line holds `amount` (account currency) and `base_amount` (base currency).
 - Chart: types asset, liability, equity, income, expense. Template: `src/core/chart.ts`, applied by `setup()` (`src/core/setup.ts`) in the base currency. Core accounts are locked and have a `system_key` (5 roots, cash, bank, investments, fixed assets, receivables, credit cards, loans, payables, opening balance, FX gains and losses, bank fees); the UI shows their names from i18n by key, `name` is an English fallback. The Wallet starter is always added; the recommended income and expense accounts are an option at setup, named in the setup language. Investment gains/losses is not in v1. The UI hides codes.
 - Members: one file = one group. `actors` of kind `user` are members with `role` (`admin`, `member`) and `color`; at least one admin stays. A member edits and deletes own entries (`created_by`); an admin edits and deletes all and manages members. No PIN: the OS protects the file. The UI keeps the last member on the device and opens with it. Flow: [kurulum](ux/kurulum.md).
-- Logs: `audit_log` (triggers, kept forever) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
+- Book settings are admin only (trigger `settings_admin`, migration `0004`). Entry lists carry the `author` (the member who wrote it).
+- Logs: `audit_log` (triggers, kept forever, in the SQLite file) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
 - Later: contacts, tags, dashboard, plugin data.
 
 ## API first
@@ -91,44 +92,24 @@ The database enforces the rules. The TypeScript service checks first, only to gi
 
 ## Budgets (check each phase)
 - Cold start under 1 s. Idle RAM under 150 MB. First bundle under 500 KB compressed.
-- Reads and reports on 10k entries (20k lines) under 200 ms (`npm run bench`). The product owner set 10k instead of 1M (2026-10-12).
-- Grids use SQL paging (ReUI `data-grid` with `manualPagination`). Virtualization (`DataGridTableVirtual`) comes later if needed.
+- Reads and reports on 10k entries (20k lines) under 200 ms (`npm run bench`).
+- Grids use SQL paging (ReUI `data-grid` with `manualPagination`). Virtualization comes later if needed.
+- Keep IPC calls few: one call per operation, not one per row.
 
-### Measured (L0, release build, WSL2 + WSLg, no GPU)
+### Measured (release build on WSL2 + WSLg, no GPU; API on `node:sqlite`, 10k entries)
 | Check | Result |
 |---|---|
 | Process start → database open and migrated | 440–480 ms |
 | One IPC round trip (`SELECT 1`) | 0.4 ms |
-| Insert 100k rows in one `db_batch` | 300 ms |
-| Read 1k / 10k / 100k rows | 31 / 8 / 65 ms |
-| `SUM` over 100k rows | 5 ms |
 | Binary / first bundle (gzip) | 4.7 MB / 69 KB |
-| Idle memory, PSS (app + WebKit processes) | 360 MB; 245 MB with `WEBKIT_DISABLE_COMPOSITING_MODE=1` |
-
-- Idle memory misses the 150 MB budget on WSL. Most of it is WebKitGTK with software rendering. The product owner accepts it for now. Optimize memory after v1 works.
-- Keep IPC calls few: one call per operation, not one per row.
-
-### Measured (L1, node:sqlite, all triggers on)
-| Check | Result |
-|---|---|
-| Write and post 10k entries (20k lines, audit rows) | 1.8 s, linear |
-| Trial balance / one account balance / one-year totals | 3 / 0 / 2 ms |
-
-### Measured (L2, API on node:sqlite, 10k entries)
-| Check | Result |
-|---|---|
-| `entries.post` × 10k, one at a time | 8 s (0.8 ms each) |
-| `accounts.list` / `entries.list` page / trial balance | 3 / 2 / 5 ms |
-| Register, 10k lines on one account: first / last page | 5 / 25 ms |
-
-### Measured (L4, `npm run bench`, API on node:sqlite, 10k entries)
-| Check | Result |
-|---|---|
+| Idle memory, PSS (app + WebKit) | 360 MB; 245 MB with `WEBKIT_DISABLE_COMPOSITING_MODE=1` |
 | `entries.post` × 10k, one at a time | 7.3 s |
 | `accounts.list` / `entries.list` page / search | 3 / 1 / 4 ms |
 | Register, 10k lines: first / last page | 2 / 19 ms |
 | Trial balance / balance sheet / one-year income statement | 4 / 9 / 2 ms |
 | `data.export` (all tables, incl. audit log) | 543 ms |
+
+Idle memory misses the budget on WSL (WebKitGTK with software rendering). The product owner accepts it; optimize after v1 works.
 
 ## Out of v1
 Sync, PIN or sign-in, per-member entry grants, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.

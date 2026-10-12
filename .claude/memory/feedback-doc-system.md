@@ -13,4 +13,4 @@ User wants token-efficient, simple docs and coordinated, self-learning agents. D
 - Rules live in `.claude/rules/writing.md` and `.claude/rules/agents.md` (path-scoped). Agents use `memory: project` and the learning loop there.
 
 **Why:** User asked for wiki-style short docs, Obsidian, Mermaid, STE and agent coordination; we kept the cheap parts and rejected the graph DB.
-**How to apply:** Follow those rule files when writing docs or creating an agent. Register new agents in `docs/README.md`. See [[project-ledger-core-pivot]].
+**How to apply:** Follow those rule files when writing docs or creating an agent. Register new agents in `docs/README.md`.
