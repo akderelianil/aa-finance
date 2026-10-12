@@ -1,15 +1,23 @@
 ---
 name: project-local-first-pivot
-description: 2026-10-12 decision to move v1 from Supabase to Tauri + local SQLite + TS core; sync/E2EE later
+description: 2026-10-12 architecture: fully local Tauri + SQLite + TS core on branch local-first; DB-enforced rules, API-first, trusted plugins later; keep it simple
 metadata:
   node_type: memory
   type: project
   originSessionId: 65aee460-9522-404c-8783-aca9f19cf8c3
-  modified: 2026-10-12T11:07:30.232Z
+  modified: 2026-10-12T11:57:37.595Z
 ---
 
-Decided 2026-10-12: v1 is a desktop Tauri 2 app with a local SQLite file and a UI-free TypeScript core. Privacy and low RAM/CPU are the goals. Local profile only, no server auth. Plan: docs/LOCAL-FIRST.md, phases L0–L4 in ROADMAP.
+Decided with the product owner on 2026-10-12 (branch `local-first`, written in docs/LOCAL-FIRST.md; phases L0–L4 in ROADMAP). Fully local desktop app: Tauri 2, one SQLite file, TypeScript, ReUI/shadcn. No server, no sign-in. Sync, mobile and plugins come later. Rewrite from scratch; the old `supabase/` and `web/` stay until parity.
 
-**Why:** the user wants trust through local data, a fast start, and no stalls on desktop and phone. Server-side logic cannot work with data the server must not read.
+**Why:** trust through local data, fast start, low RAM/CPU for the user. Simplicity first.
 
-**How to apply:** keep the core free of UI/Tauri imports. Use UUIDv7, versioned entries and derived balances so encrypted sync (HLC, recovery key; server technology not chosen) and mobile can follow. The product owner dropped Go and PocketBase: do not suggest them. Do not add DuckDB; measure SQLite first. Supabase code stays until L4 is done. Open: SQLCipher at rest, group/member model in v1, FX rates source. See [[project-ledger-core-pivot]].
+**How to apply:**
+- Keep it simple. No ORM, no query builder, plain SQL files. No DuckDB. Go and PocketBase are dropped for good: do not suggest them.
+- One project: `src/core/` (pure TS, never imports UI/Tauri) and `src/ui/`. Thin Rust: `db_query`, `db_batch` (one transaction). Confirm in the L0 spike.
+- DB enforces the rules (triggers): balance via entry `draft`/`posted`, no hard delete, locks, currency match, logs immutable. The service only pre-checks for clear messages.
+- Every table: `id INTEGER` + `uid` UUIDv7 + created/updated at/by (→ `actors`). Signed amounts (+debit, −credit). Multi-currency is core: base currency chosen at setup, fixed; rates manual. Entry number per year (assigned on first post, never reused) plus free `reference`.
+- Two logs: `audit_log` (triggers, who changed a row) and `activity_log` (API, who did what).
+- API first: UI calls only named JSON operations. Plugins (v1.x) are trusted in-process like Obsidian, restricted mode on by default with a warning; user carries the risk.
+- Grids: SQL paging + ReUI data-grid (`manualPagination`); virtualization later if needed. Use only the parts the app needs.
+- Use ponytail style for code: clean, simple, logical hierarchy. Discuss before writing plans; the user decides step by step. See [[feedback-working-style]], [[project-ledger-core-pivot]].

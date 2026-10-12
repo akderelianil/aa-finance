@@ -3,40 +3,73 @@ owner: main
 status: active
 ---
 
-# Local-first direction
+# Local-first architecture
 
-Decided 2026-10-12 with the product owner. Replaces the Supabase backend for v1. Phases are in [ROADMAP](ROADMAP.md).
+Decided 2026-10-12 with the product owner, on branch `local-first`. It replaces the Supabase backend. Phases are in [ROADMAP](ROADMAP.md).
 
 ## Goals
-- Privacy: data stays on the user's device. No server can read it.
-- Cost to the user: minimum RAM and CPU. The app starts fast and does not stall.
-- No network wait: every read and write is local.
+- Local first: all data in one SQLite file on the user's device. No server, no sign-in.
+- Low RAM and CPU. Fast start. No network wait.
+- Simple. Build the core components in v1. Add the rest over time.
+- Sync, mobile and plugins come later. Do not build them in v1.
 
 ## Stack
-- Shell: Tauri 2, desktop only in v1.
-- Logic: TypeScript package with no UI dependency (schema, posting, validation, reports).
-- Data: one SQLite file on disk (WAL mode). DuckDB is not used; measure first.
-- UI: the existing React + ReUI code, with the Supabase data layer replaced by a local repository.
+- Shell: Tauri 2, desktop only.
+- Code: TypeScript. UI: React with ReUI on shadcn, only the parts the app uses.
+- Data: SQLite (WAL mode). No ORM, no query builder. Plain SQL files. No DuckDB.
+- Layout: one project. `src/core/` holds pure TypeScript (rules, services, SQL, tests). `src/ui/` holds pages and components. `core` never imports UI or Tauri code (lint rule).
+- Rust stays thin (about 100 lines): open the database, `db_query(sql, params)`, `db_batch([{sql, params}])` in one transaction. Confirm in the L0 spike (IPC cost, bigint).
 
-## Rules
-- The core package must not import UI or Tauri code. A phone UI can reuse it later.
-- Balance rules stay in two places: a SQLite trigger and the posting service.
-- Balances are derived from lines. Do not store them.
-- Primary keys are UUIDv7. Entries are versioned and not overwritten. Delete is a reversal or a soft delete. This keeps sync possible later.
-- Local profile: a user name only. No server auth in v1.
-- Money stays int64 minor units. Rates and quantities are text.
+## Database rules
+The database enforces the rules. The TypeScript service checks first, only to give clear messages.
 
-## Budgets (measure each phase)
-- Cold start under 1 s on a desktop.
-- Idle RAM under 150 MB.
-- First bundle under 500 KB compressed.
+- Every table has `id INTEGER PRIMARY KEY` (joins and queries), `uid TEXT UNIQUE` (UUIDv7, for export and later sharing), `created_at`, `updated_at` (unix ms), `created_by`, `updated_by` (→ `actors`).
+- Rows are never deleted. `deleted_at` marks a soft delete. A trigger blocks `DELETE`.
+- Money is int64 minor units (`bigint` in TypeScript). Rates are text. Dates are `TEXT 'YYYY-MM-DD'`.
+- Balances are not stored. They come from lines.
+- Entry state is `draft` or `posted`. A trigger checks "≥2 lines and `SUM(base_amount) = 0`" when the state becomes `posted`. Lines of a posted entry cannot change. An edit sets `draft`, changes lines, sets `posted` again, in one transaction.
+- Other triggers: set `updated_at`; no posting to a placeholder account; line currency equals account currency; locked accounts keep their fields; parent has the same type; no change on or before `lock_date`; write `audit_log`; block changes to both logs.
+- Entry number: `entries.year` and `entries.number`, unique per year. A trigger assigns the next number when the entry is first posted. The number never changes and is never reused. `entries.reference` is a free text document number (invoice, cheque).
+- `lines.entry_date` copies the entry date. A trigger keeps it in sync. The index `lines(account_id, entry_date, base_amount)` serves balances and registers.
+
+## Tables (v1)
+| Table | Columns (besides common) |
+|---|---|
+| `actors` | `kind` (user, plugin, system), `name` |
+| `settings` | `key`, `value` (base currency, `lock_date`, language) |
+| `currencies` | `code`, `name`, `minor_unit` |
+| `fx_rates` | `date`, `currency_id`, `rate` (manual entry) |
+| `accounts` | `parent_id`, `name`, `type`, `currency_id`, `code`, `is_placeholder`, `locked`, `system_key`, `archived_at` |
+| `entries` | `entry_date`, `year`, `number`, `reference`, `description`, `state` |
+| `lines` | `entry_id`, `account_id`, `entry_date`, `amount`, `base_amount`, `rate`, `memo`, `position` |
+| `audit_log` | `table_name`, `row_id`, `op`, `old`, `new` (JSON), `actor_id`, `at` |
+| `activity_log` | `actor_id`, `operation`, `summary`, `ok`, `error_code`, `duration_ms`, `at` |
+
+- Amounts are signed: plus is debit, minus is credit. The UI shows Borç and Alacak from the sign.
+- Base currency is chosen at setup and never changes. Every account has a currency. A line holds `amount` (account currency) and `base_amount` (base currency).
+- Chart: same as before. Types asset, liability, equity, income, expense. Five locked roots, locked system groups, free accounts below. The template is data in `core`. The UI hides codes.
+- Logs: `audit_log` (triggers, kept forever) answers "who changed this row". `activity_log` (written by the API, pruned by a setting) answers "who did what".
+- Later: contacts, tags, dashboard, plugin data.
+
+## API first
+- The UI calls only the API, never SQL. The API is named JSON operations (`accounts.create`, `entries.post`, `reports.trialBalance`). Each has an input schema, an output schema, error codes and a version.
+- The API does not depend on a transport. v1 uses direct calls in the WebView. Later: plugins and an optional local HTTP or CLI bridge.
+- The API runs in the WebView, so outside access needs the app to be open.
+
+## Plugins (later, v1.x)
+- A plugin is a folder: `manifest.json` and `main.js`. It runs in the app with full trust, like Obsidian. The user carries the risk.
+- Restricted mode is on by default and runs no plugin. The user turns it off after a clear warning.
+- A plugin writes with its own `actor`. The database rules still hold if it skips the API.
+- Plugin loading needs a Tauri CSP change. Solve it in that phase.
+
+## Budgets (check each phase)
+- Cold start under 1 s. Idle RAM under 150 MB. First bundle under 500 KB compressed.
 - Reports on 1M synthetic lines under 200 ms.
+- Grids use SQL paging (ReUI `data-grid` with `manualPagination`). Virtualization (`DataGridTableVirtual`) comes later if needed.
 
 ## Out of v1
-- Sync, groups, member access, mobile, server-side FX fetch.
-- Later: encrypted sync. The server technology is not chosen. The server stores ciphertext only. Entry-level versions with a hybrid logical clock settle conflicts. Key loss means data loss, so a recovery key is required.
+Sync, groups and members, mobile, plugins, server-side rates, contacts, tags, dashboard. Rates are manual. Backup and export of all data (SQLite file, JSON) are in v1.
 
-## Open decisions
-- Encrypt the SQLite file at rest (SQLCipher) in v1 or later.
-- How the local profile maps to the group and member model that exists today.
-- FX rates in v1: manual entry only, or a public rate fetched by the client.
+## Open
+- Encrypt the file at rest (SQLCipher): decide before release.
+- Sync design: decide when sync starts.
