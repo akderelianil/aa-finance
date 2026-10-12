@@ -106,6 +106,18 @@ export const tr = {
     lineRate: '{{count}} yabancı para satırında kur yok. Kuru ya da karşılığı gir.',
     imbalance: 'Borç ve alacak eşit olmalı. Fark: {{amount}}.',
   },
+  reg: {
+    back: 'Hesap Planı',
+    other: 'Karşı hesap',
+    split_one: '{{count}} hesap',
+    split_other: '{{count}} hesap',
+    balance: 'Bakiye',
+    opening: 'Devreden',
+    current: 'Güncel bakiye',
+    clearRange: 'Tarihi temizle',
+    empty: 'Bu hesapta kayıt yok.',
+    deleteTitle: 'Bu satırın kaydı silinsin mi?',
+  },
   setup: {
     title: 'Defterini kur',
     subtitle: 'Veriler yalnız bu bilgisayarda, tek bir dosyada tutulur.',

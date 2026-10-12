@@ -108,6 +108,18 @@ export const en: Translation = {
     lineRate: '{{count}} foreign-currency line(s) without a rate. Enter the rate or the base amount.',
     imbalance: 'Debit and credit must be equal. Difference: {{amount}}.',
   },
+  reg: {
+    back: 'Chart of Accounts',
+    other: 'Other account',
+    split_one: '{{count}} account',
+    split_other: '{{count}} accounts',
+    balance: 'Balance',
+    opening: 'Brought forward',
+    current: 'Current balance',
+    clearRange: 'Clear dates',
+    empty: 'No entries on this account.',
+    deleteTitle: 'Delete the entry of this line?',
+  },
   setup: {
     title: 'Set up your book',
     subtitle: 'Your data stays on this computer, in one file.',

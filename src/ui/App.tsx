@@ -5,6 +5,7 @@ import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { PageHeader } from '@/components/PageHeader'
 import { ApiError, useOp } from '@/lib/api'
+import AccountRegister from '@/pages/AccountRegister'
 import Accounts from '@/pages/Accounts'
 import Journal from '@/pages/Journal'
 import Setup from '@/pages/Setup'
@@ -43,6 +44,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/hesaplar" element={<Accounts />} />
+        <Route path="/hesaplar/:uid" element={<AccountRegister />} />
         <Route path="/yevmiye" element={<Journal />} />
         <Route path="/raporlar" element={<Soon title="nav.reports" />} />
         <Route path="/kurlar" element={<Soon title="nav.rates" />} />
