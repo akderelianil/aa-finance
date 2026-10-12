@@ -55,7 +55,7 @@ Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - Measure speed on `npx vite build && npx vite preview`, not on the dev server.
 
 ## Test data
-`npm run seed` writes a book with three months of entries to `.dev/aa-finance.sqlite` (gitignored). The Supabase demo accounts and seed scripts are retired in `archive/`.
+`npm run seed` writes a family book to `.dev/aa-finance.sqlite` (gitignored): Ahmet (admin), Ayşe, Fatma and Dursun, 344 entries from 2026-07-01 to 2026-09-30. It covers Gider, Gelir, Transfer, Borç and Serbest kayıt, USD and EUR, splits, fees, the Rehber, edits, deletes and an admin fix of a member entry. The script is `scripts/dev/seed-local.ts`. The Supabase demo accounts and seed scripts are retired in `archive/`.
 
 ## Before release
 - Decide encryption at rest (SQLCipher) and the data folder location.
