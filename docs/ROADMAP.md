@@ -40,6 +40,11 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | M1 Member switch | Sidebar group menu lists members with the caller's right (Sen, Yönetici, Görür, Düzeltir, Siler). Another member selected: Journal shows their entries; new entries are booked in their name with `edit` access (`journal-post` `member_id`), otherwise view only. | Done 2026-10-12 |
 | A1 Audit fixes | Entry edit/delete scoped to the caller's group. Edge Functions on the transaction pooler (`DB_POOL_URL`), JWT checked locally (`getClaims`). Journal and Register page past 1000 rows. TCMB rate saved under its publish date. RLS via `my_group_id()`. Private avatars (signed URLs). Unused packages, tables and the attachments bucket removed. | Done 2026-10-12 |
 | P1 Grid speed | Loading skeletons capped at 10 rows (Reports first visit 7 s → 0.4 s, Journal 3.7 s → 0.5 s). Client-side pages in Journal and Register. | Done 2026-10-12 |
+| L0 Tauri shell | Tauri 2 + SQLite file + migration runner. Budgets measured on an empty app. See [LOCAL-FIRST](LOCAL-FIRST.md). | |
+| L1 Core package | UI-free TS package: SQLite schema (sync-ready ids, versions), balance trigger, posting service replacing `journal-post`. | |
+| L2 Data layer | Replace `supabase-js` in `web/` with a local repository. Journal, Register, Accounts, Reports on SQLite. | |
+| L3 Profile and backup | Local profile, automatic local backup, export to a file. | |
+| L4 Benchmarks | 1M synthetic lines; tune indexes; check the budgets. | |
 | Later | Rebuild convenience flows on `journal-post`. Num, reconcile, scheduled entries, FX revaluation. | |
 
 Each phase ends with: migration + deploy (if any), `npm run lint && npm run build`, a Playwright screenshot, one commit.

@@ -8,6 +8,8 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Frontend: React + Vite + TypeScript + Tailwind, UI base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI), hosted on Cloudflare. **v1 is desktop only** (no mobile or tablet layout).
 - Package manager: npm. Supabase CLI: `npx supabase`. Dev environment: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`.
 
+- **Direction (2026-10-12):** v1 moves to Tauri + local SQLite + TypeScript core, local and private. Supabase stays until phases L0–L4 finish. Plan: [docs/LOCAL-FIRST.md](docs/LOCAL-FIRST.md).
+
 ## Product rules
 - Ledger core first: Chart of Accounts, General Journal, Account Register, Reports. Judge every feature against this core.
 - Follow accounting standards. The UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). The chart is simple: five locked roots (Varlık, Borç, Özkaynak, Gelir, Gider), locked system groups, free accounts below. The UI hides account codes.
