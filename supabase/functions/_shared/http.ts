@@ -63,6 +63,8 @@ export function serve(
       }
       // Defter kuralı (DB trigger/check, ör. gruplayıcı hesaba kayıt): istemci hatası.
       if (e.code === '23514') return json({ error: 'ledger_rule', message: (err as Error).message }, 422, cors)
+      // Malformed id or value in the request (e.g. account_id: 'x').
+      if (e.code === '22P02') return json({ error: 'bad_request', message: 'Geçersiz istek' }, 422, cors)
       console.error(err)
       return json({ error: 'internal', message: 'Beklenmeyen bir hata oluştu' }, 500, cors)
     }

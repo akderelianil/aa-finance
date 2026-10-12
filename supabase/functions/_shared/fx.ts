@@ -33,13 +33,15 @@ export async function toBase(
 // before it (weekends, holidays, before 15:30). null when TCMB has no rate or does not answer.
 export async function fetchTcmbRate(currency: string, date: string): Promise<{ rate: string; date: string } | null> {
   const d = new Date(date + 'T00:00:00Z')
+  // One budget for the whole walk back: the caller holds a DB transaction meanwhile.
+  const signal = AbortSignal.timeout(5000)
   for (let i = 0; i < 10; i++) {
     const y = d.getUTCFullYear()
     const mo = String(d.getUTCMonth() + 1).padStart(2, '0')
     const day = String(d.getUTCDate()).padStart(2, '0')
     try {
       const res = await fetch(`https://www.tcmb.gov.tr/kurlar/${y}${mo}/${day}${mo}${y}.xml`,
-        { signal: AbortSignal.timeout(4000) })
+        { signal })
       if (res.ok) {
         const xml = await res.text()
         const block = new RegExp(`<Currency[^>]*CurrencyCode="${currency}"[^>]*>([\\s\\S]*?)</Currency>`).exec(xml)?.[1]
@@ -76,7 +78,8 @@ export async function dayRate(tx: Tx, groupId: string, foreign: string, base: st
   if (base === 'TRY') {
     const t = await fetchTcmbRate(foreign, date)
     if (t) {
-      await saveRate(tx, groupId, foreign, base, date, t.rate)
+      // Save under the TCMB publish day: before 15:30 today has no rate yet, and a cached row would freeze yesterday's.
+      await saveRate(tx, groupId, foreign, base, t.date, t.rate)
       return trim(t.rate)
     }
   }

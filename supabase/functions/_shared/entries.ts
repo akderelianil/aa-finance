@@ -59,13 +59,13 @@ export function canModify(
 export async function loadOwnedEntry(
   tx: Tx,
   entryId: unknown,
-  member: { member_id: string; role: string; lock_date: string | null },
+  member: { member_id: string; group_id: string; role: string; lock_date: string | null },
   need: Need,
 ) {
   if (typeof entryId !== 'string') throw new HttpError(422, 'entry_id geçersiz', 'invalid_entry')
   const [e] = await tx`
     select id, member_id, entry_date::text as entry_date, deleted_at from journal_entries
-    where id = ${entryId} for update`
+    where id = ${entryId} and group_id = ${member.group_id} for update`
   if (!e || e.deleted_at) throw new HttpError(404, 'Kayıt bulunamadı', 'not_found')
   const [acc] = await tx`
     select level from member_access where member_id = ${member.member_id} and target_member_id = ${e.member_id}`
@@ -107,10 +107,10 @@ export function parseTags(v: unknown): string[] {
 export async function setEntryTags(tx: Tx, groupId: string, entryId: string, names: string[]) {
   await tx`delete from entry_tags where entry_id = ${entryId}`
   for (const name of names) {
-    const [found] = await tx`select id from tags where group_id = ${groupId} and lower(name) = lower(${name})`
-    const tagId = (found?.id as string | undefined) ?? uuidv7()
-    if (!found) await tx`insert into tags (id, group_id, name) values (${tagId}, ${groupId}, ${name})`
-    await tx`insert into entry_tags (entry_id, tag_id, group_id) values (${entryId}, ${tagId}, ${groupId})`
+    // A parallel post may open the same tag first: insert does nothing, the select finds its row.
+    await tx`insert into tags (id, group_id, name) values (${uuidv7()}, ${groupId}, ${name}) on conflict do nothing`
+    const [tag] = await tx`select id from tags where group_id = ${groupId} and lower(name) = lower(${name})`
+    await tx`insert into entry_tags (entry_id, tag_id, group_id) values (${entryId}, ${tag.id}, ${groupId})`
   }
 }
 
