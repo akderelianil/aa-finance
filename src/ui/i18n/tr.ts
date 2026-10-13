@@ -211,6 +211,7 @@ export const tr = {
     addAccount: 'Kalem ekle',
     person: 'Kişi',
     personPlaceholder: 'Kişi adı yaz',
+    newAccountRow: '+ Yeni hesap: {{name}}',
     newAccount: '+ Yeni kişi: {{name}}',
     newPersonHint: 'Kaydedince Rehber’e Kişi olarak eklenir.',
     openReceivable: 'Açık alacağımız',

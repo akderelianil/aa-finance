@@ -213,6 +213,7 @@ export const en: Translation = {
     addAccount: 'Add item',
     person: 'Person',
     personPlaceholder: 'Type a name',
+    newAccountRow: '+ New account: {{name}}',
     newAccount: '+ New person: {{name}}',
     newPersonHint: 'Saving adds this person to the Directory.',
     openReceivable: 'Open receivable',

@@ -14,7 +14,7 @@ import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import type { Entry } from '@/lib/journal'
 import type { AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
-import { AccountPicker } from './AccountPicker'
+import { AccountCombobox } from '@/components/AccountCombobox'
 import { AmountInput } from './AmountInput'
 
 /** `contact` is the Rehber record of a debt line; the form keeps it so an edit does not lose it. */
@@ -228,7 +228,8 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
             return (
               <tr key={l.key} className="[&>td]:px-1 [&>td]:py-0.5">
                 <td>
-                  <AccountPicker
+                  <AccountCombobox
+                    inline
                     accounts={accounts} value={l.account} autoFocus={focusKey === l.key} invalid={attempted && issues[i].account}
                     aria-label={`${t('gj.account')} ${i + 1}`}
                     onChange={(v) => setLine(l.key, { account: v, rate: '', base: '' })}

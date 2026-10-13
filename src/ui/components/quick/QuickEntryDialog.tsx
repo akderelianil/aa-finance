@@ -5,10 +5,9 @@ import { useTranslation } from 'react-i18next'
 import type { EntryInput } from '../../../core/api/entries.ts'
 import { toBase } from '../../../core/money.ts'
 import * as quick from '../../../core/quick.ts'
-import { AccountPicker, NEW } from '@/components/journal/AccountPicker'
+import { AccountCombobox, NEW, type PickerItem } from '@/components/AccountCombobox'
 import { AmountInput } from '@/components/journal/AmountInput'
 import { OptionSelect } from '@/components/OptionSelect'
-import { PersonCombobox, type PersonItem } from '@/components/directory/PersonCombobox'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -95,8 +94,8 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const receivable = debtKind === 'lend' || debtKind === 'collect'
   const debtGroup = sys(receivable ? 'receivables' : 'payables')
   // Rehber records as picker items; the path column shows the kind.
-  const people = useMemo<PersonItem[]>(
-    () => (contacts.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: t(`dir.kind.${c.kind}`) })),
+  const people = useMemo<PickerItem[]>(
+    () => (contacts.data ?? []).map((c) => ({ id: c.id, label: c.name, path: t(`dir.kind.${c.kind}`), currency: '' })),
     [contacts.data, t],
   )
   const contactById = new Map((contacts.data ?? []).map((c) => [c.id, c]))
@@ -346,7 +345,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const rank = new Map((usage.data ?? []).map((id, i) => [id, i]))
   const top = (list: AccountNode[]) => list.filter((a) => rank.has(a.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!).slice(0, 4)
   const picker = (key: string, list: AccountNode[], value: string, onChange: (v: string) => void, label: string, creatable = false) => (
-    <AccountPicker accounts={list} value={value} onChange={onChange} invalid={!!show(key)} aria-label={label} creatable={creatable} className="rounded-md border border-input" />
+    <AccountCombobox accounts={list} value={value} onChange={onChange} invalid={!!show(key)} aria-label={label} creatable={creatable} />
   )
   const chips = (list: AccountNode[], value: string, onChange: (v: string) => void) => {
     const items = top(list)
@@ -424,9 +423,9 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('quick.person')} error={show('person')}
             hint={person.startsWith(NEW) ? t('quick.newPersonHint') : undefined}>
-            <PersonCombobox
-              people={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
-              placeholder={t('quick.personPlaceholder')}
+            <AccountCombobox
+              accounts={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
+              creatable placeholder={t('quick.personPlaceholder')} createLabel={(name) => t('quick.newAccount', { name })}
             />
           </Field>
           {account('money', moneyLabel, assets, money, setMoney)}
