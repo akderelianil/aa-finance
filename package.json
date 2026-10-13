@@ -13,6 +13,7 @@
     "verify:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "verify": "npm run verify:web && npm run verify:rust",
     "docs:api": "node --disable-warning=ExperimentalWarning scripts/gen-api-docs.ts",
+    "changelog": "node --disable-warning=ExperimentalWarning scripts/gen-changelog.ts",
     "hooks:install": "sh scripts/hooks/install.sh",
     "tauri": "tauri",
     "seed": "node --disable-warning=ExperimentalWarning scripts/dev/seed-local.ts",

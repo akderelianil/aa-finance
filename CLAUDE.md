@@ -27,7 +27,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Minimum check after a change: `npm run verify:web` (tests with a coverage floor, `tsc`, lint); add `npm run verify:rust` when `src-tauri/` changes. A pre-commit hook runs it (`npm run hooks:install`).
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
 - Work tracking: `.stories/` via `ecc:story-lifecycle` (epic -> stories -> sprint). Write only through its `ledger.js`. Do not also run the GitHub-issue `epic-*` commands for the same work.
-- Git: commit by default and push to the private `github` remote after each finished change (the owner does not want to be asked each time).
+- Git: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `ci:`, `chore:`, `ecc:`); `npm run changelog` rebuilds `CHANGELOG.md` from them. Commit by default and push to the private `github` remote after each finished change (the owner does not want to be asked each time).
 
 ## Docs and ECC
 - Language: English for docs and code; `docs/product-designer/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.
