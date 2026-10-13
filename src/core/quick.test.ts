@@ -124,3 +124,12 @@ test('debt: the Rehber contact rides on the debt line only', async () => {
   const e = debt(book, { date: '2026-03-01', kind: 'lend', money: wallet, debt: rec, amount: 1000, contact: 7 })
   assert.deepEqual(e.lines.map((l) => [l.account, l.contact]), [[rec.id, 7], [wallet.id, undefined]])
 })
+
+test('transfer: a fee account in a third currency is rejected', async () => {
+  const { book, acc } = await fresh()
+  const eurFee: QuickAccount = { id: 9999, type: 'expense', currency: 'EUR' }
+  assert.throws(
+    () => transfer(book, { date: '2026-03-01', from: acc('Akbank'), to: acc('Wallet'), amount: 1000, fee: 10, feeAccount: eurFee }),
+    /quick_currency_unsupported/,
+  )
+})

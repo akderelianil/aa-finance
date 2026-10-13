@@ -585,3 +585,46 @@ test('pin: migration 0012 on a file with members and no PINs leaves them unset',
   await api.call('members.signIn', { id: old.id, pin: '135790' })
   assert.ok((await api.call('accounts.list', {})).length > 0)
 })
+
+test('fx.list returns live rates newest first, filtered by currency; remove hides a rate', async () => {
+  const { api } = await fresh()
+  assert.deepEqual(await api.call('fx.list', {}), [])
+  await api.call('fx.set', { currency: 'USD', date: '2026-02-01', rate: '30' })
+  await api.call('fx.set', { currency: 'USD', date: '2026-03-01', rate: '34.1' })
+  await api.call('fx.set', { currency: 'EUR', date: '2026-03-01', rate: '37' })
+  const all = await api.call('fx.list', {})
+  assert.deepEqual(all.map((r) => [r.currency, r.date, r.rate]), [['EUR', '2026-03-01', '37'], ['USD', '2026-03-01', '34.1'], ['USD', '2026-02-01', '30']])
+  assert.deepEqual((await api.call('fx.list', { currency: 'USD' })).map((r) => r.rate), ['34.1', '30'])
+
+  const newest = all.find((r) => r.currency === 'USD' && r.date === '2026-03-01') ?? assert.fail('no USD rate')
+  await api.call('fx.delete', { id: newest.id })
+  assert.deepEqual((await api.call('fx.list', { currency: 'USD' })).map((r) => r.rate), ['30'])
+  assert.deepEqual(await api.call('fx.get', { currency: 'USD', date: '2026-03-15' }), { date: '2026-02-01', rate: '30' })
+  await assert.rejects(api.call('fx.delete', { id: newest.id }), code('fx_rate_not_found'))
+  await assert.rejects(api.call('fx.delete', { id: 9999 }), code('fx_rate_not_found'))
+})
+
+test('fx.set on an existing date updates the rate instead of adding a row', async () => {
+  const { api } = await fresh()
+  const first = await api.call('fx.set', { currency: 'USD', date: '2026-03-01', rate: '34' })
+  const second = await api.call('fx.set', { currency: 'USD', date: '2026-03-01', rate: '35' })
+  assert.equal(second.id, first.id)
+  assert.deepEqual((await api.call('fx.list', { currency: 'USD' })).map((r) => r.rate), ['35'])
+})
+
+test('accounts.usage lists accounts used in the last 180 days, most used first, ignoring old entries', async () => {
+  const { api, acc } = await fresh()
+  assert.deepEqual(await api.call('accounts.usage', {}), [])
+  const today = new Date().toLocaleDateString('sv')
+  const b = (await api.call('accounts.create', { parent: acc('bank'), name: 'Old' })).id
+  const [g, w] = [acc('Groceries'), acc('Wallet')]
+  const post = (date: string, a: number, c: number) => api.call('entries.post', { date, lines: [{ account: a, amount: 100 }, { account: c, amount: -100 }] })
+  await post(today, g, w)
+  await post(today, g, w)
+  await post(today, acc('Restaurants'), w)
+  await post('2020-01-01', b, w)
+  const used = await api.call('accounts.usage', {})
+  assert.equal(used[0], w)
+  assert.ok(used.includes(g) && !used.includes(b))
+  assert.ok(used.indexOf(g) < used.indexOf(acc('Restaurants')))
+})
