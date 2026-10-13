@@ -233,3 +233,17 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 2 | Server language | TypeScript on Workers accepted. |
 | 3 | Security review | Yes: independent security review of the key design. |
 | + | Self-hosting idea | Send self-hosters to their own Cloudflare account instead of a VPS and Docker, to avoid extra work. Asked for the assistant's opinion. |
+
+## Round 16 and 17 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Self-host | All costs accepted; self-hosters are sent to their own Cloudflare account (no VPS or Docker server). Cloudflare is the choice. |
+| 2 | Second admin | The app recommends it strongly. |
+| 3 | New grant | A newly granted member also sees the account's history. |
+| 4 | Backup passphrase | Offered; the user chooses. |
+| 5 | Email one-time code | Accepted for the first registration on the hosted service. |
+| 6 | Signing gate | Did not understand; explained in plain words in the next reply. |
+| 7 | Out-of-band check | Mandatory (QR or short code) when joining a family. |
+| 8 | Admin actions | Accepted: a second admin, when present, co-signs admin-granting actions. |
+| 9 | Recovery key use | Notify every member. |
