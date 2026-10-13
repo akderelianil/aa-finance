@@ -5,7 +5,7 @@ status: active
 
 # Development notes
 
-Commands, machine notes and test data. Design: [ARCHITECTURE](ARCHITECTURE.md), [LOCAL-FIRST](LOCAL-FIRST.md).
+Commands, machine notes and test data. Design: [ARCHITECTURE](ARCHITECTURE.md), [backend](backend/README.md), [ui](ui/README.md).
 
 ## Commands
 Run from the repo root.
@@ -38,21 +38,9 @@ Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - The remote is a local path: commit, and push only when asked.
 
 ## Working rules
-1. Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.
-2. Money is a safe-integer `number` in minor units. Rates are text. No float math.
-3. A new rule goes into a trigger first; the API pre-checks it for a clear message. Add the error code to `src/core/api/errors.ts` and to both i18n files.
-4. A new operation lives in `src/core/api/`, is listed in `index.ts`, and has a test in `api.test.ts`.
-5. Check every UI change in a browser (playwright-cli skill): light and dark mode, then close the session. Screenshots go to `.playwright-cli/` (gitignored).
-6. After code changes run `graphify update .`.
-
-## UI
-- Base: ReUI on shadcn `base-nova` (Base UI). Config `components.json` (registry `@reui`). Rules: [aa-finance-ui skill](../.claude/skills/aa-finance-ui/SKILL.md), `.claude/skills/reui`, `.claude/rules/ui.md`.
-- Install: `npx shadcn@latest add @reui/<name> --yes` (ReUI item) or `add <name> --yes` (generic control). Find items with the ReUI MCP (`search`, `compose_page`); the first use needs `/mcp` → `reui` → Authenticate.
-- ReUI skill update: compare the version at the top of `.claude/skills/reui/SKILL.md` with MCP `get_agent_skill`. If newer, run `curl -fsSL https://mcp.reui.io/install | REUI_AGENTS_MD=0 node -`.
-- Installed ReUI parts live in `src/ui/components/reui/` (`data-grid`, `frame`, `badge`, `cascader`, `alert`). Remove unused registry files after an install. Do not install `c-data-grid-9`: it overwrites `data-grid-table.tsx`.
-- Grids page in SQL (`useServerPages`, `lib/grid.ts`). Cap loading skeletons at 10 rows.
-- Number and date format: `useBook().fmt` and `useFormat()` (`lib/format.ts`). Never call `toLocale*` with `i18n.language`.
-- Measure speed on `npx vite build && npx vite preview`, not on the dev server.
+Backend rules: [backend/README](backend/README.md#working-rules). UI rules: [ui/README](ui/README.md).
+1. Check every UI change in a browser (playwright-cli skill): light and dark mode, then close the session. Screenshots go to `.playwright-cli/` (gitignored).
+2. After code changes run `graphify update .`.
 
 ## Test data
 `npm run seed` writes a family book to `.dev/aa-finance.sqlite` (gitignored): Ahmet (admin), Ayşe, Fatma and Dursun, 344 entries from 2026-07-01 to 2026-09-30. It covers Gider, Gelir, Transfer, Borç and Serbest kayıt, USD and EUR, splits, fees, the Rehber, edits, deletes and an admin fix of a member entry. The script is `scripts/dev/seed-local.ts`. The Supabase demo accounts and seed scripts are retired in `archive/`.

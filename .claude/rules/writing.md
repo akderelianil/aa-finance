@@ -38,6 +38,7 @@ Single source for how this project writes text. Goal: short text, few tokens, on
 ```yaml
 ---
 owner: interaction-designer   # agent name, or "main" for the main session
+                              # agents: product-lead, interaction-designer, ui-designer, backend-engineer
 status: active                # active | frozen
 ---
 ```

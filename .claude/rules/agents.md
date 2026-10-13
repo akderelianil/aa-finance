@@ -16,9 +16,21 @@ paths:
 
 ## Coordination
 - The main session orchestrates. Agents do not talk to each other. They hand off through files.
+- Roles: `product-lead` (analysis and briefs), `interaction-designer` (UX), `ui-designer` (UI), `backend-engineer` (Backend). `product-lead` cannot start agents; the main session sends its briefs.
+- Multi-role request flow: owner directive → `product-lead` → briefs → main session sends each brief to its role agent (default order UX → Backend → UI) → reports → main session summarises for the owner.
+- A role agent starts from its brief. A single-role request skips `product-lead`.
 - Each file has one owner (frontmatter `owner`). An agent writes only the files it owns.
 - To change a file you do not own, put the proposal in your final report. The main session or the owner applies it.
 - Final report format: changed files (links) · open questions for the user · proposals for other owners · lessons learned.
+
+## Brief format
+File `.claude/briefs/<yyyy-mm-dd>-<slug>-<role>.md`, ≤40 lines, English:
+- **Goal:** one sentence, in the owner's intent.
+- **Context:** links to the flow, operation or doc to read first.
+- **Task:** numbered steps, one result each.
+- **Limits:** out of scope, files not to touch, rules that bind.
+- **Done when:** checkable results (tests, screen, doc).
+- **Depends on:** briefs that must finish first.
 
 ## Learning loop
 Each agent has persistent memory in `.claude/agent-memory/<name>/` (`memory: project`). The first 200 lines of its `MEMORY.md` load at start.

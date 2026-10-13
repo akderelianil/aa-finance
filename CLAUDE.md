@@ -5,7 +5,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Stack
 - Tauri 2 (desktop only, no mobile or tablet layout) + SQLite (WAL) + TypeScript. UI: React + Vite + Tailwind, base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI).
 - `src/core/`: pure TypeScript (rules, SQL, named API operations, tests). Never imports UI or Tauri code. `src/ui/`: pages and components. `src-tauri/`: thin Rust (`db_query`, `db_batch`, backup).
-- Details: [docs/LOCAL-FIRST.md](docs/LOCAL-FIRST.md). Commands and machine notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Dev machine: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`. Package manager: npm.
+- Details: [docs/backend/local-first.md](docs/backend/local-first.md). Commands and machine notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Dev machine: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`. Package manager: npm.
 - `archive/` holds the retired Supabase version (`web/`, `supabase/`, seed scripts). Do not edit or read it unless the user asks. Tag `supabase-final` marks the last Supabase commit.
 
 ## Product rules
@@ -30,6 +30,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 
 ## Docs and agents
 - Language: English for docs and code. UI text: Turkish and English in `src/ui/i18n/`. `docs/ux/**` (Turkish) is the flow set, one scenario per file.
+- Docs are grouped by role: `docs/ux/` (UX), `docs/ui/` (UI), `docs/backend/` (Backend), shared files in `docs/`. Each role has an agent in `.claude/agents/`; `product-lead` splits a multi-role request into briefs. Ownership: [docs/README.md](docs/README.md).
 - Writing rules: `.claude/rules/writing.md`. Agent rules: `.claude/rules/agents.md`. UI rules: `.claude/rules/ui.md`.
 - Skills load from the request; the user does not type slash commands. Any `src/ui/` work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first and follow their workflow. Browser check: `playwright-cli`. Review or audit: `ponytail-review` / `ponytail-audit`.
 

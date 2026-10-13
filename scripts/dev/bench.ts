@@ -1,5 +1,5 @@
 // Dev only: times the main reads on 10k entries (20k lines) through the API on node:sqlite.
-// Run: npm run bench   (in memory; the numbers go to docs/LOCAL-FIRST.md "Measured")
+// Run: npm run bench   (in memory; the numbers go to docs/backend/local-first.md "Measured")
 import { createApi, type Input, type OpName } from '../../src/core/api/index.ts'
 import { migrate } from '../../src/core/migrate.ts'
 import { openNodeDb, readMigrations } from '../../src/core/test/node-db.ts'

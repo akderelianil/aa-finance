@@ -7,4 +7,4 @@ Lessons only: non-obvious, reusable, one line, dated, with the reason. Rules: `.
 - 2026-10-12: To check built behavior, read the page component, `src/core/api/` and `src/ui/i18n/tr.ts` (the real UI words). Why: commit messages omit limits.
 - 2026-10-08: `npm run check:terms` matches banned word starts on the whole line, even incidental Turkish ("arka planda", "aracı kurum"). Grep docs/ux with `(^|[^\p{L}])(term)` -i. Why: these slipped past a first pass.
 - 2026-10-12: Owner-given keyboard maps can clash with platform norms (Shift+Tab = back vs focus back; Enter = next vs Enter adds a row). Define the key per step and context, flag the clash. Why: found both in kurulum.md.
-- 2026-10-12: Decisions move fast; docs/LOCAL-FIRST.md and GLOSSARY can lag. Check and flag to main. Why: kurulum sync.
+- 2026-10-12: Decisions move fast; docs/backend/local-first.md and GLOSSARY can lag. Check and flag to main. Why: kurulum sync.

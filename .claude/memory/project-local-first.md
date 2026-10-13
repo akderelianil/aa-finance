@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-The Supabase version (`web/`, `supabase/`) is retired to `archive/` (tag `supabase-final`). The app is Tauri 2 + one SQLite file + TypeScript core + ReUI. Design: `docs/LOCAL-FIRST.md`, `docs/ARCHITECTURE.md`; plan: `docs/ROADMAP.md`.
+The Supabase version (`web/`, `supabase/`) is retired to `archive/` (tag `supabase-final`). The app is Tauri 2 + one SQLite file + TypeScript core + ReUI. Design: `docs/backend/local-first.md`, `docs/ARCHITECTURE.md`; plan: `docs/ROADMAP.md`.
 
 Owner decisions that the docs do not explain:
 - Audience: professional personal-finance users who know accounting. Judge every feature against the ledger core. No Num or reconcile now.
