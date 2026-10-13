@@ -25,7 +25,9 @@ Read-only scan by `ecc:code-explorer`. `archive/` ignored. Tests, `tsc`, lint an
 
 ## Tests
 - Runner: `node --test "src/**/*.test.ts"`. Files: `api.test.ts` (26), `schema.test.ts` (17), `quick.test.ts` (5), `db.test.ts` (4), `money.test.ts` (2), `kept.test.ts` (2). Rust unit tests in `db.rs`, `backup.rs`.
-- Gaps: no coverage measurement (rule: 80%), no E2E, no component tests. No dedicated tests for `pin.ts`, `migrate.ts`, `chart.ts`, `setup.ts`, `ui/lib/amount.ts`, `ui/lib/format.ts` (may be covered indirectly).
+- Baseline (verified 2026-10-13): `npm test` 54/54, `tsc` clean, `oxlint` no errors (warnings only in vendored ReUI `data-grid`), `cargo test` 4/4.
+- Coverage (`node --test --experimental-test-coverage`, `src/core` + `ui/lib/kept.ts`): lines 98.7%, branches 90.8%, functions 96.5%. `pin.ts`, `migrate.ts`, `chart.ts`, `setup.ts` are covered indirectly (100% lines).
+- Gaps: `core/api/fx.ts` (lines 80%, funcs 60%; uncovered 8-13, 42-44), `ui/lib/kept.ts` (77%; 28-35), `accounts.ts:57-61`, `quick.ts:167`; lowest branch coverage in `quick.ts` 80.6%, `pin.ts` 81.8%. `ui/lib/amount.ts` and `format.ts` are not in the report. No E2E, no component tests.
 
 ## Findings
 | Area | Result |
