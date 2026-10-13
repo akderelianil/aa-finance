@@ -238,7 +238,7 @@ export default function Accounts() {
         </div>
       </div>
 
-      <AccountDialog target={target} roots={allRoots} currencies={currencies.map((c) => c.code)} onClose={() => setTarget(null)} />
+      <AccountDialog target={target} roots={allRoots} currencies={currencies} onClose={() => setTarget(null)} />
       <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
         <AlertDialogContent>
           <AlertDialogHeader>

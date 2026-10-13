@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { parseDecimal, today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { useCurrencyLabel } from '@/lib/currency-name'
 import { useFormat } from '@/lib/format'
 import { useBook } from '@/lib/ledger'
 import type { FxRate } from '../../core/api/fx.ts'
@@ -166,6 +167,7 @@ function RateForm({ onClose, base, first }: { onClose: () => void; base: string;
   const { t } = useTranslation()
   const errorText = useErrorText()
   const { currencies } = useBook()
+  const currencyLabel = useCurrencyLabel()
   const [currency, setCurrency] = useState(first)
   const [date, setDate] = useState(today())
   const [rate, setRate] = useState('')
@@ -189,7 +191,7 @@ function RateForm({ onClose, base, first }: { onClose: () => void; base: string;
             <FieldLabel htmlFor="fx-currency">{t('fx.currency')}</FieldLabel>
             <OptionCombobox
               id="fx-currency" value={currency} onChange={setCurrency} placeholder={t('fx.pickCurrency')}
-              options={currencies.filter((c) => c.code !== base).map((c) => ({ value: c.code, label: `${c.code} · ${c.name}` }))}
+              options={currencies.filter((c) => c.code !== base).map((c) => ({ value: c.code, label: currencyLabel(c) }))}
             />
           </Field>
           <Field>

@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useCurrencyLabel } from '@/lib/currency-name'
+import { OptionCombobox } from '@/components/OptionCombobox'
 import { OptionSelect } from '@/components/OptionSelect'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
@@ -24,7 +26,7 @@ export type AccountTarget = { mode: 'create'; parent: AccountNode | null } | { m
 type Props = {
   target: AccountTarget | null
   roots: AccountNode[]
-  currencies: string[]
+  currencies: { code: string; name: string }[]
   onClose: () => void
 }
 
@@ -57,7 +59,8 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
   const [name, setName] = useState(edit?.name ?? '')
   const [parentId, setParentId] = useState(initialParent ?? 0)
   const parent = parentId ? byId.get(parentId) : undefined
-  const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? currencies[0] ?? '')
+  const currencyLabel = useCurrencyLabel()
+  const [currency, setCurrency] = useState(edit?.currency ?? parent?.currency ?? currencies[0]?.code ?? '')
   const [placeholder, setPlaceholder] = useState(edit?.placeholder ?? false)
   // '' = Ortak (no owner). A new account starts with its parent's owner.
   const members = useOp('members.list', {}).data ?? []
@@ -126,11 +129,11 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
           <FieldLabel htmlFor="acc-name">{t('coa.name')}</FieldLabel>
           <Input id="acc-name" required maxLength={200} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field className="w-40">
+        <Field className="w-64">
           <FieldLabel htmlFor="acc-currency">{t('coa.currency')}</FieldLabel>
-          <OptionSelect
+          <OptionCombobox
             id="acc-currency" value={currency} onChange={setCurrency} disabled={used}
-            options={currencies.map((c) => ({ value: c, label: c }))}
+            options={currencies.map((c) => ({ value: c.code, label: currencyLabel(c) }))}
           />
         </Field>
         {used && <FieldDescription className="-mt-4">{t('coa.usedHint')}</FieldDescription>}
