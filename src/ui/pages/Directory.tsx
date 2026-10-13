@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { useGrants } from '@/lib/grants'
 import { useBook } from '@/lib/ledger'
 import type { Contact, ContactKind } from '../../core/api/contacts.ts'
 
@@ -33,6 +34,7 @@ export default function Directory() {
   const contacts = useOp('contacts.list', {})
   const balances = useOp('contacts.balances', {})
   const { fmt } = useBook()
+  const canManage = useGrants().contacts
   const remove = useWrite('contacts.delete', { inline: true })
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -51,7 +53,7 @@ export default function Directory() {
     for (const b of balances.data ?? []) if (b.kind === kind) sums.set(b.currency, (sums.get(b.currency) ?? 0) + b.amount)
     return { kind, sums: [...sums] }
   }), [balances.data])
-  const add = <Button onClick={() => setTarget({ mode: 'create' })}><PlusIcon data-icon="inline-start" />{t('dir.add')}</Button>
+  const add = canManage ? <Button onClick={() => setTarget({ mode: 'create' })}><PlusIcon data-icon="inline-start" />{t('dir.add')}</Button> : undefined
   const filtered = !!contacts.data?.length
   const hasOpen = open('receivable').length + open('payable').length > 0
 
@@ -109,7 +111,7 @@ export default function Directory() {
                 return (
                   <li key={c.id} className="flex items-center gap-1 pe-2">
                     <button
-                      type="button" onClick={() => setTarget({ mode: 'edit', contact: c })} aria-label={`${t('dir.edit')}: ${c.name}`}
+                      type="button" disabled={!canManage} onClick={() => setTarget({ mode: 'edit', contact: c })} aria-label={`${t('dir.edit')}: ${c.name}`}
                       className="flex min-w-0 flex-1 items-center gap-3 p-3 text-start transition-colors hover:bg-muted/50"
                     >
                       <Avatar><AvatarFallback>{c.name.trim().slice(0, 1).toLocaleUpperCase(i18n.language)}</AvatarFallback></Avatar>
@@ -126,7 +128,7 @@ export default function Directory() {
                         )) : <span className="text-xs text-muted-foreground">{t('dir.settled')}</span>}
                       </span>
                     </button>
-                    <DropdownMenu>
+                    {canManage && <DropdownMenu>
                       <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('common.actions')} />}>
                         <MoreHorizontalIcon />
                       </DropdownMenuTrigger>
@@ -137,7 +139,7 @@ export default function Directory() {
                           <DropdownMenuItem variant="destructive" onClick={() => { remove.reset(); setDeleting(c) }}><Trash2Icon />{t('common.delete')}</DropdownMenuItem>
                         </DropdownMenuGroup>
                       </DropdownMenuContent>
-                    </DropdownMenu>
+                    </DropdownMenu>}
                   </li>
                 )
               })}

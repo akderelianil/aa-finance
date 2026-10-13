@@ -1,8 +1,8 @@
-import { KeyRoundIcon, PencilIcon, PlusIcon, RotateCcwKeyIcon } from 'lucide-react'
+import { KeyRoundIcon, PencilIcon, PlusIcon, RotateCcwKeyIcon, UserMinusIcon } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMBER_COLORS } from '../../../core/setup.ts'
-import type { Member } from '../../../core/api/members.ts'
+import type { Grants, Member } from '../../../core/api/members.ts'
 import { DataState } from '@/components/DataState'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
@@ -10,6 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from '@/components/reui/frame'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
@@ -26,6 +27,10 @@ import { PinInput } from './PinInput'
 
 type Target = { mode: 'add' } | { mode: 'edit'; member: Member }
 
+const GRANT_KEYS = ['accounts', 'rates', 'contacts'] as const
+const GRANT_LABEL = { accounts: 'members.grantAccounts', rates: 'members.grantRates', contacts: 'members.grantContacts' } as const
+const NO_GRANTS: Grants = { accounts: false, rates: false, contacts: false }
+
 // Settings: the members. Everyone edits own name and color; an admin adds members and changes others and roles.
 export function MembersCard({ admin }: { admin: boolean }) {
   const { t } = useTranslation()
@@ -33,6 +38,7 @@ export function MembersCard({ admin }: { admin: boolean }) {
   const [target, setTarget] = useState<Target | null>(null)
   const [changing, setChanging] = useState<Member | null>(null)
   const [resetting, setResetting] = useState<Member | null>(null)
+  const [removing, setRemoving] = useState<Member | null>(null)
 
   return (
     <Frame>
@@ -67,6 +73,11 @@ export function MembersCard({ admin }: { admin: boolean }) {
                 {admin && !m.me && m.hasPin && (
                   <Button variant="ghost" size="icon-sm" aria-label={`${t('pin.reset')}: ${m.name}`} onClick={() => setResetting(m)}>
                     <RotateCcwKeyIcon />
+                  </Button>
+                )}
+                {admin && !m.me && (
+                  <Button variant="ghost" size="icon-sm" aria-label={`${t('members.remove')}: ${m.name}`} onClick={() => setRemoving(m)}>
+                    <UserMinusIcon />
                   </Button>
                 )}
                 <Button
@@ -106,6 +117,7 @@ export function MembersCard({ admin }: { admin: boolean }) {
         </DialogContent>
       </Dialog>
       <ResetPinDialog member={resetting} onClose={() => setResetting(null)} />
+      <RemoveMemberDialog member={removing} onClose={() => setRemoving(null)} />
       </FramePanel>
     </Frame>
   )
@@ -118,6 +130,7 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
   const [name, setName] = useState(old?.name ?? '')
   const [color, setColor] = useState<string>(old?.color ?? MEMBER_COLORS[count % MEMBER_COLORS.length])
   const [role, setRole] = useState<Member['role']>(old?.role ?? 'member')
+  const [grants, setGrants] = useState<Grants>(old?.grants ?? NO_GRANTS)
   const [tried, setTried] = useState(false)
   const add = useWrite('members.add', { inline: true })
   const edit = useWrite('members.update', { inline: true })
@@ -129,12 +142,15 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
     setTried(true)
     if (nameMissing) return
     const done = { onSuccess: () => { onClose() } }
-    if (!old) add.mutate({ name: name.trim(), color, role }, done)
+    const grantsChanged = old ? GRANT_KEYS.some((k) => grants[k] !== old.grants[k]) : GRANT_KEYS.some((k) => grants[k])
+    const grantsInput = admin && role === 'member' && grantsChanged ? { grants } : {}
+    if (!old) add.mutate({ name: name.trim(), color, role, ...grantsInput }, done)
     else edit.mutate({
       id: old.id,
       ...(name.trim() !== old.name && { name: name.trim() }),
       ...(color !== old.color && { color }),
       ...(role !== old.role && { role }),
+      ...grantsInput,
     }, done)
   }
 
@@ -173,6 +189,20 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
           </RadioGroup>
           {!admin && <FieldDescription>{t('members.adminOnly')}</FieldDescription>}
         </Field>
+        {role === 'member' && (
+          <Field>
+            <FieldLabel id="member-grants">{t('members.grants')}</FieldLabel>
+            <div role="group" aria-labelledby="member-grants" className="flex flex-wrap gap-x-6 gap-y-2">
+              {GRANT_KEYS.map((k) => (
+                <Label key={k} className="gap-2 font-normal">
+                  <Checkbox checked={grants[k]} disabled={!admin} onCheckedChange={(v) => setGrants((g) => ({ ...g, [k]: v === true }))} />
+                  {t(GRANT_LABEL[k])}
+                </Label>
+              ))}
+            </div>
+            <FieldDescription>{admin ? t('members.grantsHint') : t('members.adminOnly')}</FieldDescription>
+          </Field>
+        )}
         {save.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(save.error)}</AlertDescription></Alert>}
       </FieldGroup>
       <DialogFooter>
@@ -275,6 +305,36 @@ function ResetPinDialog({ member, onClose }: { member: Member | null; onClose: (
             }}
           >
             {t('pin.resetAction')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+// Admin: take a member out of the book. They cannot sign in again; their entries stay and keep their name.
+function RemoveMemberDialog({ member, onClose }: { member: Member | null; onClose: () => void }) {
+  const { t } = useTranslation()
+  const errorText = useErrorText()
+  const remove = useWrite('members.remove', { inline: true })
+  return (
+    <AlertDialog open={!!member} onOpenChange={(o) => { if (!o) { remove.reset(); onClose() } }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('members.removeTitle', { name: member?.name })}</AlertDialogTitle>
+          <AlertDialogDescription>{t('members.removeBody')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {remove.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(remove.error)}</AlertDescription></Alert>}
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive" disabled={remove.isPending}
+            onClick={(ev) => {
+              ev.preventDefault()
+              if (member) remove.mutate({ id: member.id }, { onSuccess: () => { forgetState(member.id); onClose() } })
+            }}
+          >
+            {t('members.removeAction')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

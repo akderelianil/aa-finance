@@ -32,4 +32,4 @@ Make aa-finance professional, easy for AI agents to extend, and traceable throug
 | harness-plan-6 | Component and E2E tests | todo |
 | harness-plan-7 | Work tracking and changelog | todo |
 | harness-plan-8 | Correct rules found by spec mining | done |
-| harness-plan-9 | Roles and permissions for shared data | todo |
+| harness-plan-9 | Roles and permissions for shared data | done |

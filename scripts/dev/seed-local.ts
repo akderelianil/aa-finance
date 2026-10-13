@@ -30,6 +30,9 @@ api.lock() // setup signs Ahmet in; first PINs are set while locked
 for (const [name, id] of Object.entries(memberId)) if (name !== 'Ahmet') await api.call('members.setPin', { id, pin: DEV_PIN })
 const as = (who: string) => api.call('members.signIn', { id: memberId[who], pin: DEV_PIN })
 await as('Ahmet')
+// Ahmet (admin) decides who may change shared data: Ayşe everything, Fatma accounts and the Rehber, Dursun nothing.
+await api.call('members.update', { id: memberId['Ayşe'], grants: { accounts: true, rates: true, contacts: true } })
+await api.call('members.update', { id: memberId['Fatma'], grants: { accounts: true, contacts: true } })
 
 const currencies = await api.call('currencies.list', {})
 const book: quick.Book = { base: 'TRY', minor: (c) => currencies.find((x) => x.code === c)!.minorUnit }

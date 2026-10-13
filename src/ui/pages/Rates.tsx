@@ -25,6 +25,7 @@ import { parseDecimal, today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { useCurrencyLabel } from '@/lib/currency-name'
 import { useFormat } from '@/lib/format'
+import { useGrants } from '@/lib/grants'
 import { useBook } from '@/lib/ledger'
 import type { FxRate } from '../../core/api/fx.ts'
 
@@ -35,6 +36,7 @@ export default function Rates() {
   const errorText = useErrorText()
   const { base } = useBook()
   const { date: fmtDate } = useFormat()
+  const canManage = useGrants().rates
   const [currency, setCurrency] = useState('')
   const [adding, setAdding] = useState(false)
   const [deleting, setDeleting] = useState<FxRate | null>(null)
@@ -67,7 +69,7 @@ export default function Rates() {
     },
     {
       id: 'actions', header: () => null, size: 56, enableSorting: false,
-      cell: ({ row: { original: r } }) => (
+      cell: ({ row: { original: r } }) => !canManage ? null : (
         <Button
           variant="ghost" size="icon-xs" aria-label={t('common.delete')}
           onClick={() => { remove.reset(); setDeleting(r) }}
@@ -78,7 +80,7 @@ export default function Rates() {
       meta: { skeleton: <Skeleton className="size-5" /> },
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, i18n.language, base, fmtDate])
+  ], [t, i18n.language, base, fmtDate, canManage])
 
   const table = useTable({
     features: dataGridFeatures,
@@ -87,7 +89,7 @@ export default function Rates() {
     getRowId: (r: FxRate) => String(r.id),
     state: { pagination: { pageIndex: 0, pageSize: rates.isPending ? 10 : 10_000 } },
   })
-  const add = <Button onClick={() => setAdding(true)}><PlusIcon data-icon="inline-start" />{t('fx.add')}</Button>
+  const add = canManage ? <Button onClick={() => setAdding(true)}><PlusIcon data-icon="inline-start" />{t('fx.add')}</Button> : undefined
 
   return (
     <>

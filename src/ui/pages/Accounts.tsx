@@ -27,6 +27,7 @@ import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { useGrants } from '@/lib/grants'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode, type AccountType } from '@/lib/ledger'
 import { useScope, useScopedAccounts } from '@/lib/scope'
 import { cn } from '@/lib/utils'
@@ -147,6 +148,7 @@ export default function Accounts() {
     onRowSelectionChange: setSelected,
   })
 
+  const canManage = useGrants().accounts
   const archive = useWrite('accounts.archive')
   const remove = useWrite('accounts.delete', { inline: true })
   const select = (n: AccountNode) => setSelected({ [n.id]: true })
@@ -160,7 +162,7 @@ export default function Accounts() {
   const onContextMenu = (e: MouseEvent) => {
     const rowId = (e.target as HTMLElement).closest('[data-row-id]')?.getAttribute('data-row-id')
     const node = rowId ? flat.find((n) => String(n.id) === rowId) ?? null : null
-    setCtxNode(node && accountActions(node, handlers, t).length ? node : null)
+    setCtxNode(node && accountActions(node, handlers, t, canManage).length ? node : null)
     if (node) select(node)
   }
 
@@ -168,7 +170,7 @@ export default function Accounts() {
     <>
       <PageHeader
         title={t('nav.accounts')} description={t('coa.subtitle')}
-        actions={<><ScopeSelect /><Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button></>}
+        actions={<><ScopeSelect />{canManage && <Button onClick={() => setTarget({ mode: 'create', parent: null })}><PlusIcon data-icon="inline-start" />{t('coa.add')}</Button>}</>}
       />
       <RootStrip roots={roots} active={rootFilter} onSelect={setRootFilter} fmt={(v) => fmt(v)} />
       <div className="grid grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_24rem] items-start gap-4">
@@ -214,7 +216,7 @@ export default function Accounts() {
               </ContextMenuTrigger>
               {ctxNode && (
                 <ContextMenuContent>
-                  {accountActions(ctxNode, handlers, t).map((a) => (
+                  {accountActions(ctxNode, handlers, t, canManage).map((a) => (
                     <div key={a.key}>
                       {a.key === 'archive' && <ContextMenuSeparator />}
                       <ContextMenuItem variant={a.destructive ? 'destructive' : undefined} onClick={a.onSelect}>{a.label}</ContextMenuItem>
@@ -232,7 +234,7 @@ export default function Accounts() {
         <div className="sticky top-4">
           <AccountDetail
             node={selectedNode} base={base} fmt={fmt}
-            actions={selectedNode ? accountActions(selectedNode, handlers, t) : []}
+            actions={selectedNode ? accountActions(selectedNode, handlers, t, canManage) : []}
           />
         </div>
       </div>

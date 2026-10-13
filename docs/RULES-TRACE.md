@@ -49,7 +49,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-9.1 | PR-9 | no code for these features | test: NONE |
 
 ## Open gaps
-- PR-6: the grants have no UI yet (story `harness-plan-9`).
+- PR-6: the grants UI (Settings > Members) and the hidden controls were checked by hand in the browser, not by an automated test; story `harness-plan-6` adds E2E.
 - PR-7: no test for the book-country locale (`formatLocale`); story `harness-plan-6` moves it to a pure module and tests it.
 - PR-1, PR-5, PR-9: scope and absence rules; reviewed by hand against the ROADMAP.
 - UI terms in PR-2 (Yevmiye, Hesap Planı, Mizan…) are checked by the i18n tests only for key completeness, not wording.
