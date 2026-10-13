@@ -63,3 +63,20 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | 8 | UI technology | Low React/ReUI attachment (used only for shadcn components). Priorities in order: 1 compatibility, 2 low resource use, 3 performance, 4 privacy and security. Wants "close to native". Open to critique. |
 | 9 | Locked-period edits from old devices | Apply the assistant's proposal: keep as a conflict. |
 | 10 | Business | No device or person limit in the free tier. The owner runs the sync server alone and carries cost and operations. |
+
+## Round 4 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Priority order | Accepted: 1 data integrity, 2 privacy and security, 3 compatibility, 4 resource use, 5 performance. |
+| 2 | Shared computer | Accepted: real separation only on separate devices; a shared computer gets an app gate only, said openly. |
+| 3 | Hidden from admin | Accepted: no account can be hidden from the admin. |
+| 4 | Recovery | Accepted: recovery key mandatory at setup, family-assisted recovery by default, key loss means cloud data loss. |
+| 5 | Server budget | Cloudflare or Hetzner. Up to 25 USD per month at the start; can rise with revenue. |
+| 6 | Cost method change | Recalculate past gains. Normally forward only, but the app is for non-accountants, so flexibility is allowed. |
+| 7 | Prices | All entry and prices manual in the first version. |
+| 8 | Calendars, time zones | Probably all needed (unsure). |
+| 9 | Languages | English and Turkish for the first version. |
+| 10 | Deadline | None. Quality over time. |
+| + | Extensibility | Other developers must be able to extend the app; plugins; the API matters. |
+| + | Philosophy | Follow Obsidian's philosophy (loved worldwide, developer- and user-centred). Open source is a deliberate owner choice. Obsidian is the example to follow. |
