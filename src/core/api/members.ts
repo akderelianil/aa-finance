@@ -1,17 +1,20 @@
 import * as z from 'zod/mini'
+import { hashPin, verifyPin } from '../pin.ts'
 import { memberColor } from '../setup.ts'
-import { fail, insert, name, need, needAdmin, one, read, id, update, write } from './ctx.ts'
+import { fail, insert, name, need, needAdmin, one, pin, read, id, update, write, writeSelfLog, type Ctx } from './ctx.ts'
 import { color } from './settings.ts'
 
-export type Member = { id: number; name: string; role: 'admin' | 'member'; color: string | null; me: boolean }
+export type Member = { id: number; name: string; role: 'admin' | 'member'; color: string | null; me: boolean; hasPin: boolean }
 
 const role = z.enum(['admin', 'member'])
 
 export const list = read(z.object({}), async (ctx): Promise<Member[]> => {
   const rows = await ctx.db.query(
-    `SELECT id, name, role, color FROM actors WHERE kind = 'user' AND deleted_at IS NULL ORDER BY id`)
+    `SELECT a.id, a.name, a.role, a.color, p.id IS NOT NULL AS has_pin FROM actors a
+     LEFT JOIN member_pins p ON p.member_id = a.id AND p.deleted_at IS NULL
+     WHERE a.kind = 'user' AND a.deleted_at IS NULL ORDER BY a.id`)
   return rows.map((r) => ({
-    id: r.id as number, name: r.name as string, role: r.role as Member['role'], color: (r.color as string | null) ?? null, me: r.id === ctx.actor,
+    id: r.id as number, name: r.name as string, role: r.role as Member['role'], color: (r.color as string | null) ?? null, me: r.id === ctx.actor, hasPin: r.has_pin === 1,
   }))
 })
 
@@ -46,3 +49,95 @@ export const edit = write(
     return {}
   },
 )
+
+// PIN gate. App gate, not encryption (docs/pin-gate.md). Wrong tries are counted in member_pins, so a restart keeps them.
+const MAX_TRIES = 5
+const WAIT_MS = 30_000
+
+type PinRow = { id: number; hash: string; salt: string; iterations: number; failed: number; waitUntil: number | null }
+
+async function pinOf(ctx: Ctx, member: number): Promise<PinRow | null> {
+  const r = await one(ctx.db,
+    'SELECT id, hash, salt, iterations, failed_count, wait_until FROM member_pins WHERE member_id = ? AND deleted_at IS NULL', [member])
+  return r && { id: r.id as number, hash: r.hash as string, salt: r.salt as string, iterations: r.iterations as number,
+    failed: r.failed_count as number, waitUntil: (r.wait_until as number | null) ?? null }
+}
+
+/** pin_wait with the seconds left, before any PIN is checked. */
+function checkWait(ctx: Ctx, row: PinRow) {
+  const left = (row.waitUntil ?? 0) - ctx.now()
+  if (left > 0) fail('pin_wait', { seconds: Math.ceil(left / 1000) })
+}
+
+/** Counts a wrong try and fails. The counter and the log row commit here, so the failed call cannot roll them back. */
+async function wrongPin(ctx: Ctx, row: PinRow, member: number, operation: string): Promise<never> {
+  const count = row.failed + 1
+  const wait = count >= MAX_TRIES
+  const code = wait ? 'pin_wait' : 'pin_wrong'
+  await ctx.db.batch([
+    { sql: 'UPDATE member_pins SET failed_count = ?, wait_until = ? WHERE id = ?',
+      params: [wait ? 0 : count, wait ? ctx.now() + WAIT_MS : null, row.id] },
+    { sql: 'INSERT INTO activity_log (actor_id, operation, summary, ok, error_code) VALUES (?, ?, ?, 0, ?)',
+      params: [member, operation, null, code] },
+  ])
+  return fail(code, wait ? { seconds: WAIT_MS / 1000 } : { triesLeft: MAX_TRIES - count })
+}
+
+const live = (ctx: Ctx, member: number) =>
+  need(ctx.db, 'member_not_found', `SELECT id FROM actors WHERE id = ? AND kind = 'user' AND deleted_at IS NULL`, [member])
+
+/** Open op. Checks the PIN and binds the member as the actor. The member has no PIN yet: pin_not_set (use setPin). */
+export const signIn = writeSelfLog(z.object({ id, pin }), async (ctx, input) => {
+  await live(ctx, input.id)
+  const row = (await pinOf(ctx, input.id)) ?? fail('pin_not_set')
+  checkWait(ctx, row)
+  if (!(await verifyPin(input.pin, row))) await wrongPin(ctx, row, input.id, 'members.signIn')
+  await ctx.db.batch([
+    { sql: 'UPDATE member_pins SET failed_count = 0, wait_until = NULL WHERE id = ? AND (failed_count <> 0 OR wait_until IS NOT NULL)', params: [row.id] },
+    { sql: 'INSERT INTO activity_log (actor_id, operation, summary, ok) VALUES (?, ?, ?, 1)', params: [input.id, 'members.signIn', null] },
+  ])
+  ctx.bind(input.id)
+  return {}
+})
+
+/**
+ * Open op. No PIN yet: sets it, no `current` needed (whoever picks the member first sets it; accepted for a family device).
+ * A PIN exists: needs `current` and counts wrong tries like signIn. A signed-in member can only change their own.
+ * Does not sign in.
+ */
+export const setPin = writeSelfLog(z.object({ id, pin, current: z.optional(pin) }), async (ctx, input) => {
+  await live(ctx, input.id)
+  if (!ctx.locked && input.id !== ctx.actor) fail('pin_not_own')
+  const row = await pinOf(ctx, input.id)
+  const h = await hashPin(input.pin)
+  if (!row) {
+    await ctx.write([{
+      sql: 'INSERT INTO member_pins (created_by, updated_by, member_id, hash, salt, iterations) VALUES (?, ?, ?, ?, ?, ?)',
+      params: [input.id, input.id, input.id, h.hash, h.salt, h.iterations],
+    }], 'set', input.id)
+    return {}
+  }
+  if (input.current === undefined) fail('pin_current_required')
+  checkWait(ctx, row)
+  if (!(await verifyPin(input.current, row))) await wrongPin(ctx, row, input.id, 'members.setPin')
+  await ctx.write([{
+    sql: `UPDATE member_pins SET hash = ?, salt = ?, iterations = ?, failed_count = 0, wait_until = NULL,
+          updated_at = ?, updated_by = ? WHERE id = ?`,
+    params: [h.hash, h.salt, h.iterations, Date.now(), input.id, row.id],
+  }], 'change', input.id)
+  return {}
+})
+
+/** Admin only, another member only (use setPin to change your own). Clears the PIN and the counter; the member sets a new one at next sign-in. */
+export const resetPin = write(z.object({ id }), async (ctx, input) => {
+  await needAdmin(ctx)
+  if (input.id === ctx.actor) fail('pin_reset_self')
+  await live(ctx, input.id)
+  const row = await pinOf(ctx, input.id)
+  const now = Date.now()
+  await ctx.write(
+    row ? [{ sql: 'UPDATE member_pins SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?',
+      params: [now, ctx.actor, now, ctx.actor, row.id] }] : [],
+    `reset ${input.id}`)
+  return {}
+})

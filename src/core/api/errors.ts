@@ -18,6 +18,7 @@ const uniqueCodes: [string, string][] = [
   ['index \'contacts_name\'', 'contact_name_taken'],
   ['index \'brand_businesses_pair\'', 'contact_link_exists'],
   ['settings.key', 'already_setup'],
+  ['index \'member_pins_member\'', 'pin_exists'],
 ]
 
 export class ApiError extends Error {

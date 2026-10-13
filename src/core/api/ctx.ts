@@ -4,25 +4,38 @@ import { ApiError } from './errors.ts'
 
 export type Ctx = {
   db: Db
-  /** actors.id of the caller. */
+  /** actors.id of the caller. System (1) while no member is signed in; only the open ops run then. */
   actor: number
-  /** The op's one write: its statements plus the activity_log row, in one transaction. */
-  write(statements: Statement[], summary?: string | null): Promise<void>
+  /** True while no member is signed in. */
+  locked: boolean
+  /** Epoch ms from the API clock (injected in tests). */
+  now(): number
+  /** Binds this member as the actor from the next call. Only `members.signIn` and `setup.run` use it. */
+  bind(member: number): void
+  /** The op's one write: its statements plus the activity_log row, in one transaction. `actor` overrides who the log row names. */
+  write(statements: Statement[], summary?: string | null, actor?: number): Promise<void>
 }
 
 export type Op<S extends z.ZodMiniType = z.ZodMiniType, O = unknown> = {
   input: S
   write: boolean
+  /** The op writes its own failure rows (counter plus activity_log), so call() does not log one more. */
+  selfLog?: boolean
   run(ctx: Ctx, input: z.output<S>): Promise<O>
 }
 
 export const read = <S extends z.ZodMiniType, O>(input: S, run: (ctx: Ctx, input: z.output<S>) => Promise<O>): Op<S, O> =>
   ({ input, write: false, run })
+/** A write op that logs its own failures (see `Op.selfLog`). */
+export const writeSelfLog = <S extends z.ZodMiniType, O>(input: S, run: (ctx: Ctx, input: z.output<S>) => Promise<O>): Op<S, O> =>
+  ({ input, write: true, selfLog: true, run })
 export const write = <S extends z.ZodMiniType, O>(input: S, run: (ctx: Ctx, input: z.output<S>) => Promise<O>): Op<S, O> =>
   ({ input, write: true, run })
 
 // Shared input pieces.
 export const id = z.int().check(z.minimum(1))
+/** A PIN: exactly 6 digits. */
+export const pin = z.string().check(z.regex(/^\d{6}$/))
 export const date = z.iso.date()
 export const name = z.string().check(z.trim(), z.minLength(1), z.maxLength(200))
 export const text = z.nullable(z.string().check(z.trim(), z.maxLength(1000)))

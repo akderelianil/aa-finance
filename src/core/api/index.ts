@@ -1,5 +1,5 @@
 // The API: named JSON operations, the only way the UI (and later plugins) reads or writes.
-// call() validates the input, binds the actor, writes activity_log for writes and turns any error into ApiError.
+// call() gates on the signed-in member, validates the input, writes activity_log for writes and turns any error into ApiError.
 import * as z from 'zod/mini'
 import type { Db } from '../db.ts'
 import * as accounts from './accounts.ts'
@@ -18,11 +18,15 @@ export const API_VERSION = 1
 export const ops = {
   'setup.run': settings.setup,
   'settings.get': settings.get,
+  'settings.groupName': settings.groupName,
   'settings.update': settings.set,
   'currencies.list': settings.currencies,
   'members.list': members.list,
   'members.add': members.add,
   'members.update': members.edit,
+  'members.signIn': members.signIn,
+  'members.setPin': members.setPin,
+  'members.resetPin': members.resetPin,
   'contacts.list': contacts.list,
   'contacts.balances': contacts.balances,
   'contacts.create': contacts.create,
@@ -56,24 +60,27 @@ export type OpName = keyof typeof ops
 export type Input<K extends OpName> = z.input<(typeof ops)[K]['input']>
 export type Output<K extends OpName> = Awaited<ReturnType<(typeof ops)[K]['run']>>
 
-/** Ops that run before setup, without an actor. */
-const open = new Set<OpName>(['setup.run', 'currencies.list'])
+/** Ops that run with no member signed in (before setup, or locked). Everything else fails with `locked`. */
+const open = new Set<OpName>(['setup.run', 'currencies.list', 'members.list', 'settings.groupName', 'members.signIn', 'members.setPin'])
 
 export type Api = {
   call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>>
-  /** Act as this member from the next call. Unknown or null: the first admin. */
-  use(member: number | null): void
+  /** Clears the bound member: every op except the open ones fails with `locked` until the next `members.signIn`. */
+  lock(): void
 }
 
-/** The API for one member: the chosen one, else the first admin, found after setup. */
-export function createApi(db: Db, member: number | null = null): Api {
+export type ApiOptions = {
+  /** Epoch ms. Tests inject a clock for the PIN wait. */
+  now?: () => number
+}
+
+/**
+ * The API for the whole app. No member is bound at start: `members.signIn` (a good PIN) or `setup.run` binds one;
+ * `lock()` clears it. The caller never picks the actor.
+ */
+export function createApi(db: Db, options: ApiOptions = {}): Api {
+  const now = options.now ?? Date.now
   let actor: number | null = null
-  const findActor = async () => {
-    const [r] = await db.query(
-      `SELECT id FROM actors WHERE kind = 'user' AND deleted_at IS NULL
-       ORDER BY id IS NOT ?, role IS NOT 'admin', id LIMIT 1`, [member])
-    return (actor = (r?.id as number | undefined) ?? null)
-  }
 
   // Writes run one after another: an op reads (next id, owner, rate) before it writes, so two at once could race.
   let queue: Promise<unknown> = Promise.resolve()
@@ -84,8 +91,7 @@ export function createApi(db: Db, member: number | null = null): Api {
   }
 
   const api: Api = {
-    use(id) {
-      member = id
+    lock() {
       actor = null
     },
     call(name, input) {
@@ -95,32 +101,39 @@ export function createApi(db: Db, member: number | null = null): Api {
   }
   return api
 
+  async function anyMember() {
+    return (await db.query(`SELECT 1 FROM actors WHERE kind = 'user' AND deleted_at IS NULL LIMIT 1`)).length > 0
+  }
+
   async function run<K extends OpName>(name: K, input: Input<K>): Promise<Output<K>> {
     const op = ops[name] as Op
     const start = performance.now()
     const ms = () => Math.round(performance.now() - start)
-    const id = actor ?? (await findActor())
+    const id = actor
     try {
       if (!op) throw new ApiError('unknown_op', name)
-      if (id === null && !open.has(name)) throw new ApiError('not_setup')
+      if (id === null && op && !open.has(name)) throw new ApiError(await anyMember() ? 'locked' : 'not_setup')
       const parsed = z.safeParse(op.input, input)
       if (!parsed.success) throw new ApiError('invalid_input', z.flattenError(parsed.error))
       const ctx: Ctx = {
         db,
         actor: id ?? 1,
-        write: (statements, summary = null) =>
+        locked: id === null,
+        now,
+        bind: (member) => { actor = member },
+        write: (statements, summary = null, by) =>
           db.batch([
             ...statements,
             {
               sql: 'INSERT INTO activity_log (actor_id, operation, summary, ok, duration_ms) VALUES (?, ?, ?, 1, ?)',
-              params: [id ?? 1, name, summary, ms()],
+              params: [by ?? id ?? 1, name, summary, ms()],
             },
           ]),
       }
       return (await op.run(ctx, parsed.data)) as never
     } catch (e) {
       const err = toApiError(e)
-      if (op?.write && id !== null)
+      if (op?.write && !op.selfLog && id !== null)
         await db
           .batch([{
             sql: 'INSERT INTO activity_log (actor_id, operation, ok, error_code, duration_ms) VALUES (?, ?, 0, ?, ?)',

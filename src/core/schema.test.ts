@@ -285,7 +285,7 @@ test('0005 and 0006 keep every row and id when they rebuild tables', async () =>
 
 test('every table but the logs has the six audit columns; deleted_by pairs with deleted_at', async () => {
   const ctx = await fresh()
-  const tables = ['currencies', 'actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines']
+  const tables = ['currencies', 'actors', 'settings', 'fx_rates', 'accounts', 'entries', 'lines', 'member_pins']
   for (const t of tables) {
     const cols = (await ctx.db.query(`SELECT name FROM pragma_table_info('${t}')`)).map((c) => c.name)
     for (const c of ['created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by']) assert.ok(cols.includes(c), `${t}.${c}`)

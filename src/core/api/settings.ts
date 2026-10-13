@@ -1,7 +1,8 @@
 import * as z from 'zod/mini'
 import { COUNTRY_CURRENCY } from '../countries.ts'
+import { hashPin } from '../pin.ts'
 import { setupStatements } from '../setup.ts'
-import { currency, date, fail, name, need, needAdmin, one, read, update, write } from './ctx.ts'
+import { currency, date, fail, name, need, needAdmin, one, pin, read, update, write } from './ctx.ts'
 
 const country = z.string().check(z.refine((c) => c in COUNTRY_CURRENCY, 'unknown country'))
 export const color = z.string().check(z.regex(/^[a-z]{1,20}$/))
@@ -16,6 +17,8 @@ export const setup = write(
     groupName: z.optional(name),
     color: z.optional(color),
     members: z.optional(z.array(name).check(z.maxLength(50))),
+    /** The first admin's PIN, stored in the same transaction. */
+    pin: z.optional(pin),
   }),
   async (ctx, input) => {
     if (await one(ctx.db, `SELECT 1 FROM settings WHERE key = 'base_currency'`)) fail('already_setup')
@@ -28,10 +31,24 @@ export const setup = write(
       sql: `INSERT INTO activity_log (actor_id, operation, summary, ok) VALUES (?, 'setup.run', ?, 1)`,
       params: [user, input.baseCurrency],
     })
+    if (input.pin) {
+      const h = await hashPin(input.pin)
+      statements.push({
+        sql: 'INSERT INTO member_pins (created_by, updated_by, member_id, hash, salt, iterations) VALUES (?, ?, ?, ?, ?, ?)',
+        params: [user, user, user, h.hash, h.salt, h.iterations],
+      })
+    }
     await ctx.db.batch(statements)
+    ctx.bind(user)
     return { user }
   },
 )
+
+/** Open op: the pick screen shows the group name before anyone signs in. */
+export const groupName = read(z.object({}), async (ctx): Promise<{ groupName: string }> => {
+  const r = await need(ctx.db, 'not_setup', `SELECT value FROM settings WHERE key = 'group_name'`)
+  return { groupName: r.value as string }
+})
 
 export type Settings = {
   baseCurrency: string

@@ -20,6 +20,13 @@ async function keys(api: Api) {
   return (key: string) => (list.find((a) => a.systemKey === key || a.name === key) ?? assert.fail(`no account ${key}`)).id
 }
 
+/** Lock, then sign in as this member (setting a PIN first when there is none). */
+async function as(api: Api, member: number, pin = '123456') {
+  api.lock()
+  if (!(await api.call('members.list', {})).find((m) => m.id === member)?.hasPin) await api.call('members.setPin', { id: member, pin })
+  await api.call('members.signIn', { id: member, pin })
+}
+
 const code = (c: string) => (e: unknown) => {
   assert.equal((e as { code?: string }).code, c, String(e))
   return true
@@ -251,7 +258,7 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   const { id: adminEntry } = await api.call('entries.post', { date: '2026-01-02', lines: [{ account: acc('Cüzdan'), amount: 5 }, { account: acc('opening_balance'), amount: -5 }] })
 
   // As Ece (member).
-  api.use(ece.id)
+  await as(api, ece.id)
   assert.equal((await api.call('settings.get', {})).me.role, 'member')
   await assert.rejects(api.call('members.add', { name: 'Can' }), code('admin_only'))
   await assert.rejects(api.call('members.update', { id: admin.id, name: 'X' }), code('admin_only'))
@@ -272,7 +279,7 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   await assert.rejects(db.batch([{ sql: `UPDATE actors SET name = 'x', updated_by = (SELECT id FROM actors WHERE id = ?) WHERE id = ?`, params: [ece.id, admin.id] }]), /admin_only/)
 
   // Back as the admin: edits Ece's entry, adds a member, keeps one admin.
-  api.use(null)
+  await as(api, admin.id)
   await api.call('entries.update', { id: eceEntry, description: 'by admin' })
   await assert.rejects(api.call('members.add', { name: 'ece a.' }), code('member_name_taken'))
   const { id: can } = await api.call('members.add', { name: 'Can' })
@@ -280,7 +287,7 @@ test('members: setup adds them, admin manages, a member edits only own name and 
   await assert.rejects(api.call('members.update', { id: admin.id, role: 'member' }), code('last_admin'))
   await api.call('members.update', { id: can, role: 'admin' })
   await api.call('members.update', { id: admin.id, role: 'member' })
-  api.use(999999)
+  await as(api, can)
   assert.equal((await api.call('settings.get', {})).me.id, can)
 })
 
@@ -430,4 +437,151 @@ test('line member: a line belongs to its member, else to its account owner', asy
   assert.equal((await api.call('reports.incomeStatement', { from: '2026-03-01', to: '2026-03-31', owner: b.id })).net, -700)
   assert.equal((await api.call('entries.list', { owner: b.id })).total, 1)
   assert.equal((await api.call('entries.get', { id: 1 })).lines[0].member, b.id)
+})
+
+// PIN gate. Hashing is slow on purpose, so these tests keep the number of hashes small.
+async function pinBook(start = 1_000_000) {
+  const db = openNodeDb()
+  await migrate(db, readMigrations())
+  const clock = { t: start }
+  const mk = () => createApi(db, { now: () => clock.t })
+  const api = mk()
+  const { user } = await api.call('setup.run', { baseCurrency: 'TRY', language: 'en', userName: 'Ada', recommended: false, members: ['Bob', 'Cem'], pin: '246810' })
+  const [ada, bob, cem] = (await api.call('members.list', {})).map((m) => m.id)
+  return { db, api, mk, clock, user, ada, bob, cem }
+}
+
+test('pin: setup stores the first admin PIN with the hash, never in audit_log; setup binds the admin', async () => {
+  const { api, db, user } = await pinBook()
+  assert.equal((await api.call('settings.get', {})).me.id, user)
+  assert.deepEqual((await api.call('members.list', {})).map((m) => [m.name, m.hasPin]), [['Ada', true], ['Bob', false], ['Cem', false]])
+  const [row] = await db.query('SELECT hash, salt, iterations, failed_count, created_by FROM member_pins')
+  assert.ok(/^[0-9a-f]{64}$/.test(row.hash as string) && (row.iterations as number) >= 100_000 && row.failed_count === 0 && row.created_by === user)
+  assert.equal(String(row.hash).includes('246810'), false)
+  const all = JSON.stringify(await db.query('SELECT new, old FROM audit_log')) + JSON.stringify(await db.query('SELECT summary FROM activity_log'))
+  assert.ok(!all.includes(row.hash as string) && !all.includes('246810'))
+})
+
+test('pin: locked gate lets only the open ops through; sign in binds, lock clears', async () => {
+  const { api, ada, bob } = await pinBook()
+  api.lock()
+  for (const [op, input] of [['settings.get', {}], ['accounts.list', {}], ['entries.list', {}], ['members.add', { name: 'X' }], ['activity.list', {}]] as const)
+    await assert.rejects(api.call(op, input as never), code('locked'))
+  assert.equal((await api.call('settings.groupName', {})).groupName, 'Ada')
+  assert.ok((await api.call('members.list', {})).every((m) => !m.me))
+  await assert.rejects(api.call('members.signIn', { id: ada, pin: '000000' }), code('pin_wrong'))
+  await assert.rejects(api.call('members.signIn', { id: bob, pin: '000000' }), code('pin_not_set'))
+  await assert.rejects(api.call('members.signIn', { id: ada, pin: '12345' }), code('invalid_input'))
+  await assert.rejects(api.call('members.signIn', { id: 999, pin: '123456' }), code('member_not_found'))
+  await assert.rejects(api.call('accounts.list', {}), code('locked'))
+  await api.call('members.signIn', { id: ada, pin: '246810' })
+  assert.equal((await api.call('settings.get', {})).me.id, ada)
+  api.lock()
+  await assert.rejects(api.call('accounts.list', {}), code('locked'))
+})
+
+test('pin: before setup the gate says not_setup, not locked', async () => {
+  const db = openNodeDb()
+  await migrate(db, readMigrations())
+  const api = createApi(db)
+  await assert.rejects(api.call('accounts.list', {}), code('not_setup'))
+  assert.deepEqual(await api.call('members.list', {}), [])
+})
+
+test('pin: 5 wrong tries wait 30 s, restart keeps it, recovery after the wait, success clears', async () => {
+  const { api, mk, db, clock, ada } = await pinBook()
+  api.lock()
+  for (let i = 4; i >= 1; i--)
+    await assert.rejects(api.call('members.signIn', { id: ada, pin: '111111' }), (e: { code: string; details: { triesLeft: number } }) => e.code === 'pin_wrong' && e.details.triesLeft === i)
+  await assert.rejects(api.call('members.signIn', { id: ada, pin: '111111' }), (e: { code: string; details: { seconds: number } }) => e.code === 'pin_wait' && e.details.seconds === 30)
+  // During the wait the right PIN is not even checked.
+  clock.t += 10_000
+  await assert.rejects(api.call('members.signIn', { id: ada, pin: '246810' }), (e: { code: string; details: { seconds: number } }) => e.code === 'pin_wait' && e.details.seconds === 20)
+  // A restart (new API on the same file) keeps the wait.
+  const again = mk()
+  await assert.rejects(again.call('members.signIn', { id: ada, pin: '246810' }), code('pin_wait'))
+  clock.t += 20_000
+  // 5 more tries after the wait.
+  for (let i = 0; i < 4; i++) await assert.rejects(again.call('members.signIn', { id: ada, pin: '111111' }), code('pin_wrong'))
+  await again.call('members.signIn', { id: ada, pin: '246810' })
+  assert.deepEqual((await db.query('SELECT failed_count, wait_until FROM member_pins'))[0], { failed_count: 0, wait_until: null })
+  const log = await again.call('activity.list', {})
+  assert.equal(log.rows.filter((r) => r.operation === 'members.signIn' && !r.ok).length, 9)
+  assert.equal(log.rows.filter((r) => r.operation === 'members.signIn' && r.ok).length, 1)
+  assert.ok(log.rows.every((r) => r.summary === null || !/\d{6}/.test(r.summary)))
+})
+
+test('pin: setPin sets the first PIN freely, a change needs the current PIN and shares the wait counter', async () => {
+  const { api, db, clock, ada, bob } = await pinBook()
+  api.lock()
+  await api.call('members.setPin', { id: bob, pin: '111222' })
+  await assert.rejects(api.call('members.setPin', { id: bob, pin: '333444' }), code('pin_current_required'))
+  await assert.rejects(api.call('members.setPin', { id: bob, pin: '333444', current: '000000' }), code('pin_wrong'))
+  await api.call('members.setPin', { id: bob, pin: '333444', current: '111222' })
+  await assert.rejects(api.call('members.signIn', { id: bob, pin: '111222' }), code('pin_wrong'))
+  await api.call('members.signIn', { id: bob, pin: '333444' })
+  // Signed in: only the own PIN.
+  await assert.rejects(api.call('members.setPin', { id: ada, pin: '555666', current: '246810' }), code('pin_not_own'))
+  // The wait also stops a change with a guessed current PIN.
+  for (let i = 0; i < 5; i++) await assert.rejects(api.call('members.setPin', { id: bob, pin: '999999', current: '000000' }), (e: { code: string }) => e.code.startsWith('pin_w'))
+  await assert.rejects(api.call('members.setPin', { id: bob, pin: '999999', current: '333444' }), code('pin_wait'))
+  clock.t += 31_000
+  await api.call('members.setPin', { id: bob, pin: '999999', current: '333444' })
+  const ops = (await api.call('activity.list', {})).rows.filter((r) => r.operation === 'members.setPin' && r.ok).map((r) => r.summary).reverse()
+  assert.deepEqual(ops, ['set', 'change', 'change'])
+  assert.equal((await db.query('SELECT count(*) AS n FROM member_pins WHERE member_id = ?', [bob]))[0].n, 1)
+})
+
+test('pin: admin resets another member, not self; a member cannot reset', async () => {
+  const { api, db, ada, bob, cem } = await pinBook()
+  await assert.rejects(api.call('members.resetPin', { id: ada }), code('pin_reset_self'))
+  await as(api, bob, '111222')
+  await assert.rejects(api.call('members.resetPin', { id: cem }), code('admin_only'))
+  await assert.rejects(api.call('members.resetPin', { id: bob }), code('admin_only'))
+  await api.call('members.signIn', { id: bob, pin: '111222' })
+  await as(api, ada, '246810')
+  await assert.rejects(api.call('members.resetPin', { id: 999 }), code('member_not_found'))
+  await api.call('members.resetPin', { id: bob })
+  assert.equal((await api.call('members.list', {})).find((m) => m.id === bob)?.hasPin, false)
+  const [dead] = await db.query('SELECT deleted_by FROM member_pins WHERE member_id = ? AND deleted_at IS NOT NULL', [bob])
+  assert.equal(dead.deleted_by, ada)
+  api.lock()
+  await assert.rejects(api.call('members.signIn', { id: bob, pin: '111222' }), code('pin_not_set'))
+  await api.call('members.setPin', { id: bob, pin: '777888' })
+  await api.call('members.signIn', { id: bob, pin: '777888' })
+  // Another admin may reset an admin.
+  await as(api, ada, '246810')
+  await api.call('members.update', { id: bob, role: 'admin' })
+  await as(api, bob, '777888')
+  await api.call('members.resetPin', { id: ada })
+  assert.ok((await api.call('activity.list', {})).rows.some((r) => r.operation === 'members.resetPin' && r.ok))
+})
+
+test('pin: reset clears the wait counter with the row', async () => {
+  const { api, ada, bob } = await pinBook()
+  await as(api, bob, '111222')
+  api.lock()
+  for (let i = 0; i < 5; i++) await assert.rejects(api.call('members.signIn', { id: bob, pin: '000000' }), (e: { code: string }) => e.code.startsWith('pin_w'))
+  await assert.rejects(api.call('members.signIn', { id: bob, pin: '111222' }), code('pin_wait'))
+  await api.call('members.signIn', { id: ada, pin: '246810' })
+  await api.call('members.resetPin', { id: bob })
+  api.lock()
+  await api.call('members.setPin', { id: bob, pin: '121212' })
+  await api.call('members.signIn', { id: bob, pin: '121212' })
+})
+
+test('pin: migration 0012 on a file with members and no PINs leaves them unset', async () => {
+  const db = openNodeDb()
+  const files = readMigrations()
+  await migrate(db, files.slice(0, 11))
+  await createApi(db).call('setup.run', { baseCurrency: 'TRY', language: 'en', userName: 'Old', recommended: false, members: ['Mate'] })
+  await migrate(db, files)
+  const api = createApi(db)
+  assert.deepEqual(await api.call('settings.groupName', {}), { groupName: 'Old' })
+  assert.deepEqual((await api.call('members.list', {})).map((m) => [m.name, m.hasPin, m.me]), [['Old', false, false], ['Mate', false, false]])
+  await assert.rejects(api.call('accounts.list', {}), code('locked'))
+  const [old] = await api.call('members.list', {})
+  await api.call('members.setPin', { id: old.id, pin: '135790' })
+  await api.call('members.signIn', { id: old.id, pin: '135790' })
+  assert.ok((await api.call('accounts.list', {})).length > 0)
 })
