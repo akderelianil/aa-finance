@@ -17,6 +17,7 @@ Generated from Conventional Commits by `npm run changelog`. Do not edit by hand.
 - user rate wins, members.remove, recursive contacts.balances; correct CLAUDE.md and rule docs (harness-plan-8) (846d9fe)
 
 ### Documentation
+- changelog generated from Conventional Commits, final harness re-audit (harness-plan-7) (1f5118e)
 - behavior specs, rules trace and findings; tests keep the trace honest (harness-plan-3) (79a2e44)
 - record harness re-audit (35/39) (c947149)
 - add ADR 0001-0006 and index them (harness-plan-2) (21bca97)
@@ -28,6 +29,7 @@ Generated from Conventional Commits by `npm run changelog`. Do not edit by hand.
 - drop references to retired local agents, skills and graphify (a15d6ab)
 
 ### Tests
+- browser smoke path, grants UI and kept-draft E2E, formatLocale unit tests (harness-plan-6) (2d36036)
 - cover fx, accounts.usage, quick fee currency, useKept and amount helpers (deecbc6)
 
 ### CI

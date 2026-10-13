@@ -71,3 +71,8 @@ Score **37/39**, the same as after story 5. Stories 1 to 5, 7, 8 and 9 are done;
 The last failing check is Eval Coverage (0/2). It looks for `evals/` files or `tests/**/*.test.js`, and this project's 100 tests live in `src/**/*.test.ts` and `scripts/**/*.test.ts`. A real E2E path (story 6) can live under `evals/` and close it; no empty folder will be added to buy the point.
 
 What changed since the first audit: local gate (`npm run verify`, pre-commit hook, coverage floor), CI, ADR 0001 to 0007, behavior specs and rules trace with tests that keep them honest, generated API reference and CHANGELOG, migration guard hook, grants for shared data, and a security review of the grants.
+
+## Final audit (2026-10-13)
+Story 6 closed the last check: the Playwright specs live under `evals/e2e/` (setup, PIN, Quick Entry, journal, trial balance; the grants UI; an open draft that survives a switch of member), so the audit sees real flows and not an empty folder. The tests run in CI (job "Browser smoke path"). A mutation check (removing the write-back in `useKept`) turned the draft test red, so it covers that code.
+
+All stories of the epic `harness-plan` are done. Open items outside the epic are in `docs/backend/specs/FINDINGS.md` (raw SQL boundary, first-PIN claim, trigger-level admin checks, year/number behavior).

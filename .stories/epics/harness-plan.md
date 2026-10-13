@@ -29,7 +29,7 @@ Make aa-finance professional, easy for AI agents to extend, and traceable throug
 | harness-plan-3 | Behavior specs and rule-to-test trace | done |
 | harness-plan-4 | Generated API and error-code references | done |
 | harness-plan-5 | Security guardrails and small core fixes | done |
-| harness-plan-6 | Component and E2E tests | in-progress |
+| harness-plan-6 | Component and E2E tests | done |
 | harness-plan-7 | Work tracking and changelog | done |
 | harness-plan-8 | Correct rules found by spec mining | done |
 | harness-plan-9 | Roles and permissions for shared data | done |
