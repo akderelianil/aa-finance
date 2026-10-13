@@ -23,7 +23,7 @@ status: draft
 
 ## Assistant ideas (A)
 Picked for early releases by the owner: quick entry (UI plus API/CLI; important), privacy mode, asset card, credit-card cycle (statement day, limit, rates, instalments), net worth and reports in another currency or unit.
-All other ideas go to the backlog: gold/dollar-denominated net worth is covered by the unit report above; allowance and family-debt netting (adult members only, no child mode); time machine (as-of view); ledger doctor (health check); yearly summary; insurance/inspection reminders on the asset card; scenario packs by community; bank-specific loan calculators as plugins.
+All other ideas go to the backlog: gold/dollar-denominated net worth is covered by the unit report above; allowance and family-debt netting (a child-specific mode is not planned); time machine (as-of view); ledger doctor (health check); yearly summary; insurance/inspection reminders on the asset card; scenario packs by community; bank-specific loan calculators as plugins.
 
 ## Release sketch (owner, round 8)
 - v1: free, local, one device. Income/expense, transfer, debt. Balance Sheet, Income Statement, simple Cash Flow. Multi-currency. Sync-ready data model (global ids, event log).

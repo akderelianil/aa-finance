@@ -1,6 +1,6 @@
 ---
 owner: product-lead
-status: draft
+status: active
 ---
 
 # Vision
@@ -9,7 +9,7 @@ status: draft
 A person with no accounting knowledge can run every personal and family money decision with this app, in the words of daily life, while the books underneath follow professional double-entry rules. It is free and private on the user's own device. People who want sync across devices pay for it; the app and its protocols stay open source.
 
 ## Who it is for
-- Adults (18+) keeping their own money, alone or as a family of up to 10 people, each with their own devices over time.
+- Anyone keeping their own money, with no age limit, alone or as a family of up to 10 people, each with their own devices over time.
 - First user: the owner's family in Turkey. Later: anyone in the world, so every currency and commodity is in scope.
 - Not for businesses, tax filing or e-invoicing. People track their finances for themselves.
 
@@ -33,7 +33,7 @@ Model to follow: Obsidian's spirit (local files you own, paid sync and a plugin 
 | Later | Paid sync (E2EE) and self-hosting, attachments, bank import and reconciliation, notifications while the app is closed, budgets and goals, loan tracking, mobile (native), official plugins |
 
 ## Non-goals
-AI or auto-fill, business accounting, tax and legal reporting, accounts for minors, telemetry, a hosted service that can read user data.
+AI or auto-fill, business accounting, tax and legal reporting, a child-specific mode, telemetry, a hosted service that can read user data.
 
 ## Success
 - A person who has never heard of debit and credit records a loan, an instalment purchase and a currency exchange correctly.

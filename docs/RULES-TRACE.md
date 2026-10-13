@@ -10,7 +10,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 ## Rules
 | Rule | Summary | Evidence |
 |---|---|---|
-| PR-1 | Purpose: a family ledger for people with no accounting knowledge; adults only; personal use | PR-1.1 |
+| PR-1 | Purpose: a family ledger for people with no accounting knowledge; personal use, no age limit | PR-1.1 |
 | PR-2 | Strict double entry, balanced in the base currency, enforced by the database; append-only revisions; change log | PR-2.1 to PR-2.6 |
 | PR-3 | Daily-language UI with scenario templates; an entry is a completed event; plans are separate | PR-3.1 to PR-3.2 |
 | PR-4 | Currencies and commodities, manual values win, price history, virtual valuation, cost method | PR-4.1 to PR-4.6 |
@@ -23,7 +23,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-11 | First release scope: income/expense, transfer, debt; three reports; multi-currency | PR-11.1 to PR-11.5 |
 | PR-12 | Early picks after v1 basics | PR-12.1 |
 | PR-13 | Licenses and DCO | PR-13.1 |
-| PR-14 | Out of scope: AI, tax, business, child accounts | absence of features (PR-14.1) |
+| PR-14 | Out of scope: AI, tax, business, a child-specific mode | absence of features (PR-14.1) |
 
 ## Evidence
 | Id | Rule | Enforced by | Proof |

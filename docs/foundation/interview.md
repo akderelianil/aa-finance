@@ -161,3 +161,6 @@ Open for the owner to confirm: DCO versus CLA (explained in round 5 answer), tel
 | 3 | Backup | CSV export and a separate full restorable backup. Accepted. |
 | 4 | Authority | Full authority to update CLAUDE.md, memory, rules and docs so that no old rule or philosophy remains. Done in the same commit. |
 | 5 | Notifications | Very important for the architecture but not urgent: backlog, not in v1. |
+
+## Vision review (2026-10-13)
+Owner approved the vision with one change: remove the "adults 18+" statement; no notice and no restriction, a general user. A child-specific mode stays unplanned. Assistant note: if minors use the app, the terms of use still need a line about it; end-to-end encryption keeps the hosted service blind to the data.
