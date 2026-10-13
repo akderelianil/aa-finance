@@ -1,11 +1,14 @@
-import { PencilIcon, PlusIcon } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { KeyRoundIcon, PencilIcon, PlusIcon, RotateCcwKeyIcon } from 'lucide-react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MEMBER_COLORS } from '../../../core/setup.ts'
 import type { Member } from '../../../core/api/members.ts'
 import { DataState } from '@/components/DataState'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from '@/components/reui/frame'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,10 +17,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
-import { useErrorText, useOp, useWrite } from '@/lib/api'
+import { ApiError, useErrorText, useOp, useWrite } from '@/lib/api'
+import { forgetState } from '@/lib/session'
 import { colorClass } from '@/lib/members'
 import { cn } from '@/lib/utils'
 import { MemberAvatar } from './MemberAvatar'
+import { PinInput } from './PinInput'
 
 type Target = { mode: 'add' } | { mode: 'edit'; member: Member }
 
@@ -26,6 +31,8 @@ export function MembersCard({ admin }: { admin: boolean }) {
   const { t } = useTranslation()
   const members = useOp('members.list', {})
   const [target, setTarget] = useState<Target | null>(null)
+  const [changing, setChanging] = useState<Member | null>(null)
+  const [resetting, setResetting] = useState<Member | null>(null)
 
   return (
     <Frame>
@@ -50,7 +57,18 @@ export function MembersCard({ admin }: { admin: boolean }) {
                 <MemberAvatar name={m.name} color={m.color} size="md" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">{m.name}</span>
                 {m.me && <Badge variant="info-light">{t('members.you')}</Badge>}
+                {!m.hasPin && <Badge variant="warning-light">{t('pin.notSet')}</Badge>}
                 <Badge variant={m.role === 'admin' ? 'primary-light' : 'secondary'}>{t(`role.${m.role}`)}</Badge>
+                {m.me && (
+                  <Button variant="ghost" size="icon-sm" aria-label={t('pin.change')} onClick={() => setChanging(m)}>
+                    <KeyRoundIcon />
+                  </Button>
+                )}
+                {admin && !m.me && m.hasPin && (
+                  <Button variant="ghost" size="icon-sm" aria-label={`${t('pin.reset')}: ${m.name}`} onClick={() => setResetting(m)}>
+                    <RotateCcwKeyIcon />
+                  </Button>
+                )}
                 <Button
                   variant="ghost" size="icon-sm" aria-label={`${t('members.edit')}: ${m.name}`}
                   disabled={!admin && !m.me} onClick={() => setTarget({ mode: 'edit', member: m })}
@@ -78,6 +96,16 @@ export function MembersCard({ admin }: { admin: boolean }) {
           )}
         </DialogContent>
       </Dialog>
+      <Dialog open={!!changing} onOpenChange={(o) => { if (!o) setChanging(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('pin.change')}</DialogTitle>
+            <DialogDescription>{t('pin.changeHint')}</DialogDescription>
+          </DialogHeader>
+          {changing && <ChangePinForm member={changing} onClose={() => setChanging(null)} />}
+        </DialogContent>
+      </Dialog>
+      <ResetPinDialog member={resetting} onClose={() => setResetting(null)} />
       </FramePanel>
     </Frame>
   )
@@ -155,5 +183,101 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
         </Button>
       </DialogFooter>
     </form>
+  )
+}
+
+/** A PIN error as one line: tries left, the wait, or the generic message. */
+function usePinError() {
+  const { t } = useTranslation()
+  const errorText = useErrorText()
+  return (e: unknown) => {
+    const d = e instanceof ApiError ? (e.details as { triesLeft?: number; seconds?: number } | undefined) : undefined
+    if (e instanceof ApiError && e.code === 'pin_wrong') return t('pin.wrong', { n: d?.triesLeft ?? 0 })
+    if (e instanceof ApiError && e.code === 'pin_wait') return t('pin.wait', { n: d?.seconds ?? 0 })
+    return errorText(e)
+  }
+}
+
+// Own PIN: current, new, repeat. The repeat's 6th digit saves. A wrong current PIN counts toward the wait.
+function ChangePinForm({ member, onClose }: { member: Member; onClose: () => void }) {
+  const { t } = useTranslation()
+  const pinError = usePinError()
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [repeat, setRepeat] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const save = useWrite('members.setPin', { inline: true })
+  const fields = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+
+  function submit(again: string) {
+    if (again !== next) {
+      setRepeat('')
+      setError(t('pin.mismatch'))
+      return
+    }
+    setError(null)
+    save.mutate({ id: member.id, pin: next, current }, {
+      onSuccess: onClose,
+      onError: (e) => {
+        setError(pinError(e))
+        setCurrent(''); setRepeat('')
+        fields[0].current?.focus()
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {([
+        [t('pin.current'), current, setCurrent, 0],
+        [t('pin.new'), next, setNext, 1],
+        [t('pin.repeat'), repeat, setRepeat, 2],
+      ] as const).map(([label, value, set, i]) => (
+        <div key={i} className="flex flex-col items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">{label}</span>
+          <PinInput
+            label={label} value={value} onChange={set} inputRef={fields[i]} autoFocus={i === 0}
+            disabled={save.isPending} invalid={!!error && i === 2}
+            onComplete={(v) => (i < 2 ? fields[i + 1].current?.focus() : submit(v))}
+          />
+        </div>
+      ))}
+      <div className="min-h-9 w-full" aria-live="polite">
+        {error && <Alert variant="destructive" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
+      </div>
+      <DialogFooter className="w-full">
+        <Button type="button" variant="outline" onClick={onClose}>{t('common.cancel')}</Button>
+      </DialogFooter>
+    </div>
+  )
+}
+
+// Admin: clear another member's PIN. They set a new one at their next sign-in; their saved screen state is dropped.
+function ResetPinDialog({ member, onClose }: { member: Member | null; onClose: () => void }) {
+  const { t } = useTranslation()
+  const errorText = useErrorText()
+  const reset = useWrite('members.resetPin', { inline: true })
+  return (
+    <AlertDialog open={!!member} onOpenChange={(o) => { if (!o) onClose() }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t('pin.resetTitle', { name: member?.name })}</AlertDialogTitle>
+          <AlertDialogDescription>{t('pin.resetBody')}</AlertDialogDescription>
+        </AlertDialogHeader>
+        {reset.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(reset.error)}</AlertDescription></Alert>}
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive" disabled={reset.isPending}
+            onClick={(ev) => {
+              ev.preventDefault()
+              if (member) reset.mutate({ id: member.id }, { onSuccess: () => { forgetState(member.id); onClose() } })
+            }}
+          >
+            {t('pin.resetAction')}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }

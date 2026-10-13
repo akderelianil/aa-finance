@@ -1,28 +1,21 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { CheckIcon, ChevronsUpDownIcon, LogOutIcon, UsersIcon } from 'lucide-react'
+import { ChevronsUpDownIcon, LogOutIcon, UsersIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
-import { setMember, useOp } from '@/lib/api'
-import { signOut } from '@/lib/session'
+import { useOp } from '@/lib/api'
+import { lock } from '@/lib/session'
 import { MemberAvatar } from './MemberAvatar'
 
-// Sidebar header: the group and the member you act as. Picking another member switches at once (no PIN).
+// Sidebar header: the group and the member you act as. "Üye değiştir" locks: back to the member list, the next member enters their PIN (pin.md).
 export function MemberMenu() {
   const { t } = useTranslation()
-  const qc = useQueryClient()
   const navigate = useNavigate()
   const settings = useOp('settings.get', {})
   const members = useOp('members.list', {})
   const me = members.data?.find((m) => m.me)
-
-  function pick(id: number) {
-    setMember(id)
-    void qc.invalidateQueries()
-  }
 
   return (
     <SidebarMenu>
@@ -37,25 +30,14 @@ export function MemberMenu() {
             <ChevronsUpDownIcon className="ms-auto" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="min-w-60">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{t('members.switch')}</DropdownMenuLabel>
-              {members.data?.map((m) => (
-                <DropdownMenuItem key={m.id} onClick={() => !m.me && pick(m.id)}>
-                  <MemberAvatar name={m.name} color={m.color} />
-                  <span className="min-w-0 flex-1 truncate">{m.name}</span>
-                  <span className="text-xs text-muted-foreground">{t(`role.${m.role}`)}</span>
-                  <CheckIcon className={m.me ? undefined : 'invisible'} />
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void navigate('/ayarlar')}>
               <UsersIcon />
               {t('members.manage')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={signOut}>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => lock(false)}>
               <LogOutIcon />
-              {t('members.signOut')}
+              {t('members.switch')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

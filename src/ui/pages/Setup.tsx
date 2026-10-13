@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
 import { Stepper, StepperIndicator, StepperItem, StepperNav, StepperPanel, StepperContent, StepperTitle, StepperTrigger } from '@/components/reui/stepper'
 import { MemberAvatar } from '@/components/members/MemberAvatar'
+import { PIN_LENGTH, PinInput } from '@/components/members/PinInput'
 import { SearchList } from '@/components/SearchList'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +19,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
 import { LANGUAGES, type Language } from '@/i18n'
-import { call, setMember, useErrorText, useOp } from '@/lib/api'
+import { call, useErrorText, useOp } from '@/lib/api'
 import { colorClass } from '@/lib/members'
 import { cn } from '@/lib/utils'
 
@@ -41,7 +42,7 @@ function osCountry(): string | null {
 }
 
 // First run: six steps, keyboard first, saved once at the end (setup.run). Flow: docs/product-designer/ux/kurulum.md.
-export default function Setup({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
+export default function Setup({ onBack, onFinish }: { onBack: () => void; onFinish: (member: number) => void }) {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()
   const errorText = useErrorText()
@@ -59,6 +60,12 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
   const touched = useRef({ language: false, currency: false })
   const [name, setName] = useState('')
   const [color, setColor] = useState<string>(MEMBER_COLORS[0])
+  // The PIN stays in memory until Kur.
+  const [pin, setPin] = useState('')
+  const [pinRepeat, setPinRepeat] = useState('')
+  const [pinMismatch, setPinMismatch] = useState(false)
+  const pinField = useRef<HTMLInputElement>(null)
+  const pinRepeatField = useRef<HTMLInputElement>(null)
   const [groupName, setGroupName] = useState<string | null>(null)
   const [members, setMembers] = useState<string[]>([''])
   const [recommended, setRecommended] = useState(true)
@@ -99,7 +106,7 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
   const valid = (s: number) =>
     s === 1 ? !!country
     : s === 2 ? !!currency
-    : s === 3 ? !!name.trim()
+    : s === 3 ? !!name.trim() && pin.length === PIN_LENGTH && pin === pinRepeat
     : s === 4 ? !!group.trim() && memberErrors.every((e) => !e)
     : true
 
@@ -112,7 +119,14 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
   }
 
   function next() {
-    if (!valid(step)) return setTried(true)
+    if (!valid(step)) {
+      if (step === 3 && pin.length === PIN_LENGTH && pin !== pinRepeat) {
+        setPinMismatch(true)
+        setPinRepeat('')
+        pinRepeatField.current?.focus()
+      }
+      return setTried(true)
+    }
     if (step < STEPS.length) go(step + 1)
     else void submit()
   }
@@ -123,14 +137,13 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
     setFailed(null)
     try {
       const { user } = await call('setup.run', {
-        baseCurrency: currency!, language, userName: name.trim(), recommended,
+        baseCurrency: currency!, language, userName: name.trim(), pin, recommended,
         country: country ?? undefined, groupName: group.trim(), color, members: memberNames,
       })
       setDone(true)
-      setMember(user)
       setTimeout(() => {
         void qc.invalidateQueries()
-        onFinish()
+        onFinish(user)
       }, DONE_MS)
     } catch (e) {
       setFailed(e)
@@ -143,7 +156,10 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
   // Fields that own Enter or Esc stop the event first.
   function onKeyDown(e: globalThis.KeyboardEvent) {
     const el = e.target as HTMLElement
-    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !(el.tagName === 'BUTTON' && el.getAttribute('role') !== 'radio')) {
+    if (e.key === 'Enter' && step === 3 && el.id === 'name' && name.trim()) {
+      e.preventDefault()
+      pinField.current?.focus()
+    } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !(el.tagName === 'BUTTON' && el.getAttribute('role') !== 'radio')) {
       e.preventDefault()
       next()
     } else if (e.key === 'Escape' || (e.altKey && e.key === 'ArrowLeft')) {
@@ -288,6 +304,22 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
                         <Input id="name" data-first value={name} maxLength={200} aria-invalid={tried && !name.trim()} onChange={(e) => setName(e.target.value)} />
                         {tried && !name.trim() && <FieldError>{t('setup.required')}</FieldError>}
                       </Field>
+                      <Field data-invalid={tried && pin.length < PIN_LENGTH}>
+                        <FieldLabel>{t('setup.pin')}</FieldLabel>
+                        <PinInput
+                          label={t('setup.pin')} value={pin} onChange={(v) => { setPin(v); setPinMismatch(false) }} inputRef={pinField}
+                          invalid={tried && pin.length < PIN_LENGTH} onComplete={() => pinRepeatField.current?.focus()}
+                        />
+                        {tried && pin.length < PIN_LENGTH && <FieldError>{t('setup.pinShort')}</FieldError>}
+                      </Field>
+                      <Field data-invalid={pinMismatch}>
+                        <FieldLabel>{t('setup.pinRepeat')}</FieldLabel>
+                        <PinInput
+                          label={t('setup.pinRepeat')} value={pinRepeat} onChange={(v) => { setPinRepeat(v); setPinMismatch(false) }}
+                          inputRef={pinRepeatField} invalid={pinMismatch}
+                        />
+                        {pinMismatch ? <FieldError>{t('setup.pinMismatch')}</FieldError> : <FieldDescription>{t('pin.fileNote')}</FieldDescription>}
+                      </Field>
                       <Field>
                         <FieldLabel id="color-label">{t('setup.color')}</FieldLabel>
                         <RadioGroup aria-labelledby="color-label" value={color} onValueChange={(v) => setColor(v as string)} className="flex flex-wrap gap-4">
@@ -364,6 +396,7 @@ export default function Setup({ onBack, onFinish }: { onBack: () => void; onFini
                         <Row label={t('setup.language')}>{t(`language.${language}`)}</Row>
                         <Row label={t('setup.baseCurrency')}>{currency}</Row>
                         <Row label={t('setup.you')}>{name.trim()} · {t('role.admin')}</Row>
+                        <Row label={t('setup.pin')}>{t('setup.pinSet')}</Row>
                         <Row label={t('setup.groupName')}>{group.trim()}</Row>
                         <Row label={t('setup.memberList')}>{memberNames.join(', ') || t('setup.noMembers')}</Row>
                         <Row label={t('setup.chartTitle')}>{t(recommended ? 'setup.chartRecommended' : 'setup.chartCore')}</Row>

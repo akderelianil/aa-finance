@@ -164,3 +164,11 @@
     @apply font-sans;
     }
 }
+/* Wrong PIN: a short shake (transform only). */
+@theme {
+    --animate-pin-shake: pin-shake 0.3s ease-in-out;
+    @keyframes pin-shake {
+        20%, 60% { transform: translateX(-6px); }
+        40%, 80% { transform: translateX(6px); }
+    }
+}

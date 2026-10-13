@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router'
 import './i18n'
 import './index.css'
 import App from './App'
@@ -17,9 +16,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <Toaster>
-        <HashRouter>
-          <App />
-        </HashRouter>
+        <App />
       </Toaster>
     </QueryClientProvider>
   </StrictMode>,
