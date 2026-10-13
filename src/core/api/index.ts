@@ -75,46 +75,60 @@ export function createApi(db: Db, member: number | null = null): Api {
     return (actor = (r?.id as number | undefined) ?? null)
   }
 
-  return {
+  // Writes run one after another: an op reads (next id, owner, rate) before it writes, so two at once could race.
+  let queue: Promise<unknown> = Promise.resolve()
+  const inTurn = <T>(run: () => Promise<T>): Promise<T> => {
+    const result = queue.then(run, run)
+    queue = result.catch(() => {})
+    return result
+  }
+
+  const api: Api = {
     use(id) {
       member = id
       actor = null
     },
-    async call(name, input) {
-      const op = ops[name] as Op
-      const start = performance.now()
-      const ms = () => Math.round(performance.now() - start)
-      const id = actor ?? (await findActor())
-      try {
-        if (!op) throw new ApiError('unknown_op', name)
-        if (id === null && !open.has(name)) throw new ApiError('not_setup')
-        const parsed = z.safeParse(op.input, input)
-        if (!parsed.success) throw new ApiError('invalid_input', z.flattenError(parsed.error))
-        const ctx: Ctx = {
-          db,
-          actor: id ?? 1,
-          write: (statements, summary = null) =>
-            db.batch([
-              ...statements,
-              {
-                sql: 'INSERT INTO activity_log (actor_id, operation, summary, ok, duration_ms) VALUES (?, ?, ?, 1, ?)',
-                params: [id ?? 1, name, summary, ms()],
-              },
-            ]),
-        }
-        return (await op.run(ctx, parsed.data)) as never
-      } catch (e) {
-        const err = toApiError(e)
-        if (op?.write && id !== null)
-          await db
-            .batch([{
-              sql: 'INSERT INTO activity_log (actor_id, operation, ok, error_code, duration_ms) VALUES (?, ?, 0, ?, ?)',
-              params: [id, name, err.code, ms()],
-            }])
-            .catch(() => {})
-        throw err
-      }
+    call(name, input) {
+      const op = ops[name] as Op | undefined
+      return op?.write ? inTurn(() => run(name, input)) : run(name, input)
     },
+  }
+  return api
+
+  async function run<K extends OpName>(name: K, input: Input<K>): Promise<Output<K>> {
+    const op = ops[name] as Op
+    const start = performance.now()
+    const ms = () => Math.round(performance.now() - start)
+    const id = actor ?? (await findActor())
+    try {
+      if (!op) throw new ApiError('unknown_op', name)
+      if (id === null && !open.has(name)) throw new ApiError('not_setup')
+      const parsed = z.safeParse(op.input, input)
+      if (!parsed.success) throw new ApiError('invalid_input', z.flattenError(parsed.error))
+      const ctx: Ctx = {
+        db,
+        actor: id ?? 1,
+        write: (statements, summary = null) =>
+          db.batch([
+            ...statements,
+            {
+              sql: 'INSERT INTO activity_log (actor_id, operation, summary, ok, duration_ms) VALUES (?, ?, ?, 1, ?)',
+              params: [id ?? 1, name, summary, ms()],
+            },
+          ]),
+      }
+      return (await op.run(ctx, parsed.data)) as never
+    } catch (e) {
+      const err = toApiError(e)
+      if (op?.write && id !== null)
+        await db
+          .batch([{
+            sql: 'INSERT INTO activity_log (actor_id, operation, ok, error_code, duration_ms) VALUES (?, ?, 0, ?, ?)',
+            params: [id, name, err.code, ms()],
+          }])
+          .catch(() => {})
+      throw err
+    }
   }
 }
 

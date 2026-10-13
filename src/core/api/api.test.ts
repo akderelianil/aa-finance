@@ -93,6 +93,13 @@ test('entries: post, number, balances, and database rules as codes', async () =>
   await assert.rejects(api.call('accounts.delete', { id: g }), code('account_has_lines'))
 })
 
+test('writes at the same time run one after another', async () => {
+  const { api, acc } = await fresh()
+  const input = { date: '2026-03-01', lines: [{ account: acc('Groceries'), amount: 100 }, { account: acc('Wallet'), amount: -100 }] }
+  const out = await Promise.all([api.call('entries.post', input), api.call('entries.post', input), api.call('entries.post', input)])
+  assert.deepEqual(out.map((e) => e.number), [1, 2, 3])
+})
+
 test('foreign currency: stored rate, given rate, given base, rounding to FX, missing rate', async () => {
   const { api, acc } = await fresh()
   const usd = (await api.call('accounts.create', { parent: acc('bank'), name: 'USD', currency: 'USD' })).id

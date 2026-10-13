@@ -12,6 +12,12 @@ fn dev_log(msg: String) {
 
 pub fn run() {
     tauri::Builder::default()
+        // A second start would write the same file from another process: focus the first window instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
