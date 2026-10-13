@@ -14,7 +14,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the API also validates it.
 - Every account has a currency. Rates are manual: a user-given rate wins, else the stored rate on or before the entry date, else `rate_missing`.
 - A journal entry is a completed event only. Plans and reminders are not entries.
-- One ledger file = one family. Members have a role: `admin` manages members and book settings and edits any entry; `member` edits only own entries. Everyone reads everything. No PIN or sign-in.
+- One ledger file = one family. Members have a role: `admin` manages members and book settings and edits any entry; `member` edits only own entries. Everyone reads everything. Each member has a 6-digit PIN; the app locks on open and after 5 min idle (an app gate, not encryption; admin resets a forgotten PIN). Plan: [docs/pin-gate.md](docs/pin-gate.md).
 - Number and date format follow the book country; the UI language only picks the words.
 - Entry flows: Gider, Gelir, Transfer, Borç (Quick Entry dialog → `entries.post`) and Serbest kayıt (journal editor). Rebuild other flows one UX scenario at a time, starting from `docs/product-designer/ux/`.
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions, sync, mobile.
