@@ -67,7 +67,6 @@ export const en: Translation = {
     parent: 'Under which group?',
     parentHint: 'The account takes the type of the group. Pick Bank for a bank account, Credit Cards for a card, a group under Expenses for spending.',
     pickParent: 'Pick a group',
-    newHint: 'Enter the debit and credit lines. The entry must balance.',
     newTitle: 'New account',
     editTitle: 'Edit account',
     preview: 'Preview',
@@ -79,6 +78,7 @@ export const en: Translation = {
   gj: {
     subtitle: 'General journal: every entry, newest first',
     new: 'New entry',
+    newHint: 'Enter the debit and credit lines. The entry must balance.',
     newTitle: 'Free entry',
     editing: 'Edit entry',
     number: 'No.',

@@ -65,7 +65,6 @@ export const tr = {
     parent: 'Hangi grubun altında?',
     parentHint: 'Hesap grubun türünü alır. Banka hesabı için Banka, kart için Kredi Kartları, harcama için Giderler altındaki bir grubu seç.',
     pickParent: 'Grup seç',
-    newHint: 'Borç ve alacak satırlarını gir. Kayıt dengede olmalı.',
     newTitle: 'Yeni hesap',
     editTitle: 'Hesabı düzenle',
     preview: 'Önizleme',
@@ -77,6 +76,7 @@ export const tr = {
   gj: {
     subtitle: 'Genel yevmiye: tüm kayıtlar, en yenisi üstte',
     new: 'Yeni kayıt',
+    newHint: 'Borç ve alacak satırlarını gir. Kayıt dengede olmalı.',
     newTitle: 'Serbest kayıt',
     editing: 'Kaydı düzenle',
     number: 'No',
