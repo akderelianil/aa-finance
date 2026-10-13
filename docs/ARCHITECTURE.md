@@ -10,7 +10,7 @@ Product decisions and scope. Ledger model, account template, currencies: [ledger
 ## Decisions
 - **Accounting standards first.** Users know accounting. The UI shows the ledger as it is: Chart of Accounts, General Journal, Account Register, reports.
 - **Double entry is mandatory.** Each entry has ≥2 lines. Total debit = total credit in the base currency. A DB trigger enforces it; the API checks it first.
-- **Local and private.** One SQLite file holds one ledger for one family. No server and no sign-in.
+- **Local and private.** One SQLite file holds one ledger for one family. No server. Each member has a 6-digit PIN that opens a session: an app gate, not encryption ([pin-gate](pin-gate.md)).
 - **Members.** An `admin` manages members and book settings and edits any entry. A `member` edits only own entries. Everyone reads every entry. The Journal shows who wrote each entry.
 - **Book settings are admin only:** language, country, lock date, activity log days, group name. A member edits only their own name. Triggers check it again.
 - **Country sets the format.** Date and number format come from the book country (`und-<country>` locale). The UI language picks only the words. Dates are numeric.

@@ -10,6 +10,7 @@ Sade başlangıç. Eski UX belgeleri silindi (git geçmişinde). Her akış tek 
 | Dosya | Konu |
 |---|---|
 | [kurulum](kurulum.md) | İlk açılış: ülke, dil, Ana para birimi, Yönetici, Üyeler, Hesap Planı; roller ve Üye değiştirme |
+| [pin](pin.md) | PIN kapısı: açılış, Üye değiştirme, boşta kilit, PIN belirleme/değiştirme/sıfırlama |
 | [gider](gider.md) | Nakit, banka kartı, kredi kartı harcaması; çok kalemli bölme |
 | [gelir](gelir.md) | Tahsil edilmiş net gelir; çok kalemli bölme (maaş + prim) |
 | [transfer](transfer.md) | Hesaplar arası, ATM çekme/yatırma, kart ödemesi; isteğe bağlı masraf |
