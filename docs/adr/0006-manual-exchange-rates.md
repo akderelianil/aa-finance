@@ -8,7 +8,7 @@
 Accounts can hold different currencies, so lines need a conversion rate. Rate feeds need a network and a provider; the app is local and private.
 
 ## Decision
-Rates are entered by the user and stored as text. For a foreign-currency line the base amount comes from, in order: a given base amount, a given rate, the stored rate on or before the entry date, else the entry fails with `rate_missing`. Server-side or automatic rates are out of v1.
+Rates are entered by the user and stored as text. For a foreign-currency line the base amount comes from, in order: a given rate, a given base amount, the stored rate on or before the entry date, else the entry fails with `rate_missing`. The user's own rate always wins. Server-side or automatic rates are out of v1.
 
 ## Alternatives Considered
 ### Online rate provider

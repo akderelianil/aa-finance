@@ -151,10 +151,10 @@ A soft-deleted contact SHALL NOT be updated again.
 ### Requirement: Open debts per contact
 - id: CONTACT-012
 - entities: Contact, Line, Account
-- enforced: API `contacts.balances` src/core/api/contacts.ts:39-54
-- test: contact on a debt line: balances per contact, a used contact cannot be removed, the line keeps it on edit
+- enforced: API `contacts.balances` src/core/api/contacts.ts:39-60
+- test: contacts.balances counts debt lines on every depth under Receivables and Payables
 
-`contacts.balances` SHALL sum each contact's live lines on Receivables and Payables (and their direct children) per currency, in the account currency, leave out zero sums, and return a receivable as owed to us and a payable as owed by us, both positive.
+`contacts.balances` SHALL sum each contact's live lines on Receivables and Payables (and every account below them) per currency, in the account currency, leave out zero sums, and return a receivable as owed to us and a payable as owed by us, both positive.
 
 #### Scenario: Lend 2000, collect 500, borrow 700
 - **WHEN** Ali gets 2000.00 and pays back 500.00, and 700.00 is borrowed from Veli
@@ -174,5 +174,4 @@ A soft-deleted contact SHALL NOT be updated again.
 - **WHEN** an individual is listed
 - **THEN** its partners list is empty
 
-<!-- uncertainty: contacts.balances counts only Receivables/Payables and their direct children (parent_id = group); lines on deeper accounts are not counted. No test covers a deeper account. -->
 <!-- uncertainty: contacts ops have no role check; any signed-in member can change the Rehber. -->

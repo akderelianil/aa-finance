@@ -33,7 +33,7 @@ Ledger-core link: none directly. It protects access to the core. Judged as a sma
 | Reset | Admin, any other member (also another admin). Not self (use change). Clears the hash and the wait counter. | An admin cannot reset self, so a lone admin has no path. |
 | Wait counter | Stored in the file (survives restart). After the 30 s, 5 more tries. A good PIN clears it. | A restart must not skip the wait. A changed clock bypasses it; accepted (app gate). |
 | Lock keeps work | Idle lock covers the screen but keeps open dialogs and drafts for the **same** member. A different member starts clean. | Losing a half-typed entry to a timer is bad UX. Designer confirms. |
-| Reads before sign-in | Only: member list (id, name, color, role, has-PIN flag), group name, `signIn`, `setPin`. All else is rejected with `locked`. | The pick screen needs no more. |
+| Reads before sign-in | Only: member list (id, name, color, role, has-PIN flag), group name, currency list, `signIn`, `setPin`, and `setup.run` (first run). All else is rejected with `locked`. | The pick screen and setup need no more. |
 | Lone-admin recovery | Restoring a backup brings back the PIN of that backup. It helps only if the old PIN is known. State this in the UI text and docs. | Honest about the owner's "restore from backup" answer. |
 
 ## Order
@@ -43,18 +43,7 @@ Ledger-core link: none directly. It protects access to the core. Judged as a sma
 
 
 ## Docs and rules that must change
-| File | Change | Who |
-|---|---|---|
-| `CLAUDE.md` line 17 | Drop "No PIN or sign-in"; add the PIN rule and the app-gate caveat. | owner (main session after approval) |
-| `docs/ARCHITECTURE.md` line 13 | Done in this plan. | product-lead |
-| `docs/ROADMAP.md` | Planned item added; mark Done after build. | product-lead |
-| `docs/backend/architecture/overview.md` lines 11 and 35 | "No sign-in" and the out-of-scope "PIN or sign-in"; add the gate and session model. | backend-engineer |
-| `docs/backend/database/tables.md` line 27 | "No PIN: the OS protects the file"; new PIN table; "opens with the last member". | backend-engineer |
-| `docs/backend/api/operations.md` | New operations, the `locked` rule, activity-log note. | backend-engineer |
-| `docs/product-designer/ux/kurulum.md` lines 16, 21, 117, 134–136, step 3, roles table, Settings table | Replace "PIN yok", the instant pick, "opens with the last member", add PIN to step 3, PIN reset and change rows. | product-designer |
-| `.claude/memory/project-local-first.md` line 13 | "no PIN" is now false. | main session |
-| Code comments and i18n | `Welcome.tsx`, `MemberMenu.tsx`, `session.ts` say "no PIN". `members.switch` text. | product-designer, backend-engineer for core |
-| Glossary / `check:terms` | Paused; add PIN terms when it returns. | - |
+Done (Oct 2026): CLAUDE.md, ARCHITECTURE, ROADMAP, overview, tables, operations and the UX scenarios carry the PIN gate. Current truth lives in [overview](backend/architecture/overview.md#pin-gate-and-session) and [operations](backend/api/operations.md#pin-gate).
 
 ## Open questions
 See the lead's report. Answers go here when decided.

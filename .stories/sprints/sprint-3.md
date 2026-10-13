@@ -11,5 +11,6 @@
 | --- | --- | --- | --- |
 | harness-plan-3 | Behavior specs and rule-to-test trace | 5 | done |
 | harness-plan-7 | Work tracking and changelog | 2 | todo |
+| harness-plan-8 | Correct rules found by spec mining | 5 | done |
 
-## Total Points: 7
+## Total Points: 12

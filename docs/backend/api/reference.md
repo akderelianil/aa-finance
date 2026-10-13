@@ -7,7 +7,7 @@ status: generated
 
 Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `src/ui/i18n/en.ts` by `scripts/gen-api-docs.ts`. Do not edit by hand: run `npm run docs:api`. A test fails when this file is out of date. Behavior and rules: [operations](operations.md).
 
-## Operations (38)
+## Operations (39)
 
 | Operation | Kind | Access | Input fields |
 |---|---|---|---|
@@ -38,6 +38,7 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 | `fx.set` | write | signed in | `currency`, `date`, `rate` |
 | `members.add` | write | signed in | `name`, `role`, `color` |
 | `members.list` | read | open | - |
+| `members.remove` | write | signed in | `id` |
 | `members.resetPin` | write | signed in | `id` |
 | `members.setPin` | write | open | `id`, `pin`, `current` |
 | `members.signIn` | write | open | `id`, `pin` |
@@ -52,7 +53,7 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 
 `open` ops run with no member signed in; every other op fails with `locked` (`not_setup` before setup).
 
-## Error codes (79)
+## Error codes (80)
 
 | Code | Origin | English message |
 |---|---|---|
@@ -106,6 +107,7 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 | `log_immutable` | trigger | The history cannot change. |
 | `member_name_taken` | api | A member with this name already exists. Use another name. |
 | `member_not_found` | trigger | Member not found. |
+| `member_remove_self` | api | You cannot remove yourself. Ask another admin. |
 | `member_role_missing` | trigger | The member has no role. Pick admin or member. |
 | `no_delete` | trigger | Records are not deleted; they are marked deleted. Delete from the record screen. |
 | `not_setup` | api | The book is not set up yet. |

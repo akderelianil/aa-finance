@@ -12,9 +12,9 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Ledger core first: Chart of Accounts, General Journal, Account Register, Reports. Judge every feature against this core.
 - Follow accounting standards. The UI uses real accounting terms (Yevmiye, Hesap Planı, Borç/Alacak, Mizan, Bilanço). The chart is simple: five locked roots (Varlık, Borç, Özkaynak, Gelir, Gider), locked system groups, free accounts below. The UI hides account codes.
 - Every journal entry: ≥2 lines, total debit = total credit (`base_amount`). A DB trigger enforces it; the API also validates it.
-- Every account has a currency. Rates are manual: a user-given rate wins, else the stored rate on or before the entry date, else `rate_missing`.
+- Every account has a currency. Rates are manual: a user-given rate wins, then a user-given base amount, else the stored rate on or before the entry date, else `rate_missing`.
 - A journal entry is a completed event only. Plans and reminders are not entries.
-- One ledger file = one family. Members have a role: `admin` manages members and book settings and edits any entry; `member` edits only own entries. Everyone reads everything. Each member has a 6-digit PIN; the app locks on open and after 5 min idle (an app gate, not encryption; admin resets a forgotten PIN). Plan: [docs/pin-gate.md](docs/pin-gate.md).
+- One ledger file = one family. Members have a role: `admin` manages members (adds, edits, removes) and book settings and edits any entry; `member` edits only own entries. Everyone reads everything. The admin should also decide who may change shared data (accounts, rates, contacts) and who sees what; that is not built yet (story `harness-plan-9`), today any member can change them. Each member has a 6-digit PIN; the app locks on open and after 5 min idle (an app gate, not encryption; admin resets a forgotten PIN). Plan: [docs/pin-gate.md](docs/pin-gate.md).
 - Number and date format follow the book country; the UI language only picks the words.
 - Entry flows: Gider, Gelir, Transfer, Borç (Quick Entry dialog → `entries.post`) and Serbest kayıt (journal editor). Rebuild other flows one UX scenario at a time, starting from `docs/product-designer/ux/`.
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions, sync, mobile.
@@ -24,10 +24,10 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - The database enforces the rules (triggers, stable error codes). The API checks first, only for clear messages. The UI calls only named API operations, never SQL.
 - Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.
 - Both logs live in the SQLite file: `audit_log` (triggers: who changed a row) and `activity_log` (API: who did what).
-- Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
+- Minimum check after a change: `npm run verify:web` (tests with a coverage floor, `tsc`, lint); add `npm run verify:rust` when `src-tauri/` changes. A pre-commit hook runs it (`npm run hooks:install`).
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
 - Work tracking: `.stories/` via `ecc:story-lifecycle` (epic -> stories -> sprint). Write only through its `ledger.js`. Do not also run the GitHub-issue `epic-*` commands for the same work.
-- Git: commit by default; push only when asked (the remote is a local path).
+- Git: commit by default and push to the private `github` remote after each finished change (the owner does not want to be asked each time).
 
 ## Docs and ECC
 - Language: English for docs and code; `docs/product-designer/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.

@@ -4,7 +4,7 @@
 > Source: src/core/api/fx.ts, src/core/api/entries.ts (resolve), src/core/money.ts, src/core/api/settings.ts (currencies), src/core/migrations/0002_currencies.sql, 0007_audit_columns.sql
 > Last verified: 2026-10-13 (commit 9bc514c)
 
-Scope: currencies, the fixed base currency, manual exchange rates (set, list, get, delete), rate lookup for a foreign line (given base > given rate > stored rate on or before the date > `rate_missing`) and the integer conversion math. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
+Scope: currencies, the fixed base currency, manual exchange rates (set, list, get, delete), rate lookup for a foreign line (given rate > given base > stored rate on or before the date > `rate_missing`) and the integer conversion math. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
 ---
 
@@ -14,7 +14,7 @@ Scope: currencies, the fixed base currency, manual exchange rates (set, list, ge
 - enforced: API `resolve` src/core/api/entries.ts:58-65 (`rate_missing`); `rateOn` src/core/api/fx.ts:19-25
 - test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate
 
-A foreign-currency line SHALL take its base from a given `baseAmount`, else from a given `rate`, else from the stored rate on or before the entry date, else fail with `rate_missing`.
+A foreign-currency line SHALL take its base from a given `rate`, else from a given `baseAmount`, else from the stored rate on or before the entry date, else fail with `rate_missing`.
 
 #### Scenario: No rate anywhere
 - **WHEN** a USD line is posted with no base, no rate and no stored USD rate

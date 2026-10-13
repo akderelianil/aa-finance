@@ -24,6 +24,7 @@ export const ops = {
   'members.list': members.list,
   'members.add': members.add,
   'members.update': members.edit,
+  'members.remove': members.remove,
   'members.signIn': members.signIn,
   'members.setPin': members.setPin,
   'members.resetPin': members.resetPin,

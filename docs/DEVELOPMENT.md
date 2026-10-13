@@ -21,7 +21,7 @@ Run from the repo root.
 | Demo book (stop Vite first) | `npm run seed` |
 | Benchmark on 10k entries | `npm run bench` |
 
-Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
+Minimum check after a change: `npm run verify:web` (tests with a coverage floor, `tsc`, lint); with `src-tauri/` changes also `npm run verify:rust`. `npm run verify` runs both; the pre-commit hook (`npm run hooks:install`) runs the web part.
 
 ## Run the real app
 1. `npm run tauri dev`. The first build compiles Rust and takes minutes. A window opens through WSLg.

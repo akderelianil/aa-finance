@@ -300,6 +300,23 @@ After migration 0012 every existing member SHALL have no PIN and the API SHALL s
 - **WHEN** a file set up before 0012 is migrated and opened
 - **THEN** `accounts.list` fails with `locked` until a member sets a PIN and signs in
 
-<!-- uncertainty: no API op soft deletes a member, although the triggers (actors_update_role, actors_last_admin) handle deleted_at. -->
+### Requirement: Remove a member
+- id: MEMBER-023
+- entities: Actor, MemberPin
+- enforced: API `members.remove` src/core/api/members.ts (`admin_only`, `member_remove_self`, `member_not_found`); trigger `actors_last_admin` src/core/migrations/0007_audit_columns.sql:413-416 (`last_admin`)
+- test: members.remove: admin only, another member only, entries and history stay
+
+`members.remove` SHALL let an admin soft delete another member and that member's PIN. The member leaves `members.list` and can no longer sign in. Their entries stay and keep their author. The last admin can never be removed.
+
+#### Scenario: Remove a member
+- **WHEN** an admin removes a member who wrote an entry
+- **THEN** the member is gone from the list, `members.signIn` fails with `member_not_found`, and the entry still names them as author
+
+#### Scenario: Not yourself
+- **WHEN** an admin removes themselves
+- **THEN** it fails with `member_remove_self`
+
+---
+
 <!-- uncertainty: while locked, setPin lets anyone set the first PIN of a member who has none, including an admin after a reset (accepted in docs/pin-gate.md). -->
 <!-- uncertainty: the 5-minute idle lock in CLAUDE.md lives in the UI, not in src/core; not mined here. -->

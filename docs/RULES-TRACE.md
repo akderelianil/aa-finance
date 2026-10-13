@@ -13,9 +13,9 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-1 | Ledger core first | judgment, not testable |
 | PR-2 | Accounting standards, simple chart, locked roots and system groups | PR-2.1 to PR-2.2 |
 | PR-3 | Every entry has ≥2 lines and balances on `base_amount` | PR-3.1 to PR-3.2 |
-| PR-4 | Every account has a currency; rates are manual (given > stored > `rate_missing`) | PR-4.1 to PR-4.4 |
+| PR-4 | Every account has a currency; rates are manual (given rate > given base > stored > `rate_missing`) | PR-4.1 to PR-4.5 |
 | PR-5 | A journal entry is a completed event only | absence of a feature |
-| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.5 |
+| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.6 |
 | PR-7 | Number and date format follow the book country | PR-7.1 (partial) |
 | PR-8 | Entry flows: Gider, Gelir, Transfer, Borç, Serbest kayıt | PR-8.1 to PR-8.4 |
 | PR-9 | Out of scope: AI, bank import, notifications, bills, sync, mobile | absence of features |
@@ -31,8 +31,10 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-4.1 | PR-4 | stored rate, given rate, given base, rounding to `fx_gain_loss`, `rate_missing` | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
 | PR-4.2 | PR-4 | triggers `line_rate_required`, `line_base_mismatch`, `base_currency_missing` | test: amounts: integers only, nonzero, same sign; base and rate follow the account currency |
 | PR-4.3 | PR-4 | `fx.set` updates a date's rate (`fx_rate_exists` otherwise) | test: fx.set on an existing date updates the rate instead of adding a row |
+| PR-4.5 | PR-4 | a given rate wins over a given base amount, which wins over the stored rate | test: a given rate wins over a given base amount, which wins over the stored rate |
 | PR-4.4 | PR-4 | `fx.list`, `fx.delete` (soft delete) | test: fx.list returns live rates newest first, filtered by currency; remove hides a rate |
 | PR-5.1 | PR-5 | no plan or reminder tables; entries are `draft` then `posted` | test: NONE |
+| PR-6.6 | PR-6 | `members.remove`: admin only, not self, last admin stays | test: members.remove: admin only, another member only, entries and history stay |
 | PR-6.1 | PR-6 | triggers `entry_not_owner`, `admin_only`, `last_admin` | test: members: setup adds them, admin manages, a member edits only own name and own entries |
 | PR-6.2 | PR-6 | `openOps` gate: locked, only open ops run | test: pin: locked gate lets only the open ops through; sign in binds, lock clears |
 | PR-6.3 | PR-6 | 5 wrong tries → 30 s wait, kept in the file | test: pin: 5 wrong tries wait 30 s, restart keeps it, recovery after the wait, success clears |
@@ -46,6 +48,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-9.1 | PR-9 | no code for these features | test: NONE |
 
 ## Open gaps
+- PR-6: roles for shared data (accounts, rates, contacts) and who sees what are not built; story `harness-plan-9`.
 - PR-7: no test for the book-country locale (`formatLocale`); story `harness-plan-6` moves it to a pure module and tests it.
 - PR-1, PR-5, PR-9: scope and absence rules; reviewed by hand against the ROADMAP.
 - UI terms in PR-2 (Yevmiye, Hesap Planı, Mizan…) are checked by the i18n tests only for key completeness, not wording.

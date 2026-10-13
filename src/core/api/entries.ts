@@ -7,8 +7,8 @@ import { rateOn } from './fx.ts'
 const amount = z.int().check(z.refine((n) => n !== 0, 'amount is zero'))
 
 /**
- * A line in the account currency. A foreign-currency line gets its base amount from
- * `baseAmount`, else `rate`, else the stored rate on or before the entry date.
+ * A line in the account currency. A foreign-currency line gets its base amount from a given `rate`,
+ * else a given `baseAmount`, else the stored rate on or before the entry date.
  */
 const lineInput = z.object({
   account: id,
@@ -56,8 +56,9 @@ async function resolve(db: Db, on: string, lines: LineInput[]): Promise<Resolved
       continue
     }
     const minor = a.minor_unit as number
+    // A given rate wins, then a given base amount, then the stored rate on or before the date.
     let r = l.rate
-    let b = l.baseAmount
+    let b = r === undefined ? l.baseAmount : undefined
     if (b === undefined) {
       r ??= (await rateOn(db, a.code as string, on))?.rate ?? fail('rate_missing', { line: i, currency: a.code })
       b = toBase(l.amount, r, minor, base.minor)

@@ -40,4 +40,4 @@ Amounts are signed: plus is debit, minus is credit. Rules the database enforces 
 ## Multi-currency
 - Every account has one currency. The base currency is chosen at setup and never changes.
 - Each line: `amount` + `base_amount` + `rate`. Rates are manual (Exchange Rates page).
-- A foreign line takes its base amount from `baseAmount`, else `rate`, else the stored rate on or before the entry date. A rounding gap of up to one minor unit per converted line goes to FX Gains and Losses.
+- A foreign line takes its base amount from a given `rate`, else a given `baseAmount`, else the stored rate on or before the entry date. A rounding gap of up to one minor unit per converted line goes to FX Gains and Losses.

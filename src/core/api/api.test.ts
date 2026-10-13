@@ -107,6 +107,27 @@ test('writes at the same time run one after another', async () => {
   assert.deepEqual(out.map((e) => e.number), [1, 2, 3])
 })
 
+test('a given rate wins over a given base amount, which wins over the stored rate', async () => {
+  const { api, acc } = await fresh()
+  const usd = (await api.call('accounts.create', { parent: acc('bank'), name: 'USD', currency: 'USD' })).id
+  const g = acc('Groceries')
+  await api.call('fx.set', { currency: 'USD', date: '2026-03-01', rate: '30' })
+  const lines = async (input: Input<'entries.post'>['lines']) =>
+    (await api.call('entries.get', { id: (await api.call('entries.post', { date: '2026-03-02', lines: input })).id })).lines
+
+  // Rate and base disagree: the rate wins (100 USD x 34 = 3400), the stored 30 is ignored.
+  const both = await lines([{ account: g, amount: 3400 }, { account: usd, amount: -100, rate: '34', baseAmount: -3000 }])
+  assert.deepEqual(both.map((l) => [l.baseAmount, l.rate]), [[3400, null], [-3400, '34']])
+
+  // Base alone beats the stored rate.
+  const base = await lines([{ account: g, amount: 3300 }, { account: usd, amount: -100, baseAmount: -3300 }])
+  assert.deepEqual(base[1].rate, '33')
+
+  // Neither: the stored rate.
+  const stored = await lines([{ account: g, amount: 3000 }, { account: usd, amount: -100 }])
+  assert.deepEqual(stored[1].rate, '30')
+})
+
 test('foreign currency: stored rate, given rate, given base, rounding to FX, missing rate', async () => {
   const { api, acc } = await fresh()
   const usd = (await api.call('accounts.create', { parent: acc('bank'), name: 'USD', currency: 'USD' })).id
@@ -382,6 +403,24 @@ test('contact on a debt line: balances per contact, a used contact cannot be rem
   await api.call('contacts.delete', { id: veli })
   await assert.rejects(post([{ account: acc('Wallet'), amount: 1 }, { account: acc('payables'), amount: -1, contact: veli }]), code('contact_not_found'))
   assert.equal(((await db.query('SELECT count(*) AS n FROM lines WHERE contact_id IS NOT NULL'))[0].n as number) > 0, true)
+})
+
+test('contacts.balances counts debt lines on every depth under Receivables and Payables', async () => {
+  const { api, acc } = await fresh()
+  const ali = (await api.call('contacts.create', { kind: 'individual', name: 'Ali' })).id
+  const veli = (await api.call('contacts.create', { kind: 'individual', name: 'Veli' })).id
+  const group = (await api.call('accounts.create', { parent: acc('receivables'), name: 'Friends', currency: 'TRY', placeholder: true })).id
+  const deep = (await api.call('accounts.create', { parent: group, name: 'Ali loan', currency: 'TRY' })).id
+  const owed = (await api.call('accounts.create', { parent: acc('payables'), name: 'Family', currency: 'TRY', placeholder: true })).id
+  const owedDeep = (await api.call('accounts.create', { parent: owed, name: 'Veli loan', currency: 'TRY' })).id
+  const post = (lines: { account: number; amount: number; contact?: number }[]) => api.call('entries.post', { date: '2026-03-01', lines })
+
+  await post([{ account: deep, amount: 900, contact: ali }, { account: acc('Wallet'), amount: -900 }])
+  await post([{ account: acc('Wallet'), amount: 400 }, { account: owedDeep, amount: -400, contact: veli }])
+  assert.deepEqual(
+    (await api.call('contacts.balances', {})).sort((a, b) => a.contact - b.contact),
+    [{ contact: ali, currency: 'TRY', kind: 'receivable', amount: 900 }, { contact: veli, currency: 'TRY', kind: 'payable', amount: 400 }],
+  )
 })
 
 test('account owner: Aile, Kişi and Ortak filter reports and the journal', async () => {

@@ -437,18 +437,17 @@ Write operations SHALL run one after another, so concurrent posts get consecutiv
 
 ---
 
-### Requirement: Given base and given rate are both kept
+### Requirement: A given rate wins over a given base
 - id: LEDGER-032
 - entities: Line
-- enforced: API `resolve` src/core/api/entries.ts:58-67
-- test: NONE
-- status: unverified
+- enforced: API `resolve` src/core/api/entries.ts:58-66
+- test: a given rate wins over a given base amount, which wins over the stored rate
 
-When a foreign line sends both `baseAmount` and `rate`, the API SHALL store both as given, with no check that the rate turns the amount into the base.
+When a foreign line sends both `rate` and `baseAmount`, the API SHALL convert with the rate and ignore the base amount; any rounding gap goes to FX Gains and Losses.
 
-#### Scenario: Both given, inconsistent
-- **WHEN** a USD line sends amount 100, baseAmount 5000 and rate '34'
-- **THEN** the line stores base 5000 and rate '34'
+#### Scenario: Both given
+- **WHEN** a USD line sends amount 100, baseAmount 3000 and rate '34'
+- **THEN** the line stores base 3400 and rate '34'
 
 ---
 
@@ -463,5 +462,5 @@ An entry whose date moves to another year SHALL keep the `year` and `number` fro
 
 > Last verified: 2026-10-13 (commit 9bc514c)
 
-<!-- uncertainty: LEDGER-017, LEDGER-032 and LEDGER-033 come from reading the code; no test shows whether they are intended. -->
+<!-- uncertainty: LEDGER-017 and LEDGER-033 come from reading the code; no test shows whether they are intended. -->
 <!-- deferred: src/core/test/node-db.ts, src-tauri adapters (safe-integer refusal) -->

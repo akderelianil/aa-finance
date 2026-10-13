@@ -14,13 +14,13 @@ Open questions found while mining: [FINDINGS](FINDINGS.md).
 | ledger-entries | [spec](ledger-entries/spec.md) | LEDGER-001 to 033 | post, update, delete, balance, numbering, FX rounding, lock_date, journal, register |
 | accounts-chart | [spec](accounts-chart/spec.md) | ACCT-001 to 018 | setup template, locked roots and system groups, tree rules, currency, archive, delete, owner |
 | quick-entry | [spec](quick-entry/spec.md) | QUICK-001 to 013 | Gider, Gelir, Transfer, Borç builders |
-| members-and-pin | [spec](members-and-pin/spec.md) | MEMBER-001 to 022 | roles, own-entry rule, admin-only settings, last admin, PIN gate, wait counter |
-| fx-rates | [spec](fx-rates/spec.md) | FX-001 to 016 | given base > given rate > stored rate on or before date > rate_missing; set, list, delete; conversion math |
+| members-and-pin | [spec](members-and-pin/spec.md) | MEMBER-001 to 023 | roles, own-entry rule, admin-only settings, last admin, PIN gate, wait counter |
+| fx-rates | [spec](fx-rates/spec.md) | FX-001 to 016 | given rate > given base > stored rate on or before date > rate_missing; set, list, delete; conversion math |
 | contacts | [spec](contacts/spec.md) | CONTACT-001 to 013 | Rehber, brand-business links, suggested accounts, debt balances |
 | reports | [spec](reports/spec.md) | REPORT-001 to 008 | trial balance, balance sheet with earnings, income statement, owner filter |
 | audit-and-logs | [spec](audit-and-logs/spec.md) | AUDIT-001 to 020 | soft delete only, audit_log, activity_log, prune, API envelope, migrations |
 
-Totals: 143 blocks (95 Requirements, 48 Invariants); 11 with `test: NONE`; 3 marked `status: unverified`.
+Totals: 144 blocks (96 Requirements, 48 Invariants); 9 with `test: NONE`; 2 marked `status: unverified` (LEDGER-017, LEDGER-033).
 
 ## All ids
 
@@ -57,7 +57,7 @@ Totals: 143 blocks (95 Requirements, 48 Invariants); 11 with `test: NONE`; 3 mar
 | LEDGER-029 | ledger-entries | API `entries.list` src/core/api/entries.ts:224-229; `ownerSql` src/core/api/ctx.ts:48-51 | test: account owner: Aile, Kişi and Ortak filter reports and the journal |
 | LEDGER-030 | ledger-entries | API `accounts.register` src/core/api/accounts.ts:136-190 (`account_not_found`) | test: journal list pages newest first and searches; register runs a balance |
 | LEDGER-031 | ledger-entries | `createApi` write queue src/core/api/index.ts:86-99 | test: writes at the same time run one after another |
-| LEDGER-032 | ledger-entries | API `resolve` src/core/api/entries.ts:58-67 | test: NONE |
+| LEDGER-032 | ledger-entries | API `resolve` src/core/api/entries.ts:58-66 | test: a given rate wins over a given base amount, which wins over the stored rate |
 | LEDGER-033 | ledger-entries | trigger `entries_number` (runs only when number IS NULL) src/core/migrations/0007_audit_columns.sql:320-322; `entry_number_fixed` :306-308 | test: NONE |
 | ACCT-001 | accounts-chart | `setupStatements` src/core/setup.ts:62-75; template src/core/chart.ts:10-27 | test: setup writes the core chart, optional recommended accounts, and runs once |
 | ACCT-002 | accounts-chart | API `setup.run` src/core/api/settings.ts:24 (`already_setup`); UNIQUE `settings.key` src/core/migrations/0007_audit_columns.sql:101 mapped in src/core/api/errors.ts:20 | test: before setup only setup.run and currencies.list work; setup runs once |
@@ -112,6 +112,7 @@ Totals: 143 blocks (95 Requirements, 48 Invariants); 11 with `test: NONE`; 3 mar
 | MEMBER-020 | members-and-pin | unique index `member_pins_member` src/core/migrations/0012_member_pins.sql:24 (`pin_exists`, src/core/api/errors.ts:21); triggers :26-44 (`no_delete`, `member_not_found`, `row_deleted`) | test: pin: setPin sets the first PIN freely, a change needs the current PIN and shares the wait counter |
 | MEMBER-021 | members-and-pin | `verifyPin` src/core/pin.ts:25-30 | test: NONE |
 | MEMBER-022 | members-and-pin | src/core/migrations/0012_member_pins.sql:1-4 | test: pin: migration 0012 on a file with members and no PINs leaves them unset |
+| MEMBER-023 | members-and-pin | API `members.remove` src/core/api/members.ts; trigger `actors_last_admin` (`last_admin`) | test: members.remove: admin only, another member only, entries and history stay |
 | FX-001 | fx-rates | API `resolve` src/core/api/entries.ts:58-65 (`rate_missing`); `rateOn` src/core/api/fx.ts:19-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
 | FX-002 | fx-rates | API `resolve` src/core/api/entries.ts:67; `rateOf` src/core/money.ts:16-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
 | FX-003 | fx-rates | API `fx.get` src/core/api/fx.ts:17-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
@@ -139,7 +140,7 @@ Totals: 143 blocks (95 Requirements, 48 Invariants); 11 with `test: NONE`; 3 mar
 | CONTACT-009 | contacts | API `contacts.delete` src/core/api/contacts.ts:140-144 (`contact_not_found`); trigger `contacts_soft_delete` src/core/migrations/0008_contacts.sql:78-84; `contacts_no_delete` :40 | test: contacts: brand <-> business many-to-many, persons link to none, kinds and names are checked |
 | CONTACT-010 | contacts | trigger `contacts_has_lines` src/core/migrations/0009_line_contacts.sql:16-21 (`contact_has_lines`) | test: contact on a debt line: balances per contact, a used contact cannot be removed, the line keeps it on edit |
 | CONTACT-011 | contacts | trigger `contacts_update` src/core/migrations/0008_contacts.sql:62 (`row_deleted`) | test: NONE |
-| CONTACT-012 | contacts | API `contacts.balances` src/core/api/contacts.ts:39-54 | test: contact on a debt line: balances per contact, a used contact cannot be removed, the line keeps it on edit |
+| CONTACT-012 | contacts | API `contacts.balances` src/core/api/contacts.ts:39-54 | test: contacts.balances counts debt lines on every depth under Receivables and Payables |
 | CONTACT-013 | contacts | API `contacts.list` src/core/api/contacts.ts:19-31 | test: contacts: brand <-> business many-to-many, persons link to none, kinds and names are checked |
 | REPORT-001 | reports | API `reports.trialBalance` src/core/api/reports.ts:35-51 | test: reports: trial balance totals match, balance sheet closes with earnings, income statement by period |
 | REPORT-002 | reports | API `reports.balanceSheet` src/core/api/reports.ts:57-62 | test: reports: trial balance totals match, balance sheet closes with earnings, income statement by period |

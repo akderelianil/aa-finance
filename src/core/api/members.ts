@@ -141,3 +141,23 @@ export const resetPin = write(z.object({ id }), async (ctx, input) => {
     `reset ${input.id}`)
   return {}
 })
+
+/**
+ * Admin only, another member only. Soft deletes the member and their PIN. Their entries stay and keep their author.
+ * The last admin stays (trigger `last_admin`).
+ */
+export const remove = write(z.object({ id }), async (ctx, input) => {
+  await needAdmin(ctx)
+  if (input.id === ctx.actor) fail('member_remove_self')
+  await live(ctx, input.id)
+  const pinRow = await pinOf(ctx, input.id)
+  const now = ctx.now()
+  await ctx.write(
+    [
+      ...(pinRow ? [{ sql: 'UPDATE member_pins SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?',
+        params: [now, ctx.actor, now, ctx.actor, pinRow.id] }] : []),
+      update(ctx, 'actors', input.id, { deleted_at: now }),
+    ],
+    String(input.id))
+  return {}
+})
