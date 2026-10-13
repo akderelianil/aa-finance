@@ -110,3 +110,16 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | 8 | Undo | Accepted. Also an activity history (which user did what, when, what changed); backlog. |
 | 9 | Scenarios as data | Did not understand; explain. |
 | 10 | Billing and entity | Based in Turkey. No own business; a family company exists and can be used for licenses and documents if needed. |
+
+## Round 7 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Backlog | Discuss one by one, as questions and answers. Owner then listed ideas (see docs/foundation/backlog.md). |
+| 2 | Cash flow report | Simple (cash in and out), not the formal statement. |
+| 3 | Investment gain/loss report | Yes, in the first version. |
+| 4 | Instalments and loans | The figure the user takes from the bank wins. Estimates and forecasts are for planning only; the user's real record always wins. |
+| 5 | Scenarios | Data-driven (templates run by a generic engine), so they can adapt to countries, situations and people, and developers can contribute. |
+| 6 | First release | Local and free only. Paid features such as sync come in a later release. |
+| 7 | Notifications | Backlog, but very important. |
+| 8 | Most urgent scenarios | Income/Expense, Transfer, Borrow/Lend. |
