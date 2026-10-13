@@ -1,6 +1,6 @@
 - [Working style](feedback-working-style.md) — Turkish chat; options on decisions; critical; minimal scope; commit phases without asking
 - [UX focus](feedback-ux-focus.md) — main focus is UX/UI and user flows, not bundle or metrics
-- [Doc & agent system](feedback-doc-system.md) — EN docs, STE, relative links, .claude/rules, agent learning loop
+- [Doc & agent system](feedback-doc-system.md) — docs by role, 3 agents, craft skill + inbox per agent, all in git
 - [ReUI base, auto skills](feedback-reui-base-auto-skills.md) — reui.io is the UI base; skills load from the request
 - [Secrets via .env](feedback-use-dotenv-secrets.md) — load root .env per command, never print values
 - [Local-first app](project-local-first.md) — Tauri + SQLite; Supabase retired to archive/; owner decisions; X1 status, next entry flow

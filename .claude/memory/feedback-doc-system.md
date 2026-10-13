@@ -1,16 +1,17 @@
 ---
 name: feedback-doc-system
-description: "Doc/agent system the user chose 2026-10-07: docs/code English (docs/product-designer/ux Turkish); STE style; relative links; owner frontmatter; agent learning loop"
+description: "Doc/agent system as of 2026-10-13: docs by role (product-designer, backend), 3 agents, one craft skill per agent, inboxes inside docs, everything in git"
 metadata:
   type: feedback
 ---
 
-User wants token-efficient, simple docs and coordinated, self-learning agents. Decided 2026-10-07:
-- Language: user-facing docs (`docs/product-designer/ux/**`) Turkish; all other files and content English. Chat replies stay Turkish.
-- Style (relaxed 2026-10-13): short, active, one term per concept. No hard word limits; STE is a guide, not a rule.
-- Links: relative Markdown links, not `[[wikilinks]]`. Obsidian vault = `docs/` only (`docs/.obsidian/app.json` in git).
-- No knowledge-graph DB for now; links + frontmatter are the graph.
-- Rules live in `.claude/rules/writing.md` and `.claude/rules/agents.md` (path-scoped). Agents use `memory: project` and the learning loop there.
+User wants free, fast work now, with docs and agents that learn from the sources they share. Current state:
+- **Language:** `docs/product-designer/ux/**` Turkish; everything else English. Chat stays Turkish.
+- **Style:** short, active, one term per concept. No hard word limits. No glossary until pre-release ([glossary paused](project-glossary-paused.md)).
+- **Links:** relative Markdown links, no `[[wikilinks]]`. Obsidian vault = `docs/`.
+- **Folders:** `docs/product-designer/{ux,ui,inbox}`, `docs/backend/{architecture,database,api,runtime,inbox}`, shared files and `docs/inbox/` (product-lead) in `docs/`.
+- **Agents:** `product-lead` (briefs, optional), `product-designer` (UX+UI, merged), `backend-engineer`. Only the main session delegates. Index and ownership: `docs/README.md`.
+- **Learning:** one store per agent, its craft skill (`design-craft`, `backend-craft`, `product-craft`); sources come through the inbox, lessons from work go in too. All in git so it moves to another computer. Rules: `.claude/rules/agents.md`.
 
-**Why:** User asked for wiki-style short docs, Obsidian, Mermaid, STE and agent coordination; we kept the cheap parts and rejected the graph DB.
-**How to apply:** Follow those rule files when writing docs or creating an agent. Register new agents in `docs/README.md`.
+**Why:** the owner changes ideas fast, merged UX and UI because they interlock, and wants agents to adapt from what they read.
+**How to apply:** route a shared source into the right inbox with its content (agents cannot browse). Judge `product-lead` after 2–3 real features; drop it if it adds no value over the main session. Register new agents in `docs/README.md`.
