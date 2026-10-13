@@ -20,6 +20,7 @@ import { amountIssue, currencySymbol, fromBase, parseDecimal, toDecimal, toMinor
 import { notify } from '@/lib/notify'
 import { call, useErrorText, useOp } from '@/lib/api'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode } from '@/lib/ledger'
+import { useKept } from '@/lib/kept'
 import { useQueryClient } from '@tanstack/react-query'
 
 export type QuickKind = 'expense' | 'income' | 'transfer' | 'debt'
@@ -62,27 +63,27 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const postable = useMemo(() => flattenTree(roots).filter((a) => !a.placeholder && !a.archived), [roots])
   const sys = (key: string) => postable.find((a) => a.systemKey === key) ?? flattenTree(roots).find((a) => a.systemKey === key)
 
-  const [kind, setKind] = useState<QuickKind>('expense')
-  const [date, setDate] = useState(today())
-  const [description, setDescription] = useState('')
+  const [kind, setKind] = useKept<QuickKind>('quick.kind', 'expense')
+  const [date, setDate] = useKept('quick.date', today())
+  const [description, setDescription] = useKept('quick.description', '')
   // Member the entry belongs to: the signed-in member until changed; '' = by account owner.
-  const [picked, setMember] = useState<string | null>(null)
+  const [picked, setMember] = useKept<string | null>('quick.picked', null)
   const members = useOp('members.list', {}).data ?? []
   const me = useOp('settings.get', {}).data?.me.id
   const member = picked ?? (me ? String(me) : '')
-  const [moneyRaw, setMoney] = useState('') // Gider/Gelir/Borç money account; '' = default (Gider/Gelir: the wallet)
-  const [splits, setSplits] = useState<Split[]>([emptySplit()])
-  const [total, setTotal] = useState('') // split mode: the receipt total; '' = the sum of the rows
+  const [moneyRaw, setMoney] = useKept('quick.moneyRaw', '') // Gider/Gelir/Borç money account; '' = default (Gider/Gelir: the wallet)
+  const [splits, setSplits] = useKept<Split[]>('quick.splits', [emptySplit()])
+  const [total, setTotal] = useKept('quick.total', '') // split mode: the receipt total; '' = the sum of the rows
   const [done, setDone] = useState<string | null>(null)
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('') // Transfer, Borç
-  const [counter, setCounter] = useState('') // the other currency amount
-  const [fee, setFee] = useState('')
-  const [feeAccount, setFeeAccount] = useState('')
-  const [showFee, setShowFee] = useState(false)
-  const [debtKind, setDebtKind] = useState<quick.DebtKind>('lend')
-  const [person, setPerson] = useState('')
+  const [from, setFrom] = useKept('quick.from', '')
+  const [to, setTo] = useKept('quick.to', '')
+  const [amount, setAmount] = useKept('quick.amount', '') // Transfer, Borç
+  const [counter, setCounter] = useKept('quick.counter', '') // the other currency amount
+  const [fee, setFee] = useKept('quick.fee', '')
+  const [feeAccount, setFeeAccount] = useKept('quick.feeAccount', '')
+  const [showFee, setShowFee] = useKept('quick.showFee', false)
+  const [debtKind, setDebtKind] = useKept<quick.DebtKind>('quick.debtKind', 'lend')
+  const [person, setPerson] = useKept('quick.person', '')
   const [showBooking, setShowBooking] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)

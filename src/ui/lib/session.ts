@@ -3,6 +3,7 @@
 // Flow: docs/product-designer/ux/pin.md.
 import { useSyncExternalStore } from 'react'
 import { lockApi } from './api.ts'
+import { clearKept } from './kept.ts'
 
 /** Idle lock: no keyboard or pointer input for this long. Fixed (no setting). */
 export const IDLE_MS = 5 * 60 * 1000
@@ -48,13 +49,15 @@ export function clearWait(id: number) {
   set({ waits: rest })
 }
 
-// Per member, kept until the app quits. Open screen only: dialogs and drafts live in the mounted screen,
-// so they survive an idle lock but not a member switch (see pin.md, open points).
+// Per member, kept until the app quits: the open page here, dialogs and drafts in kept.ts.
 // An admin PIN reset drops the member's saved state.
 const saved = new Map<number, string>()
 export const savedPath = (id: number) => saved.get(id)
 export const savePath = (id: number, path: string) => void saved.set(id, path)
-export const forgetState = (id: number) => void saved.delete(id)
+export function forgetState(id: number) {
+  saved.delete(id)
+  clearKept(id)
+}
 
 /** Seconds left of a wait, ticking each second; 0 when none. */
 export function useWaitLeft(id: number | null): number {

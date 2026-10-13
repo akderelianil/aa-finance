@@ -1,5 +1,5 @@
 import { ArrowRightLeftIcon, BookOpenIcon, BookUserIcon, ChartPieIcon, HistoryIcon, ListTreeIcon, PlusIcon, SettingsIcon } from 'lucide-react'
-import { Suspense, useState } from 'react'
+import { Suspense, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router'
 import {
@@ -7,6 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
+import { clearKept, MemberContext, useKept } from '@/lib/kept'
 import { EntryDialog } from './journal/EntryDialog'
 import { newDraft, type Draft } from './journal/JournalEditor'
 import { MemberMenu } from './members/MemberMenu'
@@ -27,8 +28,11 @@ export function AppShell() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const current = [...ITEMS, { to: '/etkinlik', key: 'activity' }, { to: '/ayarlar', key: 'settings' }].find((i) => active(pathname, i.to))
-  const [quick, setQuick] = useState(false)
-  const [draft, setDraft] = useState<Draft | null>(null)
+  // Kept per member (lib/kept.ts): open dialogs and drafts survive a lock and a member switch.
+  const me = useContext(MemberContext)
+  const [quick, setQuick] = useKept('quick.open', false)
+  const [draft, setDraft] = useKept<Draft | null>('draft', null)
+  const closeQuick = () => { if (me !== null) clearKept(me, 'quick.'); setQuick(false) }
 
   return (
     <SidebarProvider>
@@ -107,7 +111,7 @@ export function AppShell() {
           <Suspense><Outlet /></Suspense>
         </div>
       </SidebarInset>
-      <QuickEntryDialog open={quick} onClose={() => setQuick(false)} onFree={() => setDraft(newDraft())} />
+      <QuickEntryDialog open={quick} onClose={closeQuick} onFree={() => setDraft(newDraft())} />
       <EntryDialog draft={draft} onChange={setDraft} onClose={() => setDraft(null)} />
     </SidebarProvider>
   )

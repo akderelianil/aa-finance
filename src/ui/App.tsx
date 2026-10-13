@@ -6,6 +6,7 @@ import { AppShell } from '@/components/AppShell'
 import { DataState } from '@/components/DataState'
 import { ApiError, useOp } from '@/lib/api'
 import { autoBackup } from '@/lib/files'
+import { MemberContext } from '@/lib/kept'
 import { IDLE_MS, lock, savedPath, savePath, signedIn as signIn, useSession } from '@/lib/session'
 import Setup from '@/pages/Setup'
 import Welcome from '@/pages/Welcome'
@@ -71,6 +72,7 @@ function MemberSpace({ id }: { id: number }) {
     )
   }
   return (
+    <MemberContext.Provider value={id}>
     <MemoryRouter initialEntries={[start]}>
       <PathTracker id={id} />
       <Routes>
@@ -87,6 +89,7 @@ function MemberSpace({ id }: { id: number }) {
         <Route path="*" element={<Navigate to="/hesaplar" replace />} />
       </Routes>
     </MemoryRouter>
+    </MemberContext.Provider>
   )
 }
 
