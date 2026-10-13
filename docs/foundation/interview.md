@@ -213,3 +213,14 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 5 | CLI | Accepted: a local token bound to a member and that member's permissions. |
 | 6 | Period lock | Accepted: freezes edits; a late edit waits for an admin. |
 | 7 | Units | No other unit needed now; design the unit table to extend. |
+
+## Round 14 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Server choice | Check the Cloudflare pricing page before choosing (done, see options 03). |
+| 2 | Sync outage | A few hours is acceptable. |
+| 3 | Update speed | Prefers instant updates on other devices. |
+| 4 | Region | EU, Germany preferred. |
+| 5 | Quota | Decide later. |
+| 6 | Self-hosting | Accepted: Docker image and docs, no user support. |

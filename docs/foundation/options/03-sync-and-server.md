@@ -24,7 +24,7 @@ Inputs: [vision](../vision.md), [options 2](02-amounts-and-data-model.md), the i
 | S2. Cloudflare Workers + SQLite-backed Durable Objects (one per family) + R2 | Managed; per-family serialization is natural; scales to zero | Cloudflare-only: a self-hoster cannot run it, so a second server must exist; SQLite storage billing started January 2026 ([changelog](https://developers.cloudflare.com/changelog/2026-01-07-durable-objects-sqlite-storage-billing)); I could not confirm the current price figures; 10 GB per object limit |
 | S3. Postgres-based service | Familiar | More to run; no gain at this size |
 
-Recommendation: S1 as the one server, with R2 or Backblaze for Litestream backups and later for attachments. If operations become the pain point, a managed host for the same binary is a smaller step than a second implementation.
+Recommendation at first writing: S1. **Superseded by the section below after the price check.**
 
 ## Sizing guess (to measure later)
 An encrypted revision is about 1 to 2 KB. A family with 50,000 entries is roughly 100 MB; a heavy one with 1,000,000 entries is 1 to 2 GB. Storage quotas per plan are a business decision.
@@ -33,3 +33,30 @@ An encrypted revision is about 1 to 2 KB. A family with 50,000 entries is roughl
 - A solo operator for a financial service: monitoring, backups tested by restore, an incident plan, abuse limits (per-family size and rate caps).
 - The server sees metadata: family and document ids, sizes, arrival times, who writes. Content stays opaque.
 - Protocol mistakes are expensive after release: freeze the envelope and the canonical serialization early and test them with a second implementation.
+
+## Revision after the Cloudflare price check (owner round 14)
+Sources: [Cloudflare plans page](https://www.cloudflare.com/plans/#developer-platform), [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/), [data location](https://developers.cloudflare.com/durable-objects/reference/data-location/).
+
+### Verified figures (October 2026 reading)
+- Workers Paid has a 5 USD per month minimum. Durable Objects (SQLite-backed) include per month: 1 million requests, 400,000 GB-s duration, 25 billion rows read, 50 million rows written, 5 GB stored. Beyond that: 0.15 USD per million requests, 12.50 USD per million GB-s, 1.00 USD per million rows written, 0.20 USD per GB-month stored.
+- Duration is billed on the 128 MB allocated to an object. WebSocket Hibernation removes the duration charge while idle; incoming WebSocket messages count 1 request per 20 messages; outgoing messages are free. Cloudflare's own example of 100 objects with 100 hibernating sockets each costs about 20.65 USD per month.
+- R2 standard: 0.015 USD per GB-month, no egress fee, 4.50 USD per million write operations (class A), 0.36 USD per million reads (class B), 10 GB free.
+- Durable Objects can be pinned to the `eu` jurisdiction; R2 buckets also support an EU jurisdiction. The jurisdiction is the EU, not Germany specifically; older notes say jurisdictions do not combine with user-chosen ids, so the family-to-object registry needs a design (not verified against current docs).
+
+### Cost model (assumptions, not measurements)
+Per active family: 1 object, 4 devices on hibernating sockets, 100 pushed revisions per day, 100 MB stored.
+| Families | Requests, duration, rows | Storage if all in the object | Storage if old revisions move to R2 segments |
+|---|---|---|---|
+| 100 | inside the included allowance | 10 GB: about 1 USD | about 1 USD |
+| 1,000 | inside the included allowance | 100 GB: about 19 USD, total about 24 USD | R2 about 1.5 USD plus batched writes: total about 8 to 10 USD |
+One R2 write per revision would add about 13.50 USD per month at 1,000 families, so revisions are batched into segments. Conclusion: the 25 USD ceiling holds into the low thousands of families if old data lives in R2.
+
+### Self-hosting reality
+Running Workers and Durable Objects yourself is not ready: workerd's Durable Objects run in a single instance and are described as good for local testing; Deno's `celld` is alpha with no KV, R2 or Queues ([coverage](https://daily.dev/posts/celld-self-hosted-distributed-durable-objects-sxggesxkd)). So the self-host server is a second, small implementation (Rust + SQLite, Docker) written from the protocol and checked by the same conformance tests.
+
+### Changed recommendation
+- **Hosted service: Cloudflare (S2).** It removes the sysadmin burden for a solo operator, hibernating WebSockets give the instant updates the owner prefers, one Durable Object per family is the natural ordering point for "first writer wins", and cost is about 5 to 10 USD per month at the start. Region: `eu` jurisdiction.
+- **Protocol first.** The written protocol and a conformance test suite are the product; the Cloudflare server and the later self-host binary are two implementations of it. This also satisfies the architect's advice to test the envelope with a second implementation.
+- The server logic is small (authenticate, authorize by envelope, order, store, notify) and may be TypeScript on Workers; it never needs the Rust core because it cannot read content (envelope signatures use Ed25519, which WebCrypto provides).
+- Tooling note: Cloudflare work uses the `cf` CLI unless the project has a Wrangler configuration file (owner's global rule).
+- Cost of this choice: Cloudflare lock-in for the hosted side and two server implementations to maintain. The fixed-price VPS (S1) stays the fallback if Cloudflare pricing or terms turn bad.
