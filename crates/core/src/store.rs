@@ -82,11 +82,6 @@ impl Store {
         Ok(Store { conn })
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn connection(&self) -> &Connection {
-        &self.conn
-    }
-
     /// Writes one local revision and rebuilds the projection of its document, in one transaction.
     pub fn write_revision(&mut self, rev: NewRevision) -> Result<Id> {
         let mut ids = self.write_revisions(vec![rev])?;

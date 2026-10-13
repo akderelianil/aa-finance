@@ -19,3 +19,4 @@ test-support = []
 
 [dev-dependencies]
 aa-core = { path = ".", features = ["test-support"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }

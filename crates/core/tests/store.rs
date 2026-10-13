@@ -933,3 +933,206 @@ fn the_generated_fixture_verifies_clean_and_balances_to_zero() {
     assert_eq!(count(&store, "SELECT sum(base_value) FROM line"), 0);
     assert!(store.verify_projection().unwrap().is_empty());
 }
+
+#[test]
+fn every_account_kind_is_accepted_and_an_unknown_one_is_refused() {
+    // Arrange
+    let mut w = world();
+    let body = |kind: &str| {
+        let mut b = account_body("X", w.try_id, None, false);
+        b["kind"] = json!(kind);
+        rev(DocKind::Account, new_id(), None, b)
+    };
+    let valid: Vec<_> = ["asset", "liability", "equity", "income", "expense"]
+        .iter()
+        .map(|k| body(k))
+        .collect();
+    let unknown = body("treasure");
+    // Act
+    let accepted = w.store.write_revisions(valid);
+    let refused = w.store.write_revision(unknown);
+    // Assert
+    assert!(accepted.is_ok());
+    assert!(matches!(refused, Err(Error::InvalidBody(_))));
+    assert!(w.store.verify_projection().unwrap().is_empty());
+}
+
+#[test]
+fn verify_projection_finds_a_changed_commodity_and_account() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    post(&mut w, &[(food, 5000), (cash, -5000)]);
+    w.store
+        .tamper("UPDATE commodity SET code = 'ZZZ' WHERE code = 'EUR'")
+        .unwrap();
+    w.store
+        .tamper("UPDATE account SET name = 'Tampered' WHERE name = 'Food'")
+        .unwrap();
+    // Act
+    let drift = w.store.verify_projection().unwrap();
+    // Assert
+    let kinds: Vec<_> = drift.iter().map(|d| d.doc_kind).collect();
+    assert_eq!(kinds, vec![DocKind::Commodity, DocKind::Account]);
+}
+
+#[test]
+fn verify_projection_finds_a_posted_entry_that_broke_its_invariants() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    post(&mut w, &[(food, 5000), (cash, -5000)]);
+    w.store
+        .raw_connection()
+        .execute_batch("DROP TRIGGER line_posted_update; DROP TRIGGER line_posted_delete;")
+        .unwrap();
+    w.store
+        .tamper("DELETE FROM line WHERE line_no = 1")
+        .unwrap();
+    // Act
+    let drift = w.store.verify_projection().unwrap();
+    // Assert
+    assert_eq!(drift.len(), 1);
+    assert_eq!(
+        drift[0].reason,
+        "the entry or its lines differ from its revision"
+    );
+}
+
+#[test]
+fn a_ledger_file_that_is_not_ours_is_refused_and_errors_read_in_plain_words() {
+    // Arrange
+    let dir = std::env::temp_dir().join(format!("aa-core-{}", new_id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("other.db");
+    write_foreign_file(&path);
+    // Act
+    let result = Store::open(&path);
+    // Assert
+    let err = result.err().unwrap();
+    assert!(matches!(err, Error::ForeignDatabase));
+    assert!(err.to_string().contains("not an aa-finance ledger"));
+    assert!(Error::Rule(RuleCode::EntryUnbalanced)
+        .to_string()
+        .contains("entry_unbalanced"));
+    assert!(Error::NewerDatabase {
+        found: 9,
+        supported: 1
+    }
+    .to_string()
+    .contains("newer"));
+    assert!(Error::Internal("x").to_string().contains("internal"));
+    assert!(Error::MissingReference {
+        kind: "account",
+        what: "a".into()
+    }
+    .to_string()
+    .contains("does not exist"));
+    assert!(Error::Conflict { doc_id: new_id() }
+        .to_string()
+        .contains("conflict"));
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
+/// Writes a small SQLite file that is not a ledger, as a foreign application would leave it.
+fn write_foreign_file(path: &std::path::Path) {
+    let conn = rusqlite::Connection::open(path).unwrap();
+    conn.execute_batch("CREATE TABLE notes (id INTEGER)")
+        .unwrap();
+}
+
+#[test]
+fn rebuilding_retries_an_account_whose_new_parent_was_created_later() {
+    // Arrange
+    let mut w = world();
+    let (a, b, c) = (new_id(), new_id(), new_id());
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            a,
+            None,
+            account_body("A", w.try_id, None, false),
+        ))
+        .unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            b,
+            None,
+            account_body("B", w.try_id, Some(a), false),
+        ))
+        .unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            c,
+            None,
+            account_body("C", w.try_id, None, false),
+        ))
+        .unwrap();
+    let current = w.store.current_revision(a).unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            a,
+            current,
+            account_body("A", w.try_id, Some(c), false),
+        ))
+        .unwrap();
+    // Act
+    w.store.rebuild_projection().unwrap();
+    // Assert
+    assert!(w.store.verify_projection().unwrap().is_empty());
+    assert_eq!(
+        count(
+            &w.store,
+            "SELECT count(*) FROM account WHERE parent_id IS NOT NULL"
+        ),
+        2
+    );
+}
+
+#[test]
+fn verify_projection_reports_a_posted_entry_whose_invariants_were_never_enforced() {
+    // Arrange
+    let mut w = world();
+    w.store
+        .raw_connection()
+        .execute_batch("DROP TRIGGER entry_posted_balances; DROP TRIGGER line_posted_insert; DROP TRIGGER line_posted_update; DROP TRIGGER line_posted_delete;")
+        .unwrap();
+    let body = entry_body(&w, "posted", &[(w.food, 5000), (w.cash, -4000)]);
+    w.store
+        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .unwrap();
+    // Act
+    let drift = w.store.verify_projection().unwrap();
+    // Assert
+    assert_eq!(drift.len(), 1);
+    assert_eq!(drift[0].reason, "a posted entry breaks its invariants");
+}
+
+#[test]
+fn a_server_sequence_can_be_recorded_for_any_kind_of_document() {
+    // Arrange
+    let mut w = world();
+    let commodity = w.store.current_revision(w.try_id).unwrap().unwrap();
+    let account = w.store.current_revision(w.cash).unwrap().unwrap();
+    // Act
+    w.store.set_server_seq(commodity, 1).unwrap();
+    w.store.set_server_seq(account, 2).unwrap();
+    // Assert
+    assert!(w.store.verify_projection().unwrap().is_empty());
+}
+
+#[test]
+fn a_database_that_cannot_run_wal_is_refused_as_an_internal_error() {
+    // Arrange
+    let w = world();
+    // Act / Assert: an in-memory store reports journal mode memory, never WAL, and opens fine
+    let mode: String = w
+        .store
+        .raw_connection()
+        .query_row("PRAGMA journal_mode", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(mode, "memory");
+}

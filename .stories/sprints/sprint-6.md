@@ -10,7 +10,7 @@
 | ID | Title | Points | Status |
 | --- | --- | --- | --- |
 | core-rebuild-1 | CR-0 Repository move and workspace skeleton | 3 | done |
-| core-rebuild-2 | CR-1 Schema v1, revisions, projection and verify_projection | 5 | in-progress |
+| core-rebuild-2 | CR-1 Schema v1, revisions, projection and verify_projection | 5 | review |
 | core-rebuild-3 | CR-2 Amounts, rounding and rates | 5 | todo |
 | release-and-quality-1 | RQ-1 CI matrix, coverage floors, mutation and fuzz jobs | 5 | todo |
 
