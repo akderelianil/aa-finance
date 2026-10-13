@@ -3,7 +3,7 @@
 **ID:** core-rebuild-1
 **Epic:** core-rebuild
 **Sprint:** 6
-**Status:** review
+**Status:** done
 **Points:** 3
 
 ## Context

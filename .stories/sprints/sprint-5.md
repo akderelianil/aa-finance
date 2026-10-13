@@ -13,7 +13,7 @@
 | foundation-reset-2 | Audit existing docs, ADRs and specs (keep / change / drop) | 3 | done |
 | foundation-reset-3 | Rewrite vision: purpose, goals, non-goals | 3 | done |
 | foundation-reset-4 | Backend options analysis: storage, write path, rules, API | 5 | done |
-| foundation-reset-5 | Backend ADRs and technical design document with diagrams | 5 | review |
-| foundation-reset-6 | Migration plan and follow-up epics | 3 | review |
+| foundation-reset-5 | Backend ADRs and technical design document with diagrams | 5 | done |
+| foundation-reset-6 | Migration plan and follow-up epics | 3 | done |
 
 ## Total Points: 22

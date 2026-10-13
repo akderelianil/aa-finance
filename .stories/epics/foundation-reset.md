@@ -1,7 +1,7 @@
 # Epic: Foundation reset
 
 **Slug:** foundation-reset
-**Status:** in-progress
+**Status:** done
 **Created:** 2026-10-13
 
 ## Goal
@@ -29,5 +29,5 @@ Re-examine every document and decision from scratch and rewrite the product purp
 | foundation-reset-2 | Audit existing docs, ADRs and specs (keep / change / drop) | done |
 | foundation-reset-3 | Rewrite vision: purpose, goals, non-goals | done |
 | foundation-reset-4 | Backend options analysis: storage, write path, rules, API | done |
-| foundation-reset-5 | Backend ADRs and technical design document with diagrams | review |
-| foundation-reset-6 | Migration plan and follow-up epics | review |
+| foundation-reset-5 | Backend ADRs and technical design document with diagrams | done |
+| foundation-reset-6 | Migration plan and follow-up epics | done |

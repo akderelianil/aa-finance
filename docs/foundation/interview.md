@@ -268,3 +268,6 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 
 ## Round 20 (2026-10-13)
 Owner agrees: accessibility is built in from the first screen (not deferred); only manual screen-reader testing waits for users. ADR-0018 stands as written.
+
+## Round 21 (2026-10-13)
+Owner reviewed the plan in the browser canvas and approved it (verdict: approve). ADR 0008 to 0019, the technical design and the migration plan stand. Epic foundation-reset is closed; sprint 6 starts with core-rebuild-2.
