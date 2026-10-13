@@ -12,14 +12,13 @@ Single source for how this project writes text. Goal: short text, few tokens, on
 ## Language
 - User-facing docs: Turkish. Today this is `docs/ux/**` (the product owner reads and discusses them).
 - Everything else: English. This includes `CLAUDE.md`, other `docs/*.md`, `.claude/**`, agent memory, code, comments and commit messages.
-- UI text stays in i18n files (`src/ui/i18n/`). Turkish UI terms come from [GLOSSARY](../../docs/GLOSSARY.md).
+- UI text stays in i18n files (`src/ui/i18n/`).
 
 ## Style (ASD-STE100 principles, both languages)
 - Write one instruction per sentence. Use the imperative for procedures.
 - Keep procedure sentences ≤20 words and descriptive sentences ≤25 words.
 - Use the active voice. Remove filler words.
-- Use one term for one concept. Take the term from the glossary. Do not use synonyms.
-- A new UI concept needs a glossary row first (term + "Do not use" synonyms). `npm run check:terms` enforces the list.
+- Use one term for one concept. Do not use synonyms.
 - Prefer a table or a list to a paragraph.
 - State the current truth only. Git keeps the history. Do not keep decision logs in a live doc.
 

@@ -5,7 +5,7 @@ status: active
 
 # Kurulum
 
-Uygulama ilk kez açıldı, defter dosyası yok. Amaç: birkaç adımda kullanılabilir bir defter. Terimler: [GLOSSARY](../GLOSSARY.md).
+Uygulama ilk kez açıldı, defter dosyası yok. Amaç: birkaç adımda kullanılabilir bir defter.
 
 ## Temel kurallar
 | Konu | Kural |

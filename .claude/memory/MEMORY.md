@@ -7,3 +7,4 @@
 - [Git remote](project-no-git-remote.md) — origin is a local path; push only when asked
 - [entries.state kept](project-entries-state-kept.md) — SQLite lacks deferred triggers; draft→posted is the balance commit point
 - [Audit columns everywhere](feedback-audit-columns-everywhere.md) — all six on every table except the two logs
+- [Glossary paused](project-glossary-paused.md) — glossary + check:terms removed until pre-release

@@ -15,7 +15,6 @@ Run from the repo root.
 | Core tests (`node:sqlite`, in memory) | `npm test` |
 | Type check | `npx tsc --noEmit` |
 | Lint (oxlint; warnings come mostly from ReUI registry code) | `npm run lint` |
-| UI text against the glossary | `npm run check:terms` |
 | Real app with hot reload | `npm run tauri dev` |
 | Release binary | `npx tauri build --no-bundle` → `src-tauri/target/release/aa-finance` |
 | Plain browser dev (Playwright) | `npm run dev`, open the printed URL |
@@ -48,4 +47,5 @@ Backend rules: [backend/README](backend/README.md#working-rules). UI rules: [ui/
 ## Before release
 - Decide encryption at rest (SQLCipher) and the data folder location.
 - Click through backup and restore in the real app.
+- Bring back the glossary: restore `docs/GLOSSARY.md`, `scripts/check-terms.mjs` and the `check:terms` script from git history (last commit that has them: `186d57a`), then fix every hit.
 - Sign and bundle: `npx tauri build`.

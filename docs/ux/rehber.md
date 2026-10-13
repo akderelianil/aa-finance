@@ -5,7 +5,7 @@ status: active
 
 # Rehber
 
-Borç verilen ya da alınan Kişi, Marka ve Firmaların listesi. Terimler: [GLOSSARY](../GLOSSARY.md). Kullanımı: [borc](borc.md).
+Borç verilen ya da alınan Kişi, Marka ve Firmaların listesi. Kullanımı: [borc](borc.md).
 
 ## Sayfa
 - Tablo: Ad, Tür (Kişi / Marka / Firma), Bağlı (bağlı Firma ya da Markalar), Alacağımız, Borcumuz, düzenle ve sil.

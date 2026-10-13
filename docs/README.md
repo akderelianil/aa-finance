@@ -13,7 +13,6 @@ Read only what the task needs. Start at the folder of your role.
 | UI | [ui/](ui/README.md) | Screens, components, style conventions | EN |
 | Backend | [backend/](backend/README.md) | Database rules, API, ledger model, backup | EN |
 | Shared | [ARCHITECTURE](ARCHITECTURE.md) | Product decisions and scope | EN |
-| Shared | [GLOSSARY](GLOSSARY.md) | One term per concept; English ↔ Turkish UI term | EN + TR |
 | Shared | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 | Shared | [DEVELOPMENT](DEVELOPMENT.md) | Commands, run the real app, machine notes | EN |
 
@@ -29,7 +28,7 @@ The user talks to the main session. For a multi-role request the main session fi
 | [interaction-designer](../.claude/agents/interaction-designer.md) | UX | `docs/ux/**` | `.claude/agent-memory/interaction-designer/` |
 | [ui-designer](../.claude/agents/ui-designer.md) | UI | `docs/ui/**`, `src/ui/**` | `.claude/agent-memory/ui-designer/` |
 | [backend-engineer](../.claude/agents/backend-engineer.md) | Backend | `docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**` | `.claude/agent-memory/backend-engineer/` |
-| main session | Dispatch, shared files | `CLAUDE.md`, `.claude/**` (except agent memory), `docs/GLOSSARY.md`, `docs/DEVELOPMENT.md` | auto memory |
+| main session | Dispatch, shared files | `CLAUDE.md`, `.claude/**` (except agent memory), `docs/DEVELOPMENT.md` | auto memory |
 
 ## Obsidian
 Open `docs/` as the vault. Settings in `.obsidian/app.json` keep relative Markdown links. Only `app.json` is in git.

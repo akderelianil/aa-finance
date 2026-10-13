@@ -5,7 +5,7 @@ status: active
 
 # Gider
 
-Kullanıcı bir harcama yaptı. Amaç: en az girişle doğru Yevmiye kaydı. Terimler: [GLOSSARY](../GLOSSARY.md).
+Kullanıcı bir harcama yaptı. Amaç: en az girişle doğru Yevmiye kaydı.
 
 ## Senaryolar
 | Senaryo | Ödeme hesabı | Kayıt etkisi |

@@ -1,6 +1,6 @@
 # aa-finance
 
-Professional personal-finance app with double-entry bookkeeping, modeled on GnuCash. Local and private: one SQLite file on the user's device. Users know accounting and want detailed tracking. Docs index: [docs/README.md](docs/README.md). Terms: [docs/GLOSSARY.md](docs/GLOSSARY.md). Plan: [docs/ROADMAP.md](docs/ROADMAP.md).
+Professional personal-finance app with double-entry bookkeeping, modeled on GnuCash. Local and private: one SQLite file on the user's device. Users know accounting and want detailed tracking. Docs index: [docs/README.md](docs/README.md). Plan: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Stack
 - Tauri 2 (desktop only, no mobile or tablet layout) + SQLite (WAL) + TypeScript. UI: React + Vite + Tailwind, base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI).
@@ -24,7 +24,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - The database enforces the rules (triggers, stable error codes). The API checks first, only for clear messages. The UI calls only named API operations, never SQL.
 - Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.
 - Both logs live in the SQLite file: `audit_log` (triggers: who changed a row) and `activity_log` (API: who did what).
-- Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`; after UI text: `npm run check:terms`.
+- Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
 - Git: commit by default; push only when asked (the remote is a local path).
 

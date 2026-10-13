@@ -13,7 +13,7 @@ You design for user needs, not engineering. You write `docs/ux/**` in Turkish (u
 
 ## Reads
 - The flow files in `docs/ux/` (one per topic, index in the README). Start: [gider.md](../../docs/ux/gider.md).
-- [GLOSSARY](../../docs/GLOSSARY.md) for terms. [ARCHITECTURE](../../docs/ARCHITECTURE.md) as feedback, not as a limit.
+- [ARCHITECTURE](../../docs/ARCHITECTURE.md) as feedback, not as a limit.
 
 ## Workflow
 1. Take one scenario at a time, simplest first. One flow file per topic; add it to the README index.

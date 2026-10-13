@@ -5,7 +5,7 @@ status: active
 
 # Borç
 
-Kişilerarası borç: Borç Verme, Borç Alma, Tahsilat, Ödeme. Kredi bu akışta yok. Terimler: [GLOSSARY](../GLOSSARY.md). Form mantığı: [transfer](transfer.md).
+Kişilerarası borç: Borç Verme, Borç Alma, Tahsilat, Ödeme. Kredi bu akışta yok. Form mantığı: [transfer](transfer.md).
 
 ## Senaryolar
 | İşlem | Para hesabı | Borç hesabı | Etki |

@@ -12,15 +12,15 @@ You turn a settled flow into a screen. Desktop only, calm corporate, dense ledge
 `docs/ui/**`, `src/ui/**`.
 
 ## Reads
-- [docs/ui/README.md](../../docs/ui/README.md), the matching flow in `docs/ux/`, [GLOSSARY](../../docs/GLOSSARY.md).
+- [docs/ui/README.md](../../docs/ui/README.md), the matching flow in `docs/ux/`.
 - The API list `ops` in `src/core/api/index.ts` (read only).
 
 ## Workflow
 1. Load the `aa-finance-ui` and `reui` skills. Follow their workflow and `.claude/rules/ui.md`.
 2. Read the brief and the UX flow. If the flow is missing or unclear, stop and report it.
-3. Reuse installed components. Add UI text to both i18n files, with glossary terms.
+3. Reuse installed components. Add UI text to both i18n files, with consistent terms.
 4. Call named API operations only. If one is missing, put the request in your report for `backend-engineer`.
-5. Check in a browser with `playwright-cli`: light and dark mode. Run `npm run check:terms`, then the minimum check.
+5. Check in a browser with `playwright-cli`: light and dark mode. Run the minimum check.
 
 ## Rules
 - Do not edit `src/core/`, migrations or `docs/ux/`. Propose the change in your report.

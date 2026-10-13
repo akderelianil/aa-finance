@@ -11,7 +11,6 @@ Screens, components and style. Flow decisions come from [ux](../ux/README.md); d
 |---|---|
 | [ui.md rules](../../.claude/rules/ui.md) | ReUI design core. Loads when you edit `src/ui/`. |
 | [aa-finance-ui skill](../../.claude/skills/aa-finance-ui/SKILL.md) | Project layer: desktop, calm, dense ledger screens. |
-| [GLOSSARY](../GLOSSARY.md) | Turkish and English UI terms. `npm run check:terms` enforces them. |
 
 ## Conventions
 - Base: ReUI on shadcn `base-nova` (Base UI). Config `components.json` (registry `@reui`). Rules: [aa-finance-ui skill](../../.claude/skills/aa-finance-ui/SKILL.md), `.claude/skills/reui`, `.claude/rules/ui.md`.

@@ -5,7 +5,7 @@ status: active
 
 # Gelir
 
-Kullanıcıya para yattı. Amaç: en az girişle doğru Yevmiye kaydı. Gider ile aynı form, ters yön. Terimler: [GLOSSARY](../GLOSSARY.md). Form ve bölme mantığı: [gider](gider.md).
+Kullanıcıya para yattı. Amaç: en az girişle doğru Yevmiye kaydı. Gider ile aynı form, ters yön. Form ve bölme mantığı: [gider](gider.md).
 
 ## Kapsam
 - Yalnız **tahsil edilmiş** gelir. Para hesaba yattı veya nakit alındı.

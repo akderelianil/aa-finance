@@ -5,7 +5,7 @@ status: active
 
 # Transfer
 
-Para bir hesaptan diğerine geçti. Gelir ya da gider değil, yalnız yer değiştirme. İsteğe bağlı masraf gider olur. Terimler: [GLOSSARY](../GLOSSARY.md). Form mantığı: [gider](gider.md).
+Para bir hesaptan diğerine geçti. Gelir ya da gider değil, yalnız yer değiştirme. İsteğe bağlı masraf gider olur. Form mantığı: [gider](gider.md).
 
 ## Senaryolar
 | Senaryo | Nereden | Nereye |
