@@ -19,7 +19,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 
 ## Now (X1 user flows)
 Review the flows one at a time with the product owner; focus is UX/UI. Order: setup (done), entry, edit, find, report.
-- Planned: member PIN gate (lock on open and on idle). Plan: [pin-gate](pin-gate.md). Waiting for owner answers.
+- Done: member PIN gate (lock on open and on idle). Plan: [pin-gate](pin-gate.md). Open: drafts per member across member switch (see ux/pin.md, "Uygulanmadı / sapma").
 - Next: entry flow (Hızlı Kayıt). The owner narrates how they use it today, then critique and options.
 - Click through setup, members, backup and restore in the real Tauri app ([DEVELOPMENT](DEVELOPMENT.md#run-the-real-app)).
 
