@@ -28,13 +28,10 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
 - Git: commit by default; push only when asked (the remote is a local path).
 
-## Docs and agents
+## Docs and ECC
 - Language: English for docs and code; `docs/product-designer/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.
-- Docs are grouped by role: `docs/product-designer/ux/`, `docs/product-designer/ui/`, `docs/backend/`; shared files in `docs/`. Each role has an agent in `.claude/agents/`. Ownership, briefs, inboxes and learning: [.claude/rules/agents.md](.claude/rules/agents.md). Writing: [.claude/rules/writing.md](.claude/rules/writing.md).
-- Skills load from the request; the user does not type slash commands. Any `src/ui/` work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first. Browser check: `playwright-cli`. Review or audit: `ponytail-review` / `ponytail-audit`.
-
-## graphify
-A knowledge graph lives in `graphify-out/` (rebuildable, not in git).
-- For codebase questions run `graphify query "<question>"` first; use `graphify path "<A>" "<B>"` and `graphify explain "<concept>"` for relations. Read `GRAPH_REPORT.md` only for a broad architecture review.
-- After code changes run `graphify update .` (AST only, no API cost).
-- `/graphify` runs the skill in `.claude/skills/graphify/SKILL.md`.
+- Docs are grouped by role: `docs/product-designer/ux/`, `docs/product-designer/ui/`, `docs/backend/`; shared files in `docs/`.
+- Agent, skill and hook tooling is the ECC plugin (`ecc@ecc`, project scope, hook profile `standard`). Rules in `.claude/rules/` (common, typescript, react) are a lean subset of ECC's.
+- Agents to use: `ecc:typescript-reviewer` and `ecc:react-reviewer` after code changes; `ecc:security-reviewer` for PIN, auth and file-access changes; `ecc:tdd-guide` for new `src/core/` logic; `ecc:rust-reviewer` for `src-tauri/`; `ecc:build-error-resolver` when tsc or the build fails; `ecc:e2e-runner` for browser flows.
+- Skills to use: `ecc:tdd-workflow`, `ecc:database-migrations` (SQLite here, not Postgres), `ecc:react-patterns`, `ecc:frontend-patterns`, `ecc:i18n-sync`, `ecc:verification-loop`. Any `src/ui/` work: also call ReUI `get_agent_skill` first.
+- Ignore ECC agents and skills for other stacks (Django, Java, Shopify, network, etc.).
