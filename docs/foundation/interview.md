@@ -200,3 +200,16 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 5 | Book currency | Fixed per ledger; reports can show any unit. A later re-base tool is welcome. |
 | 6 | Archive | Accounts and commodities in use are archived, never deleted. |
 | 7 | Independent review | Yes: database-reviewer and architect run on options 02 (results follow). |
+
+## Round 13 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| fb | Creation time in ids | Not a meaningful leak; this is not a state-level privacy product. Use time-ordered ids. |
+| 1 | Dust rounding | Accepted: rounded, shown as a visible "Rounding" line. |
+| 2 | Partly visible entries | Accepted. The child may also see the account label; no "Hidden account" label is needed because the group's members are known (accounts exist by invitation). Avoid trivial logic slips like that. |
+| 3 | Revoke | Accepted: only future records stop flowing; old synced data cannot be unseen. |
+| 4 | Erasure | Accepted: a member erases their own personal data (shared-account entries keep the author as a "deleted member"); the admin erases the whole family ledger with extra confirmation. No other rules. |
+| 5 | CLI | Accepted: a local token bound to a member and that member's permissions. |
+| 6 | Period lock | Accepted: freezes edits; a late edit waits for an admin. |
+| 7 | Units | No other unit needed now; design the unit table to extend. |
