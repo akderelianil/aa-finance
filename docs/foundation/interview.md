@@ -164,3 +164,16 @@ Open for the owner to confirm: DCO versus CLA (explained in round 5 answer), tel
 
 ## Vision review (2026-10-13)
 Owner approved the vision with one change: remove the "adults 18+" statement; no notice and no restriction, a general user. A child-specific mode stays unplanned. Assistant note: if minors use the app, the terms of use still need a line about it; end-to-end encryption keeps the hosted service blind to the data.
+
+## Round 10 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Rust core | Accepted; the owner supports it. |
+| 2 | Spike | No spike: judge from benchmarks and reviews on the internet (React, Tauri, Flutter, plus any other candidate). |
+| 3 | Look | Identical on every operating system (like Obsidian), so users who change device or system are not confused. |
+| 4 | Accessibility | Mandatory. |
+| 5 | OS versions | Recent versions; nothing old. |
+| 6 | Test machines | None. GitHub Actions matrix (owner has Pro; the repo will be public). |
+| 7 | UI plugins | Not needed soon; after the product matures. |
+| 8 | Mobile technology | Did not understand; explained with examples in the next reply. |

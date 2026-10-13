@@ -18,23 +18,32 @@ Ledger rules and scenarios engine, amount arithmetic, event log and revisions, b
 | Kotlin Multiplatform | One core for Android, iOS, desktop | JVM weight on desktop; weaker WASM and crypto story; iOS interop young |
 | Dart (Flutter) | One language for core and UI | Core tied to the UI framework; weaker for a sync/crypto library other apps may reuse |
 
-## Desktop shell and UI
-| Option | For | Against |
-|---|---|---|
-| **Tauri 2 + web UI** | Small installer; Rust core is native to it; the strongest UI ecosystem (shadcn/ReUI, tables, accessibility); AI writes web UI well; sandboxed plugin panels via iframes | OS web view differs (WebKitGTK on Linux is the weak spot); not truly native; *measure* idle RAM |
-| Flutter (desktop + mobile) | Same pixels on every OS; one UI code base for desktop and mobile; Rust core via flutter_rust_bridge | Not native widgets; weaker accessibility and text handling; plugin UI hard to sandbox; new language |
-| Compose Multiplatform | One UI for desktop, Android, iOS | JVM memory; young on iOS; heavy |
-| Native per OS | Best feel | Three or four UI code bases: not maintainable for one AI maintainer |
-| Rust UI (Slint, Iced, egui) | Tiny and fast | Thin ecosystem for complex data grids and accessibility; polish risk against the "perfect UX" goal |
-| Electron | Identical everywhere (Obsidian does this) | Heaviest; breaks the low-resource priority |
+## Desktop shell and UI (revised after owner round 10 and web research)
+New constraints from the owner: the look must be identical on every OS; accessibility is mandatory; no spike, decide from published evidence; recent OS versions only; no local test machines (GitHub Actions matrix).
 
-## Recommendation
-Rust core. Desktop v1 on Tauri 2 with a web UI (framework still free: React is the default, nothing forces ReUI). Mobile later: native Kotlin/Swift UIs on the same Rust core through UniFFI, as the owner planned.
+Evidence quality is low: most benchmark pages are SEO blogs with no method. Treat figures as direction, not fact.
 
-## Spike (before the ADR)
-Build the same two screens in Tauri + web UI and in Flutter, both on a Rust core with a 1,000,000-entry SQLite file: a virtualized journal list and a Quick Entry dialog with Turkish text input. Measure on Windows, macOS (CI runner) and Linux: cold start, idle and loaded RAM, scroll smoothness, installer size, keyboard and screen-reader behavior. Decide from numbers, not taste.
+| Option | Identical look | Accessibility | Linux | Weight | Verdict |
+|---|---|---|---|---|---|
+| Tauri 2, OS web view | No: three engines (WebView2, WKWebView, WebKitGTK) | Good (web) | Weak: Tauri's own guide lists driver clashes (NVIDIA, DMABUF); issues report slow frames and blank windows on WebKitGTK | Smallest (blog figures: ~40 to 170 MB RAM) | Fails the look and Linux requirements |
+| **Electron** | Yes: bundled Chromium | Best: Chromium's full UIA, NSAccessibility, AT-SPI support and mature web tooling | Good | Heaviest (blog figures: ~170 to 400 MB RAM, large installer) | Meets every requirement; pays in RAM and size. Obsidian proves the model |
+| Tauri + CEF (bundled Chromium) | Yes | Good | Good | Like Electron | Pre-release (alphas, API gaps, incomplete platform targets). Revisit later; the shell must stay replaceable |
+| Flutter | Yes (own renderer) | Works through a semantics tree; docs list Narrator, NVDA, VoiceOver, Orca; one critic reports Linux gaps | Fine | Medium (blog figures ~45 to 90 MB, unverified) | Real contender; one code base for desktop and mobile. Weaker on accessibility confidence, data-grid ecosystem, Dart |
+| Compose Multiplatform, Avalonia, Qt | Mostly | Unverified / Qt strong | OK | JVM or .NET weight, Qt licensing | No clear gain over the two above for an AI-maintained web-fluent stack |
+| Slint, Iced, Dioxus, egui | Yes | Immature (AccessKit pre-1.0) | OK | Tiny | Fails mandatory accessibility today |
+| Native per OS | No | Best | | | Not maintainable |
+
+## Recommendation (revised)
+- **Core: Rust** (accepted).
+- **UI: web technology**, accessibility first (accessible primitives, keyboard first, tested with axe and screen readers in CI). React is the default; the owner has no attachment to ReUI.
+- **Shell: Chromium-based for an identical look.** Electron today; Tauri + CEF when it leaves alpha. Keep the shell thin: the UI talks to the Rust core only through named operations over one IPC boundary, so the shell can be swapped.
+- **Mobile later:** see the question in the interview (web UI in a thin native shell versus native screens).
+- Performance of 1,000,000 entries is decided by SQLite indexes and paging, not by the UI toolkit; enforce it with performance budgets in CI.
+
+## No spike, but budgets
+Instead of a bake-off, the first vertical slice ships with measured budgets on the GitHub Actions matrix (Windows, macOS, Ubuntu): cold start, idle RAM, journal scroll at 1M entries, installer size. If a budget fails, revisit the shell, not the architecture.
 
 ## Risks to keep in view
-- A web view cannot be fully replaced on Linux; if WebKitGTK fails the spike, Flutter becomes the lead.
-- Rust slows the first months; the gain is one core for four platforms and a safe plugin host.
-- The owner cannot test macOS locally (WSL2 dev machine); a CI matrix is required.
+- RAM and installer size are the price of Chromium. The owner ranked resource use fourth, below compatibility.
+- Electron needs hardening (context isolation, sandbox, strict IPC), code signing and an update channel.
+- No local macOS or Windows machine: all platform testing runs in CI.
