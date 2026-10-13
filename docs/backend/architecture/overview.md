@@ -14,6 +14,7 @@ Technical design of the local app. Product model: [ARCHITECTURE](../../ARCHITECT
 - Sync, mobile and plugins come later. Do not build them in v1.
 
 ## Stack
+Technology list: [stack](stack.md).
 - Shell: Tauri 2, desktop only.
 - Code: TypeScript. UI: React with ReUI on shadcn, only the parts the app uses.
 - Data: SQLite (WAL mode). No ORM, no query builder. Plain SQL files. No DuckDB.

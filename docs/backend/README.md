@@ -9,7 +9,7 @@ Architecture, database, API and backup in `src/core/` and `src-tauri/`. No UI an
 
 | Folder | Content |
 |---|---|
-| [architecture/](architecture/overview.md) | Goals, stack, plugins, out of v1, open decisions |
+| [architecture/](architecture/overview.md) | [overview](architecture/overview.md) (goals, layout, adapters, out of v1), [stack](architecture/stack.md) (technologies) |
 | [database/](database/rules.md) | [rules](database/rules.md) (triggers, audit, money), [tables](database/tables.md), [ledger-model](database/ledger-model.md) (GnuCash mapping, account template, currencies) |
 | [api/](api/operations.md) | Named operations, errors, reports, paging |
 | [runtime/](runtime/backup.md) | [backup](runtime/backup.md) and restore, [performance](runtime/performance.md) budgets |
