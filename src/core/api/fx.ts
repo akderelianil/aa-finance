@@ -40,6 +40,6 @@ export const set = write(z.object({ currency, date, rate }), async (ctx, input) 
 
 export const remove = write(z.object({ id }), async (ctx, input) => {
   await need(ctx.db, 'fx_rate_not_found', 'SELECT 1 FROM fx_rates WHERE id = ? AND deleted_at IS NULL', [input.id])
-  await ctx.write([update(ctx, 'fx_rates', input.id, { deleted_at: Date.now() })], String(input.id))
+  await ctx.write([update(ctx, 'fx_rates', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}
 })

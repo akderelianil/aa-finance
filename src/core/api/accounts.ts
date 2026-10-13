@@ -98,14 +98,14 @@ export const edit = write(
 
 export const archive = write(z.object({ id, archived: z.boolean() }), async (ctx, input) => {
   await live(ctx.db, input.id)
-  await ctx.write([update(ctx, 'accounts', input.id, { archived_at: input.archived ? Date.now() : null })], String(input.id))
+  await ctx.write([update(ctx, 'accounts', input.id, { archived_at: input.archived ? ctx.now() : null })], String(input.id))
   return {}
 })
 
 /** Soft delete. Only an account without live lines and children (the database checks). */
 export const remove = write(z.object({ id }), async (ctx, input) => {
   await live(ctx.db, input.id)
-  await ctx.write([update(ctx, 'accounts', input.id, { deleted_at: Date.now() })], String(input.id))
+  await ctx.write([update(ctx, 'accounts', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}
 })
 

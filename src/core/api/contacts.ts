@@ -121,7 +121,7 @@ export const edit = write(
       const mine = k === 'brand' ? 'brand_id' : 'business_id'
       const theirs = k === 'brand' ? 'business_id' : 'brand_id'
       const have = await ctx.db.query(`SELECT id, ${theirs} AS partner FROM brand_businesses WHERE ${mine} = ? AND deleted_at IS NULL`, [input.id])
-      const now = Date.now()
+      const now = ctx.now()
       for (const h of have)
         if (!want.includes(h.partner as number))
           statements.push({
@@ -139,6 +139,6 @@ export const edit = write(
 /** Soft delete; its links follow (trigger). */
 export const remove = write(z.object({ id }), async (ctx, input) => {
   await need(ctx.db, 'contact_not_found', 'SELECT 1 FROM contacts WHERE id = ? AND deleted_at IS NULL', [input.id])
-  await ctx.write([update(ctx, 'contacts', input.id, { deleted_at: Date.now() })], String(input.id))
+  await ctx.write([update(ctx, 'contacts', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}
 })

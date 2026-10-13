@@ -109,7 +109,7 @@ export const set = write(
       .map(([key, v]) => update(ctx, 'settings', idOf.get(key) ?? fail('not_setup'), { value: v ?? null }))
     if (input.userName !== undefined) {
       values.push(['user_name', input.userName])
-      statements.push({ sql: 'UPDATE actors SET name = ?, updated_at = ?, updated_by = ? WHERE id = ?', params: [input.userName, Date.now(), ctx.actor, ctx.actor] })
+      statements.push({ sql: 'UPDATE actors SET name = ?, updated_at = ?, updated_by = ? WHERE id = ?', params: [input.userName, ctx.now(), ctx.actor, ctx.actor] })
     }
     if (statements.length) await ctx.write(statements, values.filter(([, v]) => v !== undefined).map(([k]) => k).join(', '))
     return {}

@@ -123,7 +123,7 @@ export const setPin = writeSelfLog(z.object({ id, pin, current: z.optional(pin) 
   await ctx.write([{
     sql: `UPDATE member_pins SET hash = ?, salt = ?, iterations = ?, failed_count = 0, wait_until = NULL,
           updated_at = ?, updated_by = ? WHERE id = ?`,
-    params: [h.hash, h.salt, h.iterations, Date.now(), input.id, row.id],
+    params: [h.hash, h.salt, h.iterations, ctx.now(), input.id, row.id],
   }], 'change', input.id)
   return {}
 })
@@ -134,7 +134,7 @@ export const resetPin = write(z.object({ id }), async (ctx, input) => {
   if (input.id === ctx.actor) fail('pin_reset_self')
   await live(ctx, input.id)
   const row = await pinOf(ctx, input.id)
-  const now = Date.now()
+  const now = ctx.now()
   await ctx.write(
     row ? [{ sql: 'UPDATE member_pins SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?',
       params: [now, ctx.actor, now, ctx.actor, row.id] }] : [],

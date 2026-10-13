@@ -28,6 +28,6 @@ Make aa-finance professional, easy for AI agents to extend, and traceable throug
 | harness-plan-2 | Durable memory and ADRs | done |
 | harness-plan-3 | Behavior specs and rule-to-test trace | todo |
 | harness-plan-4 | Generated API and error-code references | todo |
-| harness-plan-5 | Security guardrails and small core fixes | todo |
+| harness-plan-5 | Security guardrails and small core fixes | in-progress |
 | harness-plan-6 | Component and E2E tests | todo |
 | harness-plan-7 | Work tracking and changelog | todo |

@@ -122,7 +122,7 @@ export const edit = write(
       statements.push(update(ctx, 'entries', input.id, { ...set, state: 'draft', entry_date: on }))
       if (input.lines) {
         const lines = await resolve(ctx.db, on, input.lines)
-        const now = Date.now()
+        const now = ctx.now()
         statements.push(
           { sql: 'UPDATE lines SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE entry_id = ? AND deleted_at IS NULL', params: [now, ctx.actor, now, ctx.actor, e.id] },
           ...lineStatements(ctx, input.id, on, lines),
@@ -147,7 +147,7 @@ async function needOwner(ctx: Ctx, createdBy: number) {
 export const remove = write(z.object({ id }), async (ctx, input) => {
   const e = await need(ctx.db, 'entry_not_found', 'SELECT created_by FROM entries WHERE id = ? AND deleted_at IS NULL', [input.id])
   await needOwner(ctx, e.created_by as number)
-  await ctx.write([update(ctx, 'entries', input.id, { deleted_at: Date.now() })], String(input.id))
+  await ctx.write([update(ctx, 'entries', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}
 })
 
@@ -155,7 +155,7 @@ export const remove = write(z.object({ id }), async (ctx, input) => {
 export const removeAll = write(z.object({}), async (ctx) => {
   await needAdmin(ctx)
   const { n } = await need(ctx.db, 'not_setup', 'SELECT count(*) AS n FROM entries WHERE deleted_at IS NULL')
-  const now = Date.now()
+  const now = ctx.now()
   if (n)
     await ctx.write(
       [{ sql: 'UPDATE entries SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE deleted_at IS NULL', params: [now, ctx.actor, now, ctx.actor] }],

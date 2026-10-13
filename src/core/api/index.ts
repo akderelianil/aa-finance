@@ -61,7 +61,7 @@ export type Input<K extends OpName> = z.input<(typeof ops)[K]['input']>
 export type Output<K extends OpName> = Awaited<ReturnType<(typeof ops)[K]['run']>>
 
 /** Ops that run with no member signed in (before setup, or locked). Everything else fails with `locked`. */
-const open = new Set<OpName>(['setup.run', 'currencies.list', 'members.list', 'settings.groupName', 'members.signIn', 'members.setPin'])
+export const openOps: ReadonlySet<OpName> = new Set<OpName>(['setup.run', 'currencies.list', 'members.list', 'settings.groupName', 'members.signIn', 'members.setPin'])
 
 export type Api = {
   call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>>
@@ -112,7 +112,7 @@ export function createApi(db: Db, options: ApiOptions = {}): Api {
     const id = actor
     try {
       if (!op) throw new ApiError('unknown_op', name)
-      if (id === null && op && !open.has(name)) throw new ApiError(await anyMember() ? 'locked' : 'not_setup')
+      if (id === null && op && !openOps.has(name)) throw new ApiError(await anyMember() ? 'locked' : 'not_setup')
       const parsed = z.safeParse(op.input, input)
       if (!parsed.success) throw new ApiError('invalid_input', z.flattenError(parsed.error))
       const ctx: Ctx = {

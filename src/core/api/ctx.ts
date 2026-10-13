@@ -81,7 +81,7 @@ export function insert(ctx: Ctx, table: string, row: Record<string, Value>): Sta
 
 /** UPDATE one row by id, stamping updated_at and updated_by (and deleted_by with a soft delete). */
 export function update(ctx: Ctx, table: string, rowId: number, set: Record<string, Value>): Statement {
-  const r = { ...set, ...(set.deleted_at != null && { deleted_by: ctx.actor }), updated_at: Date.now(), updated_by: ctx.actor }
+  const r = { ...set, ...(set.deleted_at != null && { deleted_by: ctx.actor }), updated_at: ctx.now(), updated_by: ctx.actor }
   const cols = Object.keys(r)
   return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`, params: [...Object.values(r), rowId] }
 }
