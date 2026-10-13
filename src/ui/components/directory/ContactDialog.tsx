@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { OptionSelect } from '@/components/OptionSelect'
+import { OptionCombobox } from '@/components/OptionCombobox'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -110,11 +110,11 @@ function ContactForm({ target, contacts, onClose }: { target: ContactTarget; con
         <div className="grid grid-cols-2 gap-4">
           <Field>
             <FieldLabel htmlFor="contact-income">{t('dir.income')}</FieldLabel>
-            <OptionSelect id="contact-income" value={income} onChange={setIncome} placeholder={t('dir.none')} options={incomeOptions} />
+            <OptionCombobox id="contact-income" value={income} onChange={setIncome} placeholder={t('dir.none')} options={incomeOptions} />
           </Field>
           <Field>
             <FieldLabel htmlFor="contact-expense">{t('dir.expense')}</FieldLabel>
-            <OptionSelect id="contact-expense" value={expense} onChange={setExpense} placeholder={t('dir.none')} options={expenseOptions} />
+            <OptionCombobox id="contact-expense" value={expense} onChange={setExpense} placeholder={t('dir.none')} options={expenseOptions} />
           </Field>
           <FieldDescription className="col-span-2">{t('dir.defaultsHint')}</FieldDescription>
         </div>

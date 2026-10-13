@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next'
 import type { EntryInput } from '../../../core/api/entries.ts'
 import { toBase } from '../../../core/money.ts'
 import * as quick from '../../../core/quick.ts'
-import { AccountPicker, NEW, type PickerItem } from '@/components/journal/AccountPicker'
+import { AccountPicker, NEW } from '@/components/journal/AccountPicker'
 import { AmountInput } from '@/components/journal/AmountInput'
 import { OptionSelect } from '@/components/OptionSelect'
+import { PersonCombobox, type PersonItem } from '@/components/directory/PersonCombobox'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -94,8 +95,8 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const receivable = debtKind === 'lend' || debtKind === 'collect'
   const debtGroup = sys(receivable ? 'receivables' : 'payables')
   // Rehber records as picker items; the path column shows the kind.
-  const people = useMemo<PickerItem[]>(
-    () => (contacts.data ?? []).map((c) => ({ id: c.id, label: c.name, path: t(`dir.kind.${c.kind}`), currency: '' })),
+  const people = useMemo<PersonItem[]>(
+    () => (contacts.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: t(`dir.kind.${c.kind}`) })),
     [contacts.data, t],
   )
   const contactById = new Map((contacts.data ?? []).map((c) => [c.id, c]))
@@ -423,9 +424,9 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         <div className="grid grid-cols-2 gap-3">
           <Field label={t('quick.person')} error={show('person')}
             hint={person.startsWith(NEW) ? t('quick.newPersonHint') : undefined}>
-            <AccountPicker
-              accounts={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
-              creatable placeholder={t('quick.personPlaceholder')} className="rounded-md border border-input"
+            <PersonCombobox
+              people={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
+              placeholder={t('quick.personPlaceholder')}
             />
           </Field>
           {account('money', moneyLabel, assets, money, setMoney)}

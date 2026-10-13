@@ -7,6 +7,8 @@ export const tr = {
     delete: 'Sil',
     actions: 'Seçenekler',
     none: 'Yok',
+    noMatch: 'Eşleşme yok',
+    search: 'Yazarak ara',
   },
   nav: {
     home: 'Ana Sayfa',

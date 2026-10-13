@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArchiveRestoreIcon, BookOpenIcon, DatabaseBackupIcon, DatabaseIcon, InfoIcon, TriangleAlertIcon, Trash2Icon, UsersIcon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { OptionCombobox } from '@/components/OptionCombobox'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { ThemeChoice } from '@/components/ThemeToggle'
@@ -138,7 +139,7 @@ function SettingsForm({ values }: { values: Values }) {
               />
             </SettingRow>
             <SettingRow title={t('setup.country')} htmlFor="set-country" description={t('settings.countryHint')}>
-              <OptionSelect
+              <OptionCombobox
                 id="set-country" className="w-64" value={country} onChange={setCountry} disabled={!admin}
                 placeholder={t('settings.countryNone')} options={countries}
               />

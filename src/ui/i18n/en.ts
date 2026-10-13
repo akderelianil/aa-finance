@@ -9,6 +9,8 @@ export const en: Translation = {
     delete: 'Delete',
     actions: 'Actions',
     none: 'None',
+    noMatch: 'No match',
+    search: 'Type to search',
   },
   nav: {
     home: 'Home',

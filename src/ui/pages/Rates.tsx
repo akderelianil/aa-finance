@@ -2,6 +2,7 @@ import { useTable, type ColumnDef } from '@tanstack/react-table'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { OptionCombobox } from '@/components/OptionCombobox'
 import { OptionSelect } from '@/components/OptionSelect'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/reui/alert'
@@ -186,7 +187,7 @@ function RateForm({ onClose, base, first }: { onClose: () => void; base: string;
         <div className="grid grid-cols-2 gap-4">
           <Field>
             <FieldLabel htmlFor="fx-currency">{t('fx.currency')}</FieldLabel>
-            <OptionSelect
+            <OptionCombobox
               id="fx-currency" value={currency} onChange={setCurrency} placeholder={t('fx.pickCurrency')}
               options={currencies.filter((c) => c.code !== base).map((c) => ({ value: c.code, label: `${c.code} · ${c.name}` }))}
             />
