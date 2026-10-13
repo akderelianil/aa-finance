@@ -23,9 +23,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
-      - run: npx tsc --noEmit
-      - run: npm run lint
+      - run: npm run verify:web
 
   rust:
     name: Rust tests
@@ -40,4 +38,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-      - run: cargo test --manifest-path src-tauri/Cargo.toml
+      - run: npm run verify:rust

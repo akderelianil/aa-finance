@@ -2,7 +2,7 @@
 
 **ID:** harness-plan-2
 **Epic:** harness-plan
-**Sprint:** unassigned
+**Sprint:** 1
 **Status:** todo
 **Points:** 3
 

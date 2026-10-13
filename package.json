@@ -8,6 +8,11 @@
     "build": "tsc && vite build",
     "lint": "oxlint src",
     "test": "node --test --disable-warning=ExperimentalWarning \"src/**/*.test.ts\"",
+    "test:coverage": "node --test --disable-warning=ExperimentalWarning --experimental-test-coverage --test-coverage-lines=90 \"src/**/*.test.ts\"",
+    "verify:web": "npm run test:coverage && tsc --noEmit && npm run lint",
+    "verify:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "verify": "npm run verify:web && npm run verify:rust",
+    "hooks:install": "sh scripts/hooks/install.sh",
     "tauri": "tauri",
     "seed": "node --disable-warning=ExperimentalWarning scripts/dev/seed-local.ts",
     "bench": "node --disable-warning=ExperimentalWarning scripts/dev/bench.ts"
