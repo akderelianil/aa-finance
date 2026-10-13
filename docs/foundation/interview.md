@@ -80,3 +80,18 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | 10 | Deadline | None. Quality over time. |
 | + | Extensibility | Other developers must be able to extend the app; plugins; the API matters. |
 | + | Philosophy | Follow Obsidian's philosophy (loved worldwide, developer- and user-centred). Open source is a deliberate owner choice. Obsidian is the example to follow. |
+
+## Round 5 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Plugin power | Accepted: permissioned and sandboxed, weaker than Obsidian plugins on purpose. Only official plugins at first. |
+| 2 | Distribution | Only plugins approved by the owner can be installed in the first period. |
+| 3 | Data promise | Open documented schema plus full export at any time; CSV export of all data is enough. |
+| 4 | Cost method change | Accepted: the system posts automatic adjustment entries. |
+| 5 | Calendar | Accepted: Gregorian civil date stored; other calendars are display only. |
+| 6 | Self-hosting | Deliberately supported; the owner trusts the community to donate and subscribe anyway. |
+| 7 | Contribution policy | Did not understand; re-ask in plain words. |
+| 8 | Telemetry | Asked for an explanation first. |
+| 9 | Existing code | Do not keep as reference; learn from the experience and write a better version from scratch. |
+| 10 | Discovery | Continue. |
