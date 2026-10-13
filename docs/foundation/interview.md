@@ -247,3 +247,12 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 7 | Out-of-band check | Mandatory (QR or short code) when joining a family. |
 | 8 | Admin actions | Accepted: a second admin, when present, co-signs admin-granting actions. |
 | 9 | Recovery key use | Notify every member. |
+
+## Round 18 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Signing gate | Accepted: paid sync does not start before signing is in place. |
+| 2 | Community scenario packs | Allowed from the start, reviewed as pull requests. |
+| 3 | Price plugins | Prices from a provider plugin are inserted automatically, marked fetched; the user's own price outranks them; entries always wait for approval. |
+| 4 | Plugin rule | Accepted: no plugin holds ledger read and network together. |
