@@ -14,13 +14,13 @@ Open questions found while mining: [FINDINGS](FINDINGS.md).
 | ledger-entries | [spec](ledger-entries/spec.md) | LEDGER-001 to 033 | post, update, delete, balance, numbering, FX rounding, lock_date, journal, register |
 | accounts-chart | [spec](accounts-chart/spec.md) | ACCT-001 to 018 | setup template, locked roots and system groups, tree rules, currency, archive, delete, owner |
 | quick-entry | [spec](quick-entry/spec.md) | QUICK-001 to 013 | Gider, Gelir, Transfer, Borç builders |
-| members-and-pin | [spec](members-and-pin/spec.md) | MEMBER-001 to 023 | roles, own-entry rule, admin-only settings, last admin, PIN gate, wait counter |
+| members-and-pin | [spec](members-and-pin/spec.md) | MEMBER-001 to 025 | roles, own-entry rule, admin-only settings, last admin, PIN gate, wait counter |
 | fx-rates | [spec](fx-rates/spec.md) | FX-001 to 016 | given rate > given base > stored rate on or before date > rate_missing; set, list, delete; conversion math |
 | contacts | [spec](contacts/spec.md) | CONTACT-001 to 013 | Rehber, brand-business links, suggested accounts, debt balances |
 | reports | [spec](reports/spec.md) | REPORT-001 to 008 | trial balance, balance sheet with earnings, income statement, owner filter |
 | audit-and-logs | [spec](audit-and-logs/spec.md) | AUDIT-001 to 020 | soft delete only, audit_log, activity_log, prune, API envelope, migrations |
 
-Totals: 144 blocks (96 Requirements, 48 Invariants); 9 with `test: NONE`; 2 marked `status: unverified` (LEDGER-017, LEDGER-033).
+Totals: 146 blocks (97 Requirements, 49 Invariants); 9 with `test: NONE`; 2 marked `status: unverified` (LEDGER-017, LEDGER-033).
 
 ## All ids
 
@@ -113,6 +113,8 @@ Totals: 144 blocks (96 Requirements, 48 Invariants); 9 with `test: NONE`; 2 mark
 | MEMBER-021 | members-and-pin | `verifyPin` src/core/pin.ts:25-30 | test: NONE |
 | MEMBER-022 | members-and-pin | src/core/migrations/0012_member_pins.sql:1-4 | test: pin: migration 0012 on a file with members and no PINs leaves them unset |
 | MEMBER-023 | members-and-pin | API `members.remove` src/core/api/members.ts; trigger `actors_last_admin` (`last_admin`) | test: members.remove: admin only, another member only, entries and history stay |
+| MEMBER-024 | members-and-pin | API `needGrant`; triggers `*_permission_*` (`permission_denied`) | test: without a grant a member cannot change accounts, rates or contacts; reading stays open |
+| MEMBER-025 | members-and-pin | API `members.update`; trigger `actors_update_role` (`admin_only`) | test: each grant opens only its own area, and only the admin can give or take it |
 | FX-001 | fx-rates | API `resolve` src/core/api/entries.ts:58-65 (`rate_missing`); `rateOn` src/core/api/fx.ts:19-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
 | FX-002 | fx-rates | API `resolve` src/core/api/entries.ts:67; `rateOf` src/core/money.ts:16-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |
 | FX-003 | fx-rates | API `fx.get` src/core/api/fx.ts:17-25 | test: foreign currency: stored rate, given rate, given base, rounding to FX, missing rate |

@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 import type { Db } from '../db.ts'
-import { currency, date, fail, insert, need, one, rate, read, id, update, write } from './ctx.ts'
+import { currency, date, fail, insert, need, needGrant, one, rate, read, id, update, write } from './ctx.ts'
 
 export type FxRate = { id: number; currency: string; date: string; rate: string }
 
@@ -26,6 +26,7 @@ export async function rateOn(db: Db, code: string, on: string): Promise<{ date: 
 
 /** Sets the rate of one currency on one date: updates the live row or adds one. */
 export const set = write(z.object({ currency, date, rate }), async (ctx, input) => {
+  await needGrant(ctx, 'rates')
   const base = await need(ctx.db, 'not_setup', `SELECT value FROM settings WHERE key = 'base_currency'`)
   if (base.value === input.currency) fail('fx_base_currency')
   const cur = await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])
@@ -39,6 +40,7 @@ export const set = write(z.object({ currency, date, rate }), async (ctx, input) 
 })
 
 export const remove = write(z.object({ id }), async (ctx, input) => {
+  await needGrant(ctx, 'rates')
   await need(ctx.db, 'fx_rate_not_found', 'SELECT 1 FROM fx_rates WHERE id = ? AND deleted_at IS NULL', [input.id])
   await ctx.write([update(ctx, 'fx_rates', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}

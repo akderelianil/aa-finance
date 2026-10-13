@@ -36,13 +36,13 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 | `fx.get` | read | signed in | `currency`, `date` |
 | `fx.list` | read | signed in | `currency` |
 | `fx.set` | write | signed in | `currency`, `date`, `rate` |
-| `members.add` | write | signed in | `name`, `role`, `color` |
+| `members.add` | write | signed in | `name`, `role`, `color`, `grants` |
 | `members.list` | read | open | - |
 | `members.remove` | write | signed in | `id` |
 | `members.resetPin` | write | signed in | `id` |
 | `members.setPin` | write | open | `id`, `pin`, `current` |
 | `members.signIn` | write | open | `id`, `pin` |
-| `members.update` | write | signed in | `id`, `name`, `role`, `color` |
+| `members.update` | write | signed in | `id`, `name`, `role`, `color`, `grants` |
 | `reports.balanceSheet` | read | signed in | `asOf`, `owner` |
 | `reports.incomeStatement` | read | signed in | `from`, `to`, `owner` |
 | `reports.trialBalance` | read | signed in | `asOf`, `owner` |
@@ -53,7 +53,7 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 
 `open` ops run with no member signed in; every other op fails with `locked` (`not_setup` before setup).
 
-## Error codes (80)
+## Error codes (81)
 
 | Code | Origin | English message |
 |---|---|---|
@@ -112,6 +112,7 @@ Generated from `ops` in `src/core/api/index.ts`, `src/core/api/errors.ts` and `s
 | `no_delete` | trigger | Records are not deleted; they are marked deleted. Delete from the record screen. |
 | `not_setup` | api | The book is not set up yet. |
 | `period_locked` | trigger | This period is locked; entries cannot change. An admin can clear the lock date in Settings. |
+| `permission_denied` | trigger | You do not have permission for this. Ask an admin to grant it. |
 | `pin_current_required` | api | Enter the current PIN too. |
 | `pin_exists` | unique | This member already has a PIN. Go back to the member list and enter it. |
 | `pin_not_own` | api | You can change only your own PIN. An admin resets anyone else’s. |

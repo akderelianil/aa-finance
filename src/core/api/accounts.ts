@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 import type { AccountType } from '../chart.ts'
-import { currency, date, insert, limits, name, need, one, owner, ownerSql, paging, read, id, update, write } from './ctx.ts'
+import { currency, date, insert, limits, name, need, needGrant, one, owner, ownerSql, paging, read, id, update, write } from './ctx.ts'
 
 export type Account = {
   id: number
@@ -65,6 +65,7 @@ export const usage = read(z.object({}), async (ctx): Promise<number[]> => {
 export const create = write(
   z.object({ parent: id, name, currency: z.optional(currency), placeholder: z.optional(z.boolean()), owner: z.optional(z.nullable(id)) }),
   async (ctx, input) => {
+    await needGrant(ctx, 'accounts')
     const parent = await need(ctx.db, 'account_not_found', 'SELECT id, type, owner_id FROM accounts WHERE id = ? AND deleted_at IS NULL', [input.parent])
     const cur = input.currency
       ? await need(ctx.db, 'currency_unknown', 'SELECT id FROM currencies WHERE code = ?', [input.currency])
@@ -83,6 +84,7 @@ export const create = write(
 export const edit = write(
   z.object({ id, name: z.optional(name), parent: z.optional(id), currency: z.optional(currency), placeholder: z.optional(z.boolean()), owner: z.optional(z.nullable(id)) }),
   async (ctx, input) => {
+    await needGrant(ctx, 'accounts')
     await live(ctx.db, input.id)
     const set: Record<string, string | number | null> = {}
     if (input.name !== undefined) set.name = input.name
@@ -97,6 +99,7 @@ export const edit = write(
 )
 
 export const archive = write(z.object({ id, archived: z.boolean() }), async (ctx, input) => {
+  await needGrant(ctx, 'accounts')
   await live(ctx.db, input.id)
   await ctx.write([update(ctx, 'accounts', input.id, { archived_at: input.archived ? ctx.now() : null })], String(input.id))
   return {}
@@ -104,6 +107,7 @@ export const archive = write(z.object({ id, archived: z.boolean() }), async (ctx
 
 /** Soft delete. Only an account without live lines and children (the database checks). */
 export const remove = write(z.object({ id }), async (ctx, input) => {
+  await needGrant(ctx, 'accounts')
   await live(ctx.db, input.id)
   await ctx.write([update(ctx, 'accounts', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}

@@ -1,5 +1,5 @@
 import * as z from 'zod/mini'
-import { fail, id, insert, name, need, read, update, write, type Ctx } from './ctx.ts'
+import { fail, id, insert, name, need, needGrant, read, update, write, type Ctx } from './ctx.ts'
 import type { Statement } from '../db.ts'
 
 export type ContactKind = 'individual' | 'brand' | 'business'
@@ -89,6 +89,7 @@ function linkStatement(ctx: Ctx, k: ContactKind, self: number, partner: number):
 export const create = write(
   z.object({ kind, name, incomeAccount: accountRef, expenseAccount: accountRef, partners }),
   async (ctx, input) => {
+    await needGrant(ctx, 'contacts')
     const links = [...new Set(input.partners ?? [])]
     await checkPartners(ctx, input.kind, links)
     await checkAccounts(ctx, input.incomeAccount, input.expenseAccount)
@@ -110,6 +111,7 @@ export const create = write(
 export const edit = write(
   z.object({ id, name: z.optional(name), incomeAccount: accountRef, expenseAccount: accountRef, partners }),
   async (ctx, input) => {
+    await needGrant(ctx, 'contacts')
     const c = await need(ctx.db, 'contact_not_found', 'SELECT kind FROM contacts WHERE id = ? AND deleted_at IS NULL', [input.id])
     const k = c.kind as ContactKind
     await checkAccounts(ctx, input.incomeAccount, input.expenseAccount)
@@ -142,6 +144,7 @@ export const edit = write(
 
 /** Soft delete; its links follow (trigger). */
 export const remove = write(z.object({ id }), async (ctx, input) => {
+  await needGrant(ctx, 'contacts')
   await need(ctx.db, 'contact_not_found', 'SELECT 1 FROM contacts WHERE id = ? AND deleted_at IS NULL', [input.id])
   await ctx.write([update(ctx, 'contacts', input.id, { deleted_at: ctx.now() })], String(input.id))
   return {}

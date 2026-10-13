@@ -11,6 +11,7 @@ Named operations in `src/core/api/`. The UI never writes SQL.
 - The UI calls only the API, never SQL. The API is named JSON operations: `api.call('entries.post', input)`. The list is `ops` in `src/core/api/index.ts`, with one `API_VERSION`.
 - Each op has a Zod (`zod/mini`) input schema, a TypeScript output type and stable error codes. A failure is always an `ApiError` with a `code` (bad input: `invalid_input`). Output schemas come with the plugin bridge.
 - `call()` checks the gate (see PIN gate below), validates the input and uses the signed-in member as actor. It writes the `activity_log` row in the same transaction as the op's write. A failed write is logged with its error code (`members.signIn` and `members.setPin` log their own failures). Reads are not logged.
+- Grants: `members.add` and `members.update` take `grants: {accounts?, rates?, contacts?}` (admin only); `members.list` returns every member's effective `grants` (an admin has all). Without the grant, `accounts.create/update/archive/delete`, `fx.set/delete` and `contacts.create/update/delete` fail with `permission_denied`. [ADR-0007](../../adr/0007-admin-grants-for-shared-data.md).
 - `members.remove` (admin, another member, never the last admin) soft deletes a member and their PIN. Their entries stay and keep their author.
 - Records are named by integer `id` in the API. Currencies are named by ISO code.
 - Lists are paged (`page`, `pageSize` ≤1000, offset). Journal: newest first. Account register: oldest first, with `opening` and a running balance in the account currency.

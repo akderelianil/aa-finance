@@ -4,17 +4,26 @@ import { memberColor } from '../setup.ts'
 import { fail, insert, name, need, needAdmin, one, pin, read, id, update, write, writeSelfLog, type Ctx } from './ctx.ts'
 import { color } from './settings.ts'
 
-export type Member = { id: number; name: string; role: 'admin' | 'member'; color: string | null; me: boolean; hasPin: boolean }
+export type Grants = { accounts: boolean; rates: boolean; contacts: boolean }
+export type Member = { id: number; name: string; role: 'admin' | 'member'; color: string | null; me: boolean; hasPin: boolean; grants: Grants }
 
 const role = z.enum(['admin', 'member'])
+const grants = z.object({ accounts: z.optional(z.boolean()), rates: z.optional(z.boolean()), contacts: z.optional(z.boolean()) })
+
+/** Grant input -> actors columns. */
+const grantColumns = (g: z.infer<typeof grants> | undefined): Record<string, number> =>
+  Object.fromEntries(
+    (['accounts', 'rates', 'contacts'] as const).filter((k) => g?.[k] !== undefined).map((k) => [`can_manage_${k}`, g![k] ? 1 : 0]))
 
 export const list = read(z.object({}), async (ctx): Promise<Member[]> => {
   const rows = await ctx.db.query(
-    `SELECT a.id, a.name, a.role, a.color, p.id IS NOT NULL AS has_pin FROM actors a
+    `SELECT a.id, a.name, a.role, a.color, p.id IS NOT NULL AS has_pin, a.can_manage_accounts, a.can_manage_rates, a.can_manage_contacts FROM actors a
      LEFT JOIN member_pins p ON p.member_id = a.id AND p.deleted_at IS NULL
      WHERE a.kind = 'user' AND a.deleted_at IS NULL ORDER BY a.id`)
   return rows.map((r) => ({
     id: r.id as number, name: r.name as string, role: r.role as Member['role'], color: (r.color as string | null) ?? null, me: r.id === ctx.actor, hasPin: r.has_pin === 1,
+    grants: r.role === 'admin' ? { accounts: true, rates: true, contacts: true }
+      : { accounts: r.can_manage_accounts === 1, rates: r.can_manage_rates === 1, contacts: r.can_manage_contacts === 1 },
   }))
 })
 
@@ -25,26 +34,26 @@ async function nameFree(ctx: Parameters<typeof list.run>[0], value: string, exce
 }
 
 /** Admin only. */
-export const add = write(z.object({ name, role: z.optional(role), color: z.optional(color) }), async (ctx, input) => {
+export const add = write(z.object({ name, role: z.optional(role), color: z.optional(color), grants: z.optional(grants) }), async (ctx, input) => {
   await needAdmin(ctx)
   await nameFree(ctx, input.name)
   const [{ n }] = await ctx.db.query(`SELECT count(*) AS n FROM actors WHERE kind = 'user'`)
   await ctx.write([insert(ctx, 'actors', {
-    kind: 'user', name: input.name, role: input.role ?? 'member', color: input.color ?? memberColor(Number(n)),
+    kind: 'user', name: input.name, role: input.role ?? 'member', color: input.color ?? memberColor(Number(n)), ...grantColumns(input.grants),
   })], input.name)
   return { id: Number((await ctx.db.query('SELECT max(id) AS id FROM actors'))[0].id) }
 })
 
 /** Own name and color: anyone. Another member, or any role: admin only. */
 export const edit = write(
-  z.object({ id, name: z.optional(name), role: z.optional(role), color: z.optional(color) }),
+  z.object({ id, name: z.optional(name), role: z.optional(role), color: z.optional(color), grants: z.optional(grants) }),
   async (ctx, input) => {
     const m = await need(ctx.db, 'member_not_found',
       `SELECT id, role FROM actors WHERE id = ? AND kind = 'user' AND deleted_at IS NULL`, [input.id])
-    if (m.id !== ctx.actor || (input.role !== undefined && input.role !== m.role)) await needAdmin(ctx)
+    if (m.id !== ctx.actor || (input.role !== undefined && input.role !== m.role) || input.grants !== undefined) await needAdmin(ctx)
     if (input.name !== undefined) await nameFree(ctx, input.name, input.id)
-    const set = Object.fromEntries(
-      Object.entries({ name: input.name, role: input.role, color: input.color }).filter((e): e is [string, string] => e[1] !== undefined))
+    const set: Record<string, string | number> = { ...grantColumns(input.grants) }
+    for (const [key, value] of Object.entries({ name: input.name, role: input.role, color: input.color })) if (value !== undefined) set[key] = value
     if (Object.keys(set).length) await ctx.write([update(ctx, 'actors', input.id, set)], String(input.id))
     return {}
   },

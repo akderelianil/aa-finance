@@ -318,5 +318,29 @@ After migration 0012 every existing member SHALL have no PIN and the API SHALL s
 
 ---
 
+### Requirement: Grants for shared data
+- id: MEMBER-024
+- entities: Actor, Account, FxRate, Contact
+- enforced: API `needGrant` src/core/api/ctx.ts (`permission_denied`); triggers `accounts_permission_*`, `fx_rates_permission_*`, `contacts_permission_*`, `brand_businesses_permission_*` src/core/migrations/0013_member_grants.sql
+- test: without a grant a member cannot change accounts, rates or contacts; reading stays open
+
+Creating, changing, archiving or deleting accounts, exchange rates and contacts SHALL need the matching grant (`accounts`, `rates`, `contacts`) unless the actor is an admin. Reading and posting entries need no grant.
+
+#### Scenario: Member without a grant
+- **WHEN** a member with no grants calls `accounts.create`
+- **THEN** it fails with `permission_denied`
+
+---
+
+### Invariant: Only an admin changes grants
+- id: MEMBER-025
+- entities: Actor
+- enforced: API `members.update`/`members.add` (`admin_only`); trigger `actors_update_role` src/core/migrations/0013_member_grants.sql (`admin_only`); `audit_log` via `actors_audit_update`
+- test: each grant opens only its own area, and only the admin can give or take it
+
+A new member SHALL start with no grants, an admin SHALL hold every grant, and only an admin SHALL change a grant; each change is recorded in `audit_log`.
+
+---
+
 <!-- uncertainty: while locked, setPin lets anyone set the first PIN of a member who has none, including an admin after a reset (accepted in docs/pin-gate.md). -->
 <!-- uncertainty: the 5-minute idle lock in CLAUDE.md lives in the UI, not in src/core; not mined here. -->

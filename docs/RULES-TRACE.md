@@ -15,7 +15,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-3 | Every entry has ≥2 lines and balances on `base_amount` | PR-3.1 to PR-3.2 |
 | PR-4 | Every account has a currency; rates are manual (given rate > given base > stored > `rate_missing`) | PR-4.1 to PR-4.5 |
 | PR-5 | A journal entry is a completed event only | absence of a feature |
-| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.6 |
+| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.7 |
 | PR-7 | Number and date format follow the book country | PR-7.1 (partial) |
 | PR-8 | Entry flows: Gider, Gelir, Transfer, Borç, Serbest kayıt | PR-8.1 to PR-8.4 |
 | PR-9 | Out of scope: AI, bank import, notifications, bills, sync, mobile | absence of features |
@@ -34,6 +34,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-4.5 | PR-4 | a given rate wins over a given base amount, which wins over the stored rate | test: a given rate wins over a given base amount, which wins over the stored rate |
 | PR-4.4 | PR-4 | `fx.list`, `fx.delete` (soft delete) | test: fx.list returns live rates newest first, filtered by currency; remove hides a rate |
 | PR-5.1 | PR-5 | no plan or reminder tables; entries are `draft` then `posted` | test: NONE |
+| PR-6.7 | PR-6 | grants: `permission_denied` by API and triggers; only the admin changes them | test: without a grant a member cannot change accounts, rates or contacts; reading stays open |
 | PR-6.6 | PR-6 | `members.remove`: admin only, not self, last admin stays | test: members.remove: admin only, another member only, entries and history stay |
 | PR-6.1 | PR-6 | triggers `entry_not_owner`, `admin_only`, `last_admin` | test: members: setup adds them, admin manages, a member edits only own name and own entries |
 | PR-6.2 | PR-6 | `openOps` gate: locked, only open ops run | test: pin: locked gate lets only the open ops through; sign in binds, lock clears |
@@ -48,7 +49,7 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-9.1 | PR-9 | no code for these features | test: NONE |
 
 ## Open gaps
-- PR-6: roles for shared data (accounts, rates, contacts) and who sees what are not built; story `harness-plan-9`.
+- PR-6: the grants have no UI yet (story `harness-plan-9`).
 - PR-7: no test for the book-country locale (`formatLocale`); story `harness-plan-6` moves it to a pure module and tests it.
 - PR-1, PR-5, PR-9: scope and absence rules; reviewed by hand against the ROADMAP.
 - UI terms in PR-2 (Yevmiye, Hesap Planı, Mizan…) are checked by the i18n tests only for key completeness, not wording.

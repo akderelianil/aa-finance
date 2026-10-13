@@ -5,7 +5,7 @@ status: active
 
 # Architecture Decision Records
 
-Short records of decisions that shape the code. Format: Nygard (context, decision, alternatives, consequences). The first six were written on 2026-10-13 from the code and docs as they stand; the decisions themselves are older (see git history). Add a new ADR when a decision changes the data model, a rule layer, or the stack. Never rewrite an accepted ADR: supersede it with a new one.
+Short records of decisions that shape the code. Format: Nygard (context, decision, alternatives, consequences). ADR 0001 to 0006 were written on 2026-10-13 from the code and docs as they stand; the decisions themselves are older (see git history). Add a new ADR when a decision changes the data model, a rule layer, or the stack. Never rewrite an accepted ADR: supersede it with a new one.
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
@@ -15,5 +15,6 @@ Short records of decisions that shape the code. Format: Nygard (context, decisio
 | [0004](0004-balance-by-base-amount-trigger.md) | Entries balance on `base_amount`, enforced by trigger | accepted | 2026-10-13 |
 | [0005](0005-soft-delete-and-audit.md) | Soft delete only, with an audit trail | accepted | 2026-10-13 |
 | [0006](0006-manual-exchange-rates.md) | Exchange rates are manual | accepted | 2026-10-13 |
+| [0007](0007-admin-grants-for-shared-data.md) | The admin grants who may change shared data | accepted | 2026-10-13 |
 
 Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](../backend/architecture/overview.md) (technical design), [PIN gate](../pin-gate.md) (full PIN plan).

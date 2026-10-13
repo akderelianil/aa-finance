@@ -508,6 +508,7 @@ export const en: Translation = {
     pin_not_own: 'You can change only your own PIN. An admin resets anyone else’s.',
     pin_reset_self: 'You cannot reset your own PIN. Use Change PIN.',
     member_remove_self: 'You cannot remove yourself. Ask another admin.',
+    permission_denied: 'You do not have permission for this. Ask an admin to grant it.',
     pin_exists: 'This member already has a PIN. Go back to the member list and enter it.',
     already_setup: 'The book is already set up.',
     currency_unknown: 'Unknown currency. Pick one from the list.',

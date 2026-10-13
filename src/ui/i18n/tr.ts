@@ -507,6 +507,7 @@ export const tr = {
     pin_not_own: 'Yalnız kendi PIN’ini değiştirebilirsin. Başkası için Yönetici sıfırlar.',
     pin_reset_self: 'Kendi PIN’ini sıfırlayamazsın. PIN değiştir’i kullan.',
     member_remove_self: 'Kendini çıkaramazsın. Başka bir yöneticiden iste.',
+    permission_denied: 'Bunun için yetkin yok. Bir yöneticiden izin iste.',
     pin_exists: 'Bu üyenin PIN’i zaten var. Üye seçimine dönüp PIN’i yaz.',
     already_setup: 'Defter zaten kurulu.',
     currency_unknown: 'Para birimi bilinmiyor. Listeden bir para birimi seç.',
