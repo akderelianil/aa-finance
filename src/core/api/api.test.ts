@@ -401,3 +401,26 @@ test('account owner: Aile, Kişi and Ortak filter reports and the journal', asyn
   await api.call('accounts.update', { id: child, owner: null })
   assert.equal((await api.call('entries.list', { owner: me })).total, 0)
 })
+
+test('line member: a line belongs to its member, else to its account owner', async () => {
+  const { api, acc } = await fresh()
+  await api.call('members.add', { name: 'Ayşe' })
+  const [a, b] = await api.call('members.list', {})
+  const bank = (await api.call('accounts.create', { parent: acc('bank'), name: 'Ortak Banka' })).id
+  const wallet = (await api.call('accounts.create', { parent: acc('cash'), name: 'A Cüzdan', owner: a.id })).id
+  const income = (await api.call('accounts.create', { parent: acc('income'), name: 'Maaş' })).id
+  // b's salary lands on the shared account; a's wallet money has no tag.
+  await api.call('entries.post', { date: '2026-03-01', lines: [{ account: bank, amount: 700, member: b.id }, { account: income, amount: -700, member: b.id }] })
+  await api.call('entries.post', { date: '2026-03-02', lines: [{ account: wallet, amount: 300 }, { account: income, amount: -300, member: a.id }] })
+  await assert.rejects(api.call('entries.post', { date: '2026-03-03', lines: [{ account: bank, amount: 1, member: 999 }, { account: income, amount: -1 }] }), code('member_not_found'))
+
+  const bal = async (owner?: number | 'shared') =>
+    Object.fromEntries((await api.call('accounts.list', { owner })).filter((x) => [bank, wallet].includes(x.id)).map((x) => [x.name, x.baseBalance]))
+  assert.deepEqual(await bal(), { 'Ortak Banka': 700, 'A Cüzdan': 300 })
+  assert.deepEqual(await bal(b.id), { 'Ortak Banka': 700, 'A Cüzdan': 0 })
+  assert.deepEqual(await bal(a.id), { 'Ortak Banka': 0, 'A Cüzdan': 300 })
+  assert.deepEqual(await bal('shared'), { 'Ortak Banka': 0, 'A Cüzdan': 0 })
+  assert.equal((await api.call('reports.incomeStatement', { from: '2026-03-01', to: '2026-03-31', owner: b.id })).net, -700)
+  assert.equal((await api.call('entries.list', { owner: b.id })).total, 1)
+  assert.equal((await api.call('entries.get', { id: 1 })).lines[0].member, b.id)
+})

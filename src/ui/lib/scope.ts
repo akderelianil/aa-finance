@@ -26,21 +26,19 @@ export function useScope(known?: number[]) {
 }
 
 /**
- * Accounts for a scope: other owners' accounts lose their balance and drop out unless they are
- * system accounts or hold a kept account below them, so the tree still rolls up.
+ * Accounts for a scope (balances already come from `accounts.list({ owner })`): an account stays when it is
+ * the owner's, has a balance in the scope, is a system account, or holds one of those below it, so the tree rolls up.
  */
 export function useScopedAccounts(accounts: Account[] | undefined, owner: number | 'shared' | undefined) {
   return useMemo(() => {
     if (!accounts || owner === undefined) return accounts
-    const mine = (a: Account) => (owner === 'shared' ? a.owner === null : a.owner === owner)
+    const mine = (a: Account) => !a.placeholder && ((owner === 'shared' ? a.owner === null : a.owner === owner) || a.baseBalance !== 0 || a.balance !== 0)
     const byId = new Map(accounts.map((a) => [a.id, a]))
     const keep = new Set<number>()
     for (const a of accounts) {
-      if (!mine(a) || a.placeholder) continue
+      if (!mine(a)) continue
       for (let p: Account | undefined = a; p && !keep.has(p.id); p = p.parent ? byId.get(p.parent) : undefined) keep.add(p.id)
     }
-    return accounts
-      .filter((a) => keep.has(a.id) || a.locked)
-      .map((a) => (mine(a) && !a.placeholder ? a : { ...a, balance: 0, baseBalance: 0 }))
+    return accounts.filter((a) => keep.has(a.id) || a.locked)
   }, [accounts, owner])
 }

@@ -43,10 +43,11 @@ export default function Accounts() {
   const navigate = useNavigate()
   const errorText = useErrorText()
   const { base, fmt, currencies } = useBook()
-  const accounts = useOp('accounts.list', {})
   const { owner } = useScope()
+  const accounts = useOp('accounts.list', { owner })
+  const everyAccount = useOp('accounts.list', {})
   // The dialog picks parents among all accounts; the page shows the scope.
-  const { roots: allRoots } = useAccountTree(accounts.data)
+  const { roots: allRoots } = useAccountTree(everyAccount.data)
   const { roots } = useAccountTree(useScopedAccounts(accounts.data, owner))
 
   // null = default: every account open.

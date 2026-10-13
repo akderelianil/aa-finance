@@ -69,7 +69,9 @@ export default function Journal() {
   const me = useOp('settings.get', {}).data?.me
   const accounts = useOp('accounts.list', {})
   const { byId } = useAccountTree(accounts.data)
+  const members = useOp('members.list', {})
   const contacts = useOp('contacts.list', {})
+  const memberName = useMemo(() => new Map((members.data ?? []).map((m) => [m.id, m.name])), [members.data])
   const contactName = useMemo(() => new Map((contacts.data ?? []).map((c) => [c.id, c.name])), [contacts.data])
   const { owner } = useScope()
   const filters = { from: from || undefined, to: to || undefined, search: search.trim() || undefined, owner }
@@ -305,6 +307,7 @@ export default function Journal() {
                 <td className="truncate">
                   {acc?.label}
                   {l.contact && contactName.get(l.contact) && <Badge variant="outline" size="sm" className="ms-2">{contactName.get(l.contact)}</Badge>}
+                  {l.member && memberName.get(l.member) && <Badge variant="secondary" size="sm" className="ms-2">{memberName.get(l.member)}</Badge>}
                   {l.memo && <span className="ms-2 text-xs text-muted-foreground">{l.memo}</span>}
                   {foreign && (
                     <span className="ms-2 text-xs text-muted-foreground tabular-nums">

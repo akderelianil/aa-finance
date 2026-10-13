@@ -27,6 +27,9 @@ export const en: Translation = {
     family: 'Family',
     shared: 'Shared',
     owner: 'Owner',
+    byAccount: 'Account owner',
+    forWhom: 'For whom',
+    line: 'Person',
     ownerHint: 'Leave empty and the account is shared (family).',
   },
   coa: {

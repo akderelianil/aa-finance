@@ -18,6 +18,8 @@ const lineInput = z.object({
   memo: z.optional(text),
   /** Rehber record this line is with (who owes whom). */
   contact: z.optional(id),
+  /** Member this line belongs to (who paid, whose money). Empty: the account's owner. */
+  member: z.optional(id),
 })
 export type LineInput = z.output<typeof lineInput>
 
@@ -29,7 +31,7 @@ const entryInput = {
 }
 export type EntryInput = z.output<z.ZodMiniObject<typeof entryInput>>
 
-type Resolved = { accountId: number; amount: number; base: number; rate: string | null; memo: string | null; contact: number | null }
+type Resolved = { accountId: number; amount: number; base: number; rate: string | null; memo: string | null; contact: number | null; member: number | null }
 
 /**
  * Account currency, base amount and rate per line. A rounding difference up to one minor unit per
@@ -45,10 +47,12 @@ async function resolve(db: Db, on: string, lines: LineInput[]): Promise<Resolved
        WHERE a.id = ? AND a.deleted_at IS NULL`, [l.account])
     const memo = l.memo ?? null
     const contact = l.contact ?? null
+    const member = l.member ?? null
+    if (member !== null) await need(db, 'member_not_found', `SELECT 1 FROM actors WHERE id = ? AND kind = 'user' AND deleted_at IS NULL`, [member])
     if (contact !== null) await need(db, 'contact_not_found', 'SELECT 1 FROM contacts WHERE id = ? AND deleted_at IS NULL', [contact])
     if (a.code === base.code) {
       if ((l.baseAmount !== undefined && l.baseAmount !== l.amount) || l.rate !== undefined) fail('line_base_mismatch', { line: i })
-      out.push({ accountId: a.id as number, amount: l.amount, base: l.amount, rate: null, memo, contact })
+      out.push({ accountId: a.id as number, amount: l.amount, base: l.amount, rate: null, memo, contact, member })
       continue
     }
     const minor = a.minor_unit as number
@@ -60,24 +64,24 @@ async function resolve(db: Db, on: string, lines: LineInput[]): Promise<Resolved
       converted++
     }
     if (b === 0 || b > 0 !== l.amount > 0) fail('line_base_sign', { line: i })
-    out.push({ accountId: a.id as number, amount: l.amount, base: b, rate: r ?? rateOf(l.amount, b, minor, base.minor), memo, contact })
+    out.push({ accountId: a.id as number, amount: l.amount, base: b, rate: r ?? rateOf(l.amount, b, minor, base.minor), memo, contact, member })
   }
   const diff = out.reduce((s, l) => s + l.base, 0)
   if (diff !== 0) {
     if (Math.abs(diff) > converted) fail('entry_unbalanced', { diff })
     const fx = await need(db, 'not_setup', `SELECT id FROM accounts WHERE system_key = 'fx_gain_loss'`)
-    out.push({ accountId: fx.id as number, amount: -diff, base: -diff, rate: null, memo: null, contact: null })
+    out.push({ accountId: fx.id as number, amount: -diff, base: -diff, rate: null, memo: null, contact: null, member: null })
   }
   return out
 }
 
-const lineSql = `INSERT INTO lines (entry_id, account_id, entry_date, amount, base_amount, rate, memo, position, contact_id, created_by, updated_by)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+const lineSql = `INSERT INTO lines (entry_id, account_id, entry_date, amount, base_amount, rate, memo, position, contact_id, member_id, created_by, updated_by)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 
 function lineStatements(ctx: Ctx, entryId: number, on: string, lines: Resolved[]): Statement[] {
   return lines.map((l, i) => ({
     sql: lineSql,
-    params: [entryId, l.accountId, on, l.amount, l.base, l.rate, l.memo, i, l.contact, ctx.actor, ctx.actor],
+    params: [entryId, l.accountId, on, l.amount, l.base, l.rate, l.memo, i, l.contact, l.member, ctx.actor, ctx.actor],
   }))
 }
 
@@ -160,7 +164,7 @@ export const removeAll = write(z.object({}), async (ctx) => {
   return { count: n as number }
 })
 
-export type Line = { id: number; account: number; amount: number; baseAmount: number; rate: string | null; memo: string | null; contact: number | null }
+export type Line = { id: number; account: number; amount: number; baseAmount: number; rate: string | null; memo: string | null; contact: number | null; member: number | null }
 export type Entry = {
   id: number
   date: string
@@ -183,7 +187,7 @@ const entryFrom = 'entries e JOIN actors u ON u.id = e.created_by'
 async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promise<Entry[]> {
   const ids = rows.map((r) => r.id as number)
   const lines = await db.query(
-    `SELECT l.entry_id AS entry, l.id, l.account_id AS account, l.amount, l.base_amount, l.rate, l.memo, l.contact_id AS contact
+    `SELECT l.entry_id AS entry, l.id, l.account_id AS account, l.amount, l.base_amount, l.rate, l.memo, l.contact_id AS contact, l.member_id AS member
      FROM json_each(?) j JOIN lines l ON l.entry_id = j.value AND l.deleted_at IS NULL
      ORDER BY l.entry_id, l.position, l.id`,
     [JSON.stringify(ids)],
@@ -192,7 +196,7 @@ async function withLines(db: Db, rows: Awaited<ReturnType<Db['query']>>): Promis
   for (const l of lines)
     by.get(l.entry as number)!.push({
       id: l.id as number, account: l.account as number, amount: l.amount as number,
-      baseAmount: l.base_amount as number, rate: l.rate as string | null, memo: l.memo as string | null, contact: l.contact as number | null,
+      baseAmount: l.base_amount as number, rate: l.rate as string | null, memo: l.memo as string | null, contact: l.contact as number | null, member: l.member as number | null,
     })
   return rows.map((r) => ({
     id: r.id as number,
@@ -218,7 +222,7 @@ export const list = read(
   z.object({ from: z.optional(date), to: z.optional(date), search: z.optional(z.string().check(z.trim(), z.maxLength(200))), owner, ...paging }),
   async (ctx, input) => {
     // With an owner, only entries that touch one of that owner's accounts.
-    const o = ownerSql(input.owner, 'a.owner_id')
+    const o = ownerSql(input.owner, 'coalesce(l.member_id, a.owner_id)')
     const byOwner = o.sql
       ? ` AND EXISTS (SELECT 1 FROM lines l JOIN accounts a ON a.id = l.account_id
                       WHERE l.entry_id = e.id AND l.deleted_at IS NULL${o.sql.replace('= ?', '= ?4')})`

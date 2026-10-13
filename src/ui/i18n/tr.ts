@@ -25,6 +25,9 @@ export const tr = {
     family: 'Aile',
     shared: 'Ortak',
     owner: 'Sahibi',
+    byAccount: 'Hesap sahibi',
+    forWhom: 'Kimin için',
+    line: 'Kişi',
     ownerHint: 'Boş bırakırsan hesap ortaktır (aile).',
   },
   coa: {

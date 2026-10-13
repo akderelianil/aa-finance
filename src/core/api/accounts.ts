@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 import type { AccountType } from '../chart.ts'
-import { currency, date, insert, limits, name, need, one, paging, read, id, update, write } from './ctx.ts'
+import { currency, date, insert, limits, name, need, one, owner, ownerSql, paging, read, id, update, write } from './ctx.ts'
 
 export type Account = {
   id: number
@@ -19,20 +19,22 @@ export type Account = {
   baseBalance: number
 }
 
-/** All live accounts with own balances up to `asOf` (default: all dates). */
-export const list = read(z.object({ asOf: z.optional(date) }), async (ctx, input): Promise<Account[]> => {
+/** All live accounts with own balances up to `asOf` (default: all dates). With `owner`, balances count only the lines of that owner. */
+export const list = read(z.object({ asOf: z.optional(date), owner }), async (ctx, input): Promise<Account[]> => {
+  const o = ownerSql(input.owner, 'coalesce(l.member_id, x.owner_id)')
   const rows = await ctx.db.query(
     `SELECT a.id, a.parent_id AS parent, a.name, a.type, c.code AS currency, a.is_placeholder, a.locked, a.system_key,
             a.archived_at, a.owner_id, coalesce(b.amount, 0) AS balance, coalesce(b.base, 0) AS base
      FROM accounts a
      JOIN currencies c ON c.id = a.currency_id
      LEFT JOIN (
-       SELECT account_id, sum(amount) AS amount, sum(base_amount) AS base FROM lines
-       WHERE deleted_at IS NULL AND entry_date <= ? GROUP BY account_id
+       SELECT l.account_id, sum(l.amount) AS amount, sum(l.base_amount) AS base
+       FROM lines l JOIN accounts x ON x.id = l.account_id
+       WHERE l.deleted_at IS NULL AND l.entry_date <= ?${o.sql} GROUP BY l.account_id
      ) b ON b.account_id = a.id
      WHERE a.deleted_at IS NULL
      ORDER BY a.id`,
-    [input.asOf ?? '9999-12-31'],
+    [input.asOf ?? '9999-12-31', ...o.params],
   )
   return rows.map((r) => ({
     id: r.id as number,

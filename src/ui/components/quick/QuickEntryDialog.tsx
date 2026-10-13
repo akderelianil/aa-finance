@@ -7,6 +7,7 @@ import { toBase } from '../../../core/money.ts'
 import * as quick from '../../../core/quick.ts'
 import { AccountPicker, NEW, type PickerItem } from '@/components/journal/AccountPicker'
 import { AmountInput } from '@/components/journal/AmountInput'
+import { OptionSelect } from '@/components/OptionSelect'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -63,6 +64,9 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const [kind, setKind] = useState<QuickKind>('expense')
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
+  // Member the whole entry belongs to; '' = by account owner.
+  const [member, setMember] = useState('')
+  const members = useOp('members.list', {}).data ?? []
   const [moneyRaw, setMoney] = useState('') // Gider/Gelir/Borç money account; '' = default (Gider/Gelir: the wallet)
   const [splits, setSplits] = useState<Split[]>([emptySplit()])
   const [total, setTotal] = useState('') // split mode: the receipt total; '' = the sum of the rows
@@ -259,6 +263,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         }
         entry = { ...entry, lines: entry.lines.map((l) => (ids.has(l.account) ? { ...l, account: ids.get(l.account)! } : l)) }
       }
+      if (member) entry = { ...entry, lines: entry.lines.map((l) => ({ ...l, member: Number(member) })) }
       await call('entries.post', entry)
       await qc.invalidateQueries()
       if (again) {
@@ -471,6 +476,12 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         </Field>
         <Field label={t('gj.description')} className="flex-1">
           <Input maxLength={1000} value={description} placeholder={t(`quick.example.${kind}`)} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+        <Field label={t('scope.forWhom')}>
+          <OptionSelect
+            className="w-36" value={member} onChange={setMember}
+            options={[{ value: '', label: t('scope.byAccount') }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+          />
         </Field>
       </div>
 

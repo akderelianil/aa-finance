@@ -5,10 +5,13 @@ import type { AccountType } from '../chart.ts'
 import type { Db } from '../db.ts'
 import { date, owner, ownerSql, read, type OwnerFilter } from './ctx.ts'
 
+/** A line belongs to its member, else to its account's owner. */
+const LINE_OWNER = 'coalesce(l.member_id, a.owner_id)'
+
 export type ReportRow = { account: number; type: AccountType; balance: number }
 
 async function balances(db: Db, from: string, to: string, types: AccountType[], who: OwnerFilter): Promise<ReportRow[]> {
-  const o = ownerSql(who)
+  const o = ownerSql(who, LINE_OWNER)
   const rows = await db.query(
     `SELECT a.id, a.type, sum(l.base_amount) AS balance
      FROM lines l JOIN accounts a ON a.id = l.account_id
@@ -30,7 +33,7 @@ export type TrialRow = ReportRow & { debit: number; credit: number }
  * The debit and credit balance totals match.
  */
 export const trialBalance = read(z.object({ asOf: z.optional(date), owner }), async (ctx, input) => {
-  const o = ownerSql(input.owner)
+  const o = ownerSql(input.owner, LINE_OWNER)
   const rows = await ctx.db.query(
     `SELECT a.id, a.type, sum(l.base_amount) AS balance,
             sum(max(l.base_amount, 0)) AS debit, -sum(min(l.base_amount, 0)) AS credit

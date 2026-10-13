@@ -3,13 +3,14 @@ import { ChevronRightIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useRef, useState, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toBase } from '../../../core/money.ts'
+import { OptionSelect } from '@/components/OptionSelect'
 import { Alert, AlertDescription } from '@/components/reui/alert'
 import { Badge } from '@/components/reui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { amountIssue, parseDecimal, toDecimal, toMinor, today } from '@/lib/amount'
-import { call, useErrorText, useWrite } from '@/lib/api'
+import { call, useErrorText, useOp, useWrite } from '@/lib/api'
 import type { Entry } from '@/lib/journal'
 import type { AccountNode } from '@/lib/ledger'
 import { cn } from '@/lib/utils'
@@ -17,7 +18,7 @@ import { AccountPicker } from './AccountPicker'
 import { AmountInput } from './AmountInput'
 
 /** `contact` is the Rehber record of a debt line; the form keeps it so an edit does not lose it. */
-export type DraftLine = { key: number; account: string; memo: string; debit: string; credit: string; rate: string; base: string; contact?: number }
+export type DraftLine = { key: number; account: string; memo: string; debit: string; credit: string; rate: string; base: string; contact?: number; member?: number }
 export type Draft = { id?: number; date: string; reference: string; description: string; lines: DraftLine[] }
 
 let nextKey = 1
@@ -38,7 +39,7 @@ export function entryToDraft(e: Entry, base: string, byId: Map<number, AccountNo
       const cur = byId.get(l.account)?.currency ?? base
       const amount = toDecimal(l.amount, minor(cur))
       return {
-        ...emptyLine(), account: String(l.account), memo: l.memo ?? '', contact: l.contact ?? undefined,
+        ...emptyLine(), account: String(l.account), memo: l.memo ?? '', contact: l.contact ?? undefined, member: l.member ?? undefined,
         debit: l.amount > 0 ? amount : '', credit: l.amount < 0 ? amount : '',
         base: cur !== base ? toDecimal(l.baseAmount, minor(base)) : '',
       }
@@ -66,8 +67,9 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
   const { t } = useTranslation()
   const errorText = useErrorText()
   const baseExp = minor(base)
+  const members = useOp('members.list', {}).data ?? []
   const [focusKey, setFocusKey] = useState<number | null>(null)
-  const [more, setMore] = useState(() => !!draft.reference || draft.lines.some((l) => l.memo))
+  const [more, setMore] = useState(() => !!draft.reference || draft.lines.some((l) => l.memo || l.member))
 
   const setLine = (key: number, patch: Partial<DraftLine>) =>
     onChange({ ...draft, lines: draft.lines.map((l) => (l.key === key ? { ...l, ...patch } : l)) })
@@ -147,6 +149,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
         amount: a.amount,
         memo: l.memo.trim() || null,
         ...(l.contact !== undefined && { contact: l.contact }),
+        ...(l.member !== undefined && { member: l.member }),
         // A foreign line sends its base amount, so what the form showed is what is booked.
         ...(cur !== base && { baseAmount: a.base }),
       }
@@ -208,6 +211,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
           <tr className="[&>th]:px-1 [&>th]:pb-1 [&>th]:text-left [&>th]:font-medium">
             <th className={cn(more && 'w-[34%]')}>{t('gj.account')}</th>
             {more && <th>{t('gj.memo')}</th>}
+            {more && <th className="w-36">{t('scope.line')}</th>}
             <th className="w-36 !text-right">{t('ledger.debit')}</th>
             <th className="w-36 !text-right">{t('ledger.credit')}</th>
             {anyForeign && <th className="w-28 !text-right">{t('gj.rate')}</th>}
@@ -231,6 +235,14 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
                   />
                 </td>
                 {more && <td><Input className="h-8" maxLength={1000} value={l.memo} aria-label={t('gj.memo')} onChange={(e) => setLine(l.key, { memo: e.target.value })} /></td>}
+                {more && (
+                  <td>
+                    <OptionSelect
+                      label={`${t('scope.line')} ${i + 1}`} value={String(l.member ?? '')} onChange={(v) => setLine(l.key, { member: v ? Number(v) : undefined })}
+                      options={[{ value: '', label: t('scope.byAccount') }, ...members.map((m) => ({ value: String(m.id), label: m.name }))]}
+                    />
+                  </td>
+                )}
                 <td>
                   <AmountInput
                     className="h-8" value={l.debit} aria-label={t('ledger.debit')} currency={acc?.currency} exponent={minor(cur)}
@@ -282,7 +294,7 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
         </tbody>
         <tfoot>
           <tr className="border-t text-sm [&>td]:px-3 [&>td]:pt-2">
-            <td colSpan={more ? 2 : 1} className="!px-1">
+            <td colSpan={more ? 3 : 1} className="!px-1">
               <Button type="button" variant="ghost" size="sm" onClick={addLine}>
                 <PlusIcon data-icon="inline-start" />{t('gj.addLine')}
               </Button>

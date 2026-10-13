@@ -148,11 +148,16 @@ const post = (who: string, date: string, build: () => EntryInput | Promise<Entry
 const bal = async (name: string, on: string) => (await api.call('accounts.list', { asOf: on })).find((a) => a.id === byName(name).id)!.balance
 
 type Split = [account: string, amount: number, memo?: string, money?: string]
+// A member who pays from a shared account (cards, bank) tags the entry with their own name; the admin pays for the family.
 const gider = (who: string, date: string, from: string, splits: Split[], description: string, o: { rate?: string; ref?: string; tag?: string } = {}) =>
-  post(who, date, () => quick.expense(book, {
-    date, description, reference: o.ref, from: qa(from), total: splits.reduce((s, x) => s + x[1], 0), rate: o.rate,
-    splits: splits.map(([a, amount, memo, money]) => ({ account: qa(a), amount, memo, money: money ? qa(money) : undefined })),
-  }), o.tag)
+  post(who, date, () => {
+    const e = quick.expense(book, {
+      date, description, reference: o.ref, from: qa(from), total: splits.reduce((s, x) => s + x[1], 0), rate: o.rate,
+      splits: splits.map(([a, amount, memo, money]) => ({ account: qa(a), amount, memo, money: money ? qa(money) : undefined })),
+    })
+    const shared = cache.find((a) => a.id === byName(from).id)!.owner === null
+    return who !== 'Ahmet' && shared ? { ...e, lines: e.lines.map((l) => ({ ...l, member: memberId[who] })) } : e
+  }, o.tag)
 const gelir = (who: string, date: string, to: string, splits: Split[], description: string, o: { rate?: string; ref?: string; tag?: string } = {}) =>
   post(who, date, () => quick.income(book, {
     date, description, reference: o.ref, to: qa(to), total: splits.reduce((s, x) => s + x[1], 0), rate: o.rate,
