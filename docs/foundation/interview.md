@@ -151,3 +151,13 @@ Outside this epic: payment provider and company set-up (Turkey), legal advice.
 ## Assistant positions the owner accepted or has not yet contested
 Accepted: RBAC over visible accounts, live database refuses to open in a cloud-synced folder, conflict losers kept, server AGPL and clients MIT, leaving members receive a copy, E2EE with mandatory recovery key, plugins sandboxed and permissioned, append-only with revisions, owner data promise = open schema plus CSV export plus a separate full restorable backup.
 Open for the owner to confirm: DCO versus CLA (explained in round 5 answer), telemetry off by default with opt-in crash reports (explained), full backup file separate from CSV export (explained), scenario templates as data (accepted in round 7).
+
+## Round 9 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Contributions | DCO. |
+| 2 | Telemetry | Off by default; crash reports only with consent. Accepted. |
+| 3 | Backup | CSV export and a separate full restorable backup. Accepted. |
+| 4 | Authority | Full authority to update CLAUDE.md, memory, rules and docs so that no old rule or philosophy remains. Done in the same commit. |
+| 5 | Notifications | Very important for the architecture but not urgent: backlog, not in v1. |

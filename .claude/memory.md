@@ -1,7 +1,7 @@
 # Project memory
 
 Durable notes live in versioned docs, not here:
-- Rules and stack: `CLAUDE.md`
-- Decisions: `docs/ARCHITECTURE.md` and `docs/adr/` (ADRs, being added)
-- Plan and status: `docs/ROADMAP.md`, `docs/HARNESS-PLAN.md`
-- Repo scan: `docs/REPO-SCAN.md`
+- Rules and state: `CLAUDE.md`
+- Vision, owner interview, audit, backlog: `docs/foundation/`
+- Decisions: `docs/adr/` (being superseded by the rebuild ADRs)
+- Plan and status: `docs/ROADMAP.md`, `.stories/`

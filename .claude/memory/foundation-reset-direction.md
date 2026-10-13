@@ -1,11 +1,11 @@
 ---
 name: foundation-reset-direction
-description: Owner's 2026-10-13 product direction for the foundation reset (open source, paid sync, multi-device, plain-language UX, investments)
+description: Owner's agreed product direction (open source, local-first, paid E2EE sync, plain-language UX); CLAUDE.md already holds it
 metadata:
   type: project
 ---
 
-Owner's direction (full log: docs/foundation/interview.md): open-source local-first app, free local use with no server; paid tier adds storage, sync, multi-device. 1-10 members per family, desktop first, later native mobile (Kotlin/Swift). Backend is strict double entry; the UI hides accounting terms and works from daily scenarios. Investments (gold, stocks, crypto, funds, commodities) and all currencies are in scope; user-given rate always wins. Data loss is never acceptable. Claude Code maintains all code. Owner wants critical pushback, not agreement.
+The 2026-10-13 interview (docs/foundation/interview.md, 9 rounds) set the direction now written in CLAUDE.md and docs/foundation/vision.md: open-source local-first family finance on strict double entry, daily-language UI, per-account roles, paid E2EE sync later, sandboxed plugins, scenarios as data, 18+ only, personal use only. v1 = free local one device: income/expense, transfer, debt; three reports. Notifications are backlog. The old prototype code is retired; its specs and tests are requirements.
 
-**Why:** CLAUDE.md still says sync/mobile are out of scope and the UI uses accounting terms; those rules are being re-decided in epic `foundation-reset` (sprint 5).
-**How to apply:** Do not treat CLAUDE.md "Out of scope" and "UI uses real accounting terms" as final until the foundation ADRs land. Argue, do not just agree. See [[foundation-reset-sprint]].
+**Why:** the owner wanted a sound base before building more; the old docs said "no sync, no mobile, everyone reads everything", which no longer holds.
+**How to apply:** treat CLAUDE.md as current; do not resurrect the old rules (see docs/foundation/audit.md). Technology choices are open until story foundation-reset-4. See [[owner-wants-pushback]].

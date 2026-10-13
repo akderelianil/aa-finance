@@ -1,6 +1,6 @@
 ---
 owner: product-lead
-status: active
+status: legacy (prototype; replaced by epic foundation-reset)
 ---
 
 # PIN gate

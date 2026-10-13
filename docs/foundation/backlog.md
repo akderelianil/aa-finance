@@ -28,4 +28,4 @@ All other ideas go to the backlog: gold/dollar-denominated net worth is covered 
 ## Release sketch (owner, round 8)
 - v1: free, local, one device. Income/expense, transfer, debt. Balance Sheet, Income Statement, simple Cash Flow. Multi-currency. Sync-ready data model (global ids, event log).
 - Next: investments with cost method and gain/loss report; scenario engine content.
-- Later: paid sync, attachments, bank import, reconciliation, notifications while the app is closed, budgets and goals, mobile.
+- Later: paid sync, attachments, bank import, reconciliation, notifications while the app is closed (very important for the architecture, not urgent; owner: backlog, not v1), budgets and goals, mobile.

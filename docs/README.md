@@ -9,6 +9,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 
 | Folder | Content | Language |
 |---|---|---|
+| [foundation/](foundation/README.md) | Vision, owner interview, audit, backlog (authority for the rebuild) | EN |
 | [product-designer/](product-designer/README.md) | UX flows (`ux/`), UI conventions (`ui/`), inbox | TR (ux), EN |
 | [backend/](backend/README.md) | Architecture, database, API, runtime, inbox | EN |
 | [inbox/](inbox/README.md) | How source notes are saved (inbox format) | EN |

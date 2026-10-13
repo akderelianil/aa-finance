@@ -5,28 +5,24 @@ status: active
 
 # Roadmap
 
-Goal: a GnuCash-style double-entry core for professional personal-finance users. Local-first desktop app. Judge every item against the ledger core ([ARCHITECTURE](ARCHITECTURE.md)).
+Goal: a local-first, open-source family finance app that a person with no accounting knowledge can run, on a strict double-entry ledger. Vision: [foundation/vision](foundation/vision.md).
 
 ## Done
-| Phase | Content |
-|---|---|
-| Ledger core (Oct 2026, Supabase) | Chart of Accounts, General Journal, Account Register, reports, Quick Entry, simple chart, ReUI. Retired; the code is kept in tag `supabase-final`. |
-| L0–L2 | Tauri shell, SQLite schema with triggers, core API with tests. See [local-first](backend/architecture/overview.md). |
-| L3 | UI on ReUI: Chart of Accounts, Journal and editor with history, Register, Reports, Quick Entry, Settings, Exchange Rates. |
-| L4 | Backup (manual, daily automatic, restore), Activity page, benchmark. |
-| X1 Setup and members | First-run setup in 6 keyboard steps ([kurulum](product-designer/ux/kurulum.md)), members with roles, sidebar member menu. |
-| X1e Roles and format | Country sets date and number format. Journal shows the writer; a member sees Edit and Delete only on own entries. Book settings admin only (migration `0004`). |
+- Prototype (Oct 2026): Tauri + SQLite + TypeScript ledger with UI, members and PIN gate, 104 tests, harness (CI, ADRs, specs, trace). Retired as a code base; its specs and tests are requirements for the rebuild. The earlier Supabase version is in tag `supabase-final`.
 
-## Now (X1 user flows)
-Review the flows one at a time with the product owner; focus is UX/UI. Order: setup (done), entry, edit, find, report.
-- Done: member PIN gate (lock on open and on idle). Plan: [pin-gate](pin-gate.md). Drafts of Quick Entry and Serbest kayıt are kept per member across member switch.
-- Next: entry flow (Hızlı Kayıt). The owner narrates how they use it today, then critique and options.
-- Click through setup, members, backup and restore in the real Tauri app ([DEVELOPMENT](DEVELOPMENT.md#run-the-real-app)).
+## Now: epic `foundation-reset` (sprint 5)
+1. Discovery interview: done.
+2. Audit of old decisions and docs: [audit](foundation/audit.md).
+3. Vision.
+4. Backend options and research: core language, UI/shell, amounts, sync and server, keys, plugins.
+5. ADRs and technical design with diagrams.
+6. Migration plan and follow-up epics.
+
+## Next epics (to be created in story 6)
+- Backend rebuild (v1 core): ledger, scenarios engine, roles, backup and export.
+- UI rebuild on the chosen technology.
+- Investments release.
+- Sync and server (paid tier).
 
 ## Later
-- **Audit trail (future plan).** Today `audit_log` stays in the SQLite file: written by triggers, immutable, kept forever, shown as entry history. Next: a per-member audit view, export of the audit log with the backup, and tamper evidence (hash chain) before sync starts.
-- Rebuild convenience flows on `entries.post`, one UX scenario at a time (loan, installment, deposit, investment).
-- Num, reconcile, scheduled entries, FX revaluation, contact links on Gider and Gelir lines, an open-balance column in the Rehber, tags, dashboard.
-- Plugins (trusted, restricted mode by default), sync, encryption at rest (decide before release).
-
-Each phase ends with: tests, `npx tsc --noEmit`, `npm run lint`, a browser check of the changed screen, one commit.
+See the release table in the [vision](foundation/vision.md#goals-by-release) and [backlog](foundation/backlog.md).

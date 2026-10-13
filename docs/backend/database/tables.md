@@ -1,6 +1,6 @@
 ---
 owner: backend-engineer
-status: active
+status: legacy (prototype; replaced by epic foundation-reset)
 ---
 
 # Tables (v1)

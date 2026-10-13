@@ -1,1 +1,2 @@
-- [Foundation reset direction](foundation-reset-direction.md) — owner's 2026-10-13 product direction; supersedes CLAUDE.md out-of-scope until ADRs land
+- [Foundation reset direction](foundation-reset-direction.md) — agreed product direction; CLAUDE.md holds the rules
+- [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, hold the line; answer in Turkish
