@@ -8,8 +8,9 @@ status: active
 Borç verilen ya da alınan Kişi, Marka ve Firmaların listesi. Kullanımı: [borc](borc.md).
 
 ## Sayfa
-- Tablo: Ad, Tür (Kişi / Marka / Firma), Bağlı (bağlı Firma ya da Markalar), Alacağımız, Borcumuz, düzenle ve sil.
-- Alacağımız ve Borcumuz: kaydın açık bakiyesi, para birimi başına bir satır; yoksa "–". Borç kayıtlarının satırlarından hesaplanır.
+- Tablo yok, kişi listesi: her satırda baş harf, Ad, altında "Tür · bağlı Firma/Markalar", sağda açık bakiye ("Alacağımız 1.200 TRY", "Borcumuz 300 TRY"; para birimi başına bir satır). Bakiye yoksa "Açık bakiye yok".
+- Üstte özet: Toplam alacağımız ve Toplam borcumuz (para birimi başına). Hiç açık bakiye yoksa gösterilmez.
+- Satıra tıklamak düzenleme formunu açar; sil ve düzenle satırın "⋯" menüsünde.
 - Üstte tür sekmeleri (Tümü, Kişi, Marka, Firma) ve ada göre arama. Liste kısa olduğu için sayfalama yok.
 - Tek ana eylem sağ üstte: **Yeni kayıt**.
 - Boş Rehber: kısa açıklama ve **Yeni kayıt**.
