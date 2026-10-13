@@ -3,7 +3,7 @@
 Open-source, local-first personal and family finance for people who know no accounting, built on a strict double-entry ledger. Free and private on the user's device; paid, end-to-end encrypted sync comes later. Personal use only; no age limit. Vision: [docs/foundation/vision.md](docs/foundation/vision.md). Docs index: [docs/README.md](docs/README.md). Plan: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## State of the project
-The foundation is being rebuilt from scratch in epic `foundation-reset` (`.stories/`). Interview and decisions: [docs/foundation/](docs/foundation/README.md). The code in `src/` and `src-tauri/` is the retired prototype (Tauri 2 + SQLite + TypeScript + React/ReUI). It is kept only as a source of requirements (its tests and specs) until the rebuild replaces it: do not add features to it; fix only tooling, docs and breakages. The stack of the rebuild is decided in story `foundation-reset-4`; until its ADRs land, make no technology claim beyond this file.
+The foundation was rewritten in epic `foundation-reset` (done except owner approval of the ADRs): vision [docs/foundation/vision.md](docs/foundation/vision.md), decisions [ADR 0008 to 0019](docs/adr/README.md), design [docs/foundation/design.md](docs/foundation/design.md), plan [docs/foundation/migration-plan.md](docs/foundation/migration-plan.md). The code in `src/` and `src-tauri/` is the retired prototype (Tauri + SQLite + TypeScript + React/ReUI). Do not add features to it; it moves to `legacy/` in story `core-rebuild-1`, is the source of requirements (its tests and specs) until `core-rebuild-9`, and is then deleted (tag `prototype-final`). New work follows the epics `core-rebuild`, `desktop-ui` and `release-and-quality` in `.stories/`.
 
 ## Product rules
 - Purpose: a family ledger a person with no accounting knowledge can run all life finance decisions with, using daily words. Not for business use, tax or e-invoice.
@@ -25,12 +25,20 @@ The foundation is being rebuilt from scratch in epic `foundation-reset` (`.stori
 - Quality order when goals conflict: 1 data integrity, 2 privacy and security, 3 compatibility (Windows, macOS, Linux; mobile later), 4 low resource use, 5 performance (100k to 1M entries stay fast).
 - The database enforces the rules (triggers, stable error codes). The UI and plugins call only named API operations, never SQL.
 - Every shared piece of logic lives once, in a core that every platform can use. Claude Code maintains all of it: keep it small, legible and tested.
-- Tests first for new logic; the old prototype's specs and tests are the acceptance source for the rebuild. Minimum check after a change: `npm run verify:web` (and `npm run verify:rust` when `src-tauri/` changes) while the prototype exists; a pre-commit hook runs it (`npm run hooks:install`).
+- Tests first for new logic; the prototype's specs and tests are the acceptance source for the rebuild. Test layers, coverage floors (80 percent, 100 percent on money, rules and crypto) and gates: ADR-0018. Until `core-rebuild-1` moves the prototype, the minimum check is `npm run verify:web` (and `npm run verify:rust` when `src-tauri/` changes); a pre-commit hook runs it (`npm run hooks:install`). Accessibility is built into every screen from the first one; only manual screen-reader testing waits for users.
 - Never edit an applied migration (prototype): add a new file.
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
 - Work tracking: `.stories/` via `ecc:story-lifecycle` (epic -> stories -> sprint). Write only through its `ledger.js`. Do not also run the GitHub-issue `epic-*` commands for the same work.
 - Git: Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `ci:`, `chore:`, `ecc:`); `npm run changelog` rebuilds `CHANGELOG.md` from them. Commit by default and push to the private `github` remote after each finished change (the owner does not want to be asked each time).
 - Working style with the owner: ask many questions before designing; criticise assumptions; say no with reasons and hold the position when right. The owner asked for this explicitly.
+
+## Stack (decided)
+- Core: Rust library with a versioned named-operation API (ADR-0008); SQLite (bundled, WAL, STRICT tables); amounts as scaled integers (ADR-0010); immutable revisions (ADR-0012); UUIDv7 ids (ADR-0011).
+- Desktop: Electron (Chromium) with a React UI, ReUI (shadcn on Base UI) where it fits; the UI imports no Electron API and calls only named operations; amounts are strings across IPC (ADR-0009).
+- Sync (later): protocol first; Cloudflare Workers and Durable Objects (EU), TypeScript; self-hosters use their own Cloudflare account (ADR-0013); keys per account, signed membership log, recovery key (ADR-0014).
+- Scenarios are JSON data with a safe expression language; plugins are sandboxed WebAssembly with a manifest of capabilities; no plugin holds ledger read and network together (ADR-0016).
+- Quality and release: ADR-0018. Paid sync does not launch before OS code signing. Licenses and contribution (MIT, AGPL server, DCO): ADR-0019. Cloudflare work uses the `cf` CLI unless a Wrangler configuration file exists.
+- Mobile later: native screens (Swift, Kotlin) on the same core for quick entry and glance.
 
 ## Docs and ECC
 - Language: English for docs and code; `docs/product-designer/ux/**` is Turkish (one scenario per file). UI text: Turkish and English.

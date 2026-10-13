@@ -30,4 +30,4 @@ Re-examine every document and decision from scratch and rewrite the product purp
 | foundation-reset-3 | Rewrite vision: purpose, goals, non-goals | done |
 | foundation-reset-4 | Backend options analysis: storage, write path, rules, API | done |
 | foundation-reset-5 | Backend ADRs and technical design document with diagrams | review |
-| foundation-reset-6 | Migration plan and follow-up epics | todo |
+| foundation-reset-6 | Migration plan and follow-up epics | review |

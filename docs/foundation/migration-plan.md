@@ -22,6 +22,8 @@ Epic `foundation-reset`, story 6. Decisions: [ADR 0008 to 0019](../adr/README.md
 | `sync-and-server` | Protocol, conformance tests, keys, Cloudflare server, signing gate | draft |
 | `mobile-and-reminders` | Reminder helper, native mobile quick entry | draft |
 
+Story ids: CR-n is `core-rebuild-(n+1)` (CR-0 is `core-rebuild-1`, CR-9 is `core-rebuild-10`), DU-n is `desktop-ui-(n+1)`, RQ-n is `release-and-quality-n`. Sprint 6: `core-rebuild-1` to `-3` and `release-and-quality-1`. Sprint 7: `core-rebuild-4` and `-5`.
+
 ## Dependency graph (first three epics)
 ```mermaid
 flowchart LR
