@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["crates/core"]
+exclude = ["legacy"]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+version = "0.0.0"
+publish = false

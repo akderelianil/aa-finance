@@ -20,3 +20,7 @@ docs/.obsidian/*
 # Playwright
 test-results/
 playwright-report/
+.claude/plans/
+
+# Rust workspace
+/target/

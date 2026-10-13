@@ -30,5 +30,5 @@ Short records of decisions that shape the code. Format: Nygard (context, decisio
 | [0019](0019-licenses-contribution-privacy.md) | Licenses, contributions and privacy defaults | accepted | 2026-10-13 |
 
 
-Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](../backend/architecture/overview.md) (technical design), [PIN gate](../pin-gate.md) (full PIN plan).
+Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](../../legacy/docs/backend/architecture/overview.md) (technical design), [PIN gate](../../legacy/docs/pin-gate.md) (full PIN plan).
 The epic `foundation-reset` replaced the prototype decisions on 2026-10-13: ADR 0008 to 0019 are the foundation of the rebuild; see [audit](../foundation/audit.md).

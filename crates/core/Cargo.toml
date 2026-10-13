@@ -1,0 +1,9 @@
+[package]
+name = "aa-core"
+description = "The shared Rust core of aa-finance (ADR-0008)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]

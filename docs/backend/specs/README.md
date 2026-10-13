@@ -1,5 +1,7 @@
 # Behavior specs
 
+> Code paths in these specs (`src/core/...`, `src-tauri/...`) now live under `legacy/` (prototype, frozen). See [legacy/README](../../../legacy/README.md).
+
 > Index of the mined behavior specs.
 > Last verified: 2026-10-13 (commit 9bc514c)
 

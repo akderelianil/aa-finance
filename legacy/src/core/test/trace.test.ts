@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { allTestTitles, namedTests } from './trace.ts'
 
-const repo = new URL('../../../', import.meta.url)
+const repo = new URL('../../../../', import.meta.url)
 const read = (path: string) => readFileSync(new URL(path, repo), 'utf8')
 
 test('namedTests reads test cells and lines, skipping NONE', () => {

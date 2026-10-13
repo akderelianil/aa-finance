@@ -5,7 +5,7 @@ status: active
 
 # UI
 
-Screens, components and style. Flow decisions come from [ux](../ux/README.md); data comes from the API ([backend](../../backend/README.md)). Desktop only; calm, dense ledger screens.
+Screens, components and style. Flow decisions come from [ux](../ux/README.md); data comes from the API ([backend](../../../legacy/docs/backend/README.md)). Desktop only; calm, dense ledger screens.
 
 ## Conventions
 - Base: ReUI on shadcn `base-nova` (Base UI). Config `components.json` (registry `@reui`). Before any UI work call the ReUI MCP `get_agent_skill`; check with `validate_usage` and `get_audit_checklist` before finishing.

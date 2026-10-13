@@ -7,7 +7,7 @@ type HookInput = { tool_name?: string; tool_input?: { file_path?: string } }
 export type Decision = { block: boolean; reason: string }
 
 const WRITE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit'])
-const MIGRATION = /^src\/core\/migrations\/[^/]+\.sql$/
+const MIGRATION = /^legacy\/src\/core\/migrations\/[^/]+\.sql$/
 
 /** Pure decision. `isTracked` takes an absolute path. */
 export function decide(input: HookInput, root: string, isTracked: (file: string) => boolean): Decision {
@@ -19,7 +19,7 @@ export function decide(input: HookInput, root: string, isTracked: (file: string)
   if (!isTracked(file)) return allow
   return {
     block: true,
-    reason: `Blocked: ${relative(root, file)} is an applied migration and must not change. Add src/core/migrations/NNNN_name.sql instead.`,
+    reason: `Blocked: ${relative(root, file)} is an applied migration and must not change. The prototype is frozen under legacy/ (tag prototype-final).`,
   }
 }
 

@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  web:
-    name: Test, typecheck, lint
+  repo:
+    name: Repo scripts and prototype web checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,11 +22,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: legacy/package-lock.json
       - run: npm ci
-      - run: npm run verify:web
+        working-directory: legacy
+      - run: npm run verify
 
-  rust:
-    name: Rust tests
+  rust-legacy:
+    name: Prototype Rust tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,11 +39,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri
-      - run: npm run verify:rust
+          workspaces: legacy/src-tauri
+      - run: npm run verify:rust-legacy
 
-  e2e:
-    name: Browser smoke path (Playwright)
+  e2e-legacy:
+    name: Prototype browser smoke path (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,11 +51,32 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: legacy/package-lock.json
       - run: npm ci
+        working-directory: legacy
       - run: npx playwright install --with-deps chromium
+        working-directory: legacy
       - run: npm run e2e
+        working-directory: legacy
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-traces
-          path: test-results/
+          path: legacy/test-results/
+
+  rust-core:
+    name: Rust core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
