@@ -64,9 +64,11 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const [kind, setKind] = useState<QuickKind>('expense')
   const [date, setDate] = useState(today())
   const [description, setDescription] = useState('')
-  // Member the whole entry belongs to; '' = by account owner.
-  const [member, setMember] = useState('')
+  // Member the entry belongs to: the signed-in member until changed; '' = by account owner.
+  const [picked, setMember] = useState<string | null>(null)
   const members = useOp('members.list', {}).data ?? []
+  const me = useOp('settings.get', {}).data?.me.id
+  const member = picked ?? (me ? String(me) : '')
   const [moneyRaw, setMoney] = useState('') // Gider/Gelir/Borç money account; '' = default (Gider/Gelir: the wallet)
   const [splits, setSplits] = useState<Split[]>([emptySplit()])
   const [total, setTotal] = useState('') // split mode: the receipt total; '' = the sum of the rows
@@ -101,7 +103,9 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   // The debt account of the money currency: the group itself, or its sub-account named by the currency code.
   const debtAccounts = debtGroup ? [debtGroup, ...postable.filter((a) => a.parent === debtGroup.id && a.label === a.currency)] : []
   const feeAcc = acc(feeAccount) ?? sys('bank_fee')
-  const wallet = postable.find((a) => a.parent === sys('cash')?.id && a.type === 'asset')
+  // Default account: the wallet of the member the entry is for, else the first wallet.
+  const wallets = postable.filter((a) => a.parent === sys('cash')?.id && a.type === 'asset')
+  const wallet = wallets.find((a) => member && a.owner === Number(member)) ?? wallets[0]
   const money = moneyRaw || (kind === 'expense' || kind === 'income' ? String(wallet?.id ?? '') : '')
 
   // Stored day rates of the foreign currencies on the form.
@@ -263,7 +267,11 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         }
         entry = { ...entry, lines: entry.lines.map((l) => (ids.has(l.account) ? { ...l, account: ids.get(l.account)! } : l)) }
       }
-      if (member) entry = { ...entry, lines: entry.lines.map((l) => ({ ...l, member: Number(member) })) }
+      // A line on another member's own account stays with that member.
+      if (member) {
+        const ownerOf = (id: number) => accounts.data?.find((a) => a.id === id)?.owner ?? null
+        entry = { ...entry, lines: entry.lines.map((l) => ([null, Number(member)].includes(ownerOf(l.account)) ? { ...l, member: Number(member) } : l)) }
+      }
       await call('entries.post', entry)
       await qc.invalidateQueries()
       if (again) {
