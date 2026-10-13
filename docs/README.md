@@ -13,6 +13,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 | [backend/](backend/README.md) | Architecture, database, API, runtime, inbox | EN |
 | [inbox/](inbox/README.md) | How source notes are saved (inbox format) | EN |
 | [ARCHITECTURE](ARCHITECTURE.md) | Product decisions and scope | EN |
+| [RULES-TRACE](RULES-TRACE.md) | Product rule -> enforcement -> test; behavior specs in `backend/specs/` | EN |
 | [adr/](adr/README.md) | Architecture decision records | EN |
 | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 | [DEVELOPMENT](DEVELOPMENT.md) | Commands, run the real app, machine notes | EN |

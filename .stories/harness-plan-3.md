@@ -2,8 +2,8 @@
 
 **ID:** harness-plan-3
 **Epic:** harness-plan
-**Sprint:** unassigned
-**Status:** todo
+**Sprint:** 3
+**Status:** in-progress
 **Points:** 5
 
 ## Context

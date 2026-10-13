@@ -26,7 +26,7 @@ Make aa-finance professional, easy for AI agents to extend, and traceable throug
 | --- | --- | --- |
 | harness-plan-1 | Local quality gate (verify, pre-commit, coverage threshold) | done |
 | harness-plan-2 | Durable memory and ADRs | done |
-| harness-plan-3 | Behavior specs and rule-to-test trace | todo |
+| harness-plan-3 | Behavior specs and rule-to-test trace | in-progress |
 | harness-plan-4 | Generated API and error-code references | done |
 | harness-plan-5 | Security guardrails and small core fixes | done |
 | harness-plan-6 | Component and E2E tests | todo |
