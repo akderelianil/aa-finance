@@ -10,6 +10,10 @@ export type Member = { id: number; name: string; role: 'admin' | 'member'; color
 const role = z.enum(['admin', 'member'])
 const grants = z.object({ accounts: z.optional(z.boolean()), rates: z.optional(z.boolean()), contacts: z.optional(z.boolean()) })
 
+/** `accounts=1 rates=0` for the activity log; empty without grants. */
+const grantSummary = (g: z.infer<typeof grants> | undefined): string =>
+  Object.entries(grantColumns(g)).map(([col, v]) => `${col.replace('can_manage_', '')}=${v}`).join(' ')
+
 /** Grant input -> actors columns. */
 const grantColumns = (g: z.infer<typeof grants> | undefined): Record<string, number> =>
   Object.fromEntries(
@@ -40,7 +44,7 @@ export const add = write(z.object({ name, role: z.optional(role), color: z.optio
   const [{ n }] = await ctx.db.query(`SELECT count(*) AS n FROM actors WHERE kind = 'user'`)
   await ctx.write([insert(ctx, 'actors', {
     kind: 'user', name: input.name, role: input.role ?? 'member', color: input.color ?? memberColor(Number(n)), ...grantColumns(input.grants),
-  })], input.name)
+  })], [input.name, grantSummary(input.grants)].filter(Boolean).join(' '))
   return { id: Number((await ctx.db.query('SELECT max(id) AS id FROM actors'))[0].id) }
 })
 
@@ -52,9 +56,11 @@ export const edit = write(
       `SELECT id, role FROM actors WHERE id = ? AND kind = 'user' AND deleted_at IS NULL`, [input.id])
     if (m.id !== ctx.actor || (input.role !== undefined && input.role !== m.role) || input.grants !== undefined) await needAdmin(ctx)
     if (input.name !== undefined) await nameFree(ctx, input.name, input.id)
-    const set: Record<string, string | number> = { ...grantColumns(input.grants) }
+    // Demoting an admin drops the old grants unless new ones come with it.
+    const demoted = input.role === 'member' && m.role === 'admin' && input.grants === undefined
+    const set: Record<string, string | number> = demoted ? grantColumns({ accounts: false, rates: false, contacts: false }) : grantColumns(input.grants)
     for (const [key, value] of Object.entries({ name: input.name, role: input.role, color: input.color })) if (value !== undefined) set[key] = value
-    if (Object.keys(set).length) await ctx.write([update(ctx, 'actors', input.id, set)], String(input.id))
+    if (Object.keys(set).length) await ctx.write([update(ctx, 'actors', input.id, set)], [input.id, grantSummary(input.grants)].filter(Boolean).join(' '))
     return {}
   },
 )
@@ -165,7 +171,7 @@ export const remove = write(z.object({ id }), async (ctx, input) => {
     [
       ...(pinRow ? [{ sql: 'UPDATE member_pins SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?',
         params: [now, ctx.actor, now, ctx.actor, pinRow.id] }] : []),
-      update(ctx, 'actors', input.id, { deleted_at: now }),
+      update(ctx, 'actors', input.id, { deleted_at: now, ...grantColumns({ accounts: false, rates: false, contacts: false }) }),
     ],
     String(input.id))
   return {}

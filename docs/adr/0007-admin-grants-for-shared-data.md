@@ -36,4 +36,6 @@ Three grants per member: `accounts`, `rates` and `contacts` (columns `can_manage
 - A member inside a Quick Entry flow cannot create a new Rehber contact without the `contacts` grant.
 
 ### Risks
+- The triggers trust the `created_by`/`updated_by` the statement carries, and the API always stamps the real signed-in member. Raw SQL sent through the Tauri `db_query`/`db_batch` commands could name any actor, so "the database enforces it" holds against bugs and other code paths, not against a hostile webview. Closing that needs the Rust side to accept only named operations; it is an open item in the security notes.
+- A removed member keeps no grants and, from migration 0014, no power in the triggers; an open session of a removed member is locked at the next call.
 - Per-entry sharing and read limits are not covered; revisit this ADR if the owner wants them.

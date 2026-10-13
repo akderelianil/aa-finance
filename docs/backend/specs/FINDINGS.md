@@ -20,4 +20,7 @@ Behavior the code shows that differs from, or is missing in, the written rules. 
 | 9 | The 5-minute idle lock is a UI constant outside `src/core`, so no spec covers it. | UI | Cover it in the E2E story |
 | 10 | While locked, whoever picks a member without a PIN sets it, including an admin whose PIN was just reset. | `members.setPin` | Accepted in pin-gate.md; for the security review |
 
+| 11 | The triggers trust the actor the statement carries; raw SQL through `db_query`/`db_batch` bypasses every role gate. Safe only while the webview is trusted. | `src-tauri/src/db.rs`, ADR-0007 | Later: accept only named operations in Rust |
+| 12 | `members.setPin` is open while locked and needs no `current` when no PIN exists: whoever reaches the lock screen first claims a member's PIN, including an admin after `resetPin` or when setup skipped the PIN. | `members.ts` | Make the setup PIN required and force the admin PIN in the UI |
+
 Also: 11 blocks have `test: NONE` (LEDGER-003/017/032/033, ACCT-015, MEMBER-002/021, FX-016, CONTACT-006/011, REPORT-007). The three `status: unverified` ones (LEDGER-017/032/033) are findings 1 to 3.

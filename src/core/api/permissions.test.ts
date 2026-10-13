@@ -92,3 +92,45 @@ test('a grant change is written to audit_log', async () => {
   assert.equal(JSON.parse(rows[0].old as string).can_manage_contacts, 0)
   assert.equal(JSON.parse(rows[0].new as string).can_manage_contacts, 1)
 })
+
+test('a removed member on an open session is locked out at the next call', async () => {
+  const { api, db, admin, ece, acc } = await book()
+  await api.call('members.update', { id: ece.id, grants: { accounts: true } })
+  await as(api, ece.id)
+  await api.call('accounts.create', { parent: acc('bank'), name: 'Mine', currency: 'TRY' })
+
+  // Another window (same file) signs in as the admin and removes Ece.
+  const other = createApi(db)
+  await as(other, admin.id)
+  await other.call('members.remove', { id: ece.id })
+
+  await assert.rejects(api.call('accounts.create', { parent: acc('bank'), name: 'Again', currency: 'TRY' }), code('locked'))
+  await assert.rejects(api.call('accounts.list', {}), code('locked'))
+  const [row] = await db.query('SELECT can_manage_accounts AS g FROM actors WHERE id = ?', [ece.id])
+  assert.equal(row.g, 0, 'a removed member keeps no grants')
+})
+
+test('a removed admin keeps no power, even through the grant triggers', async () => {
+  const { api, db, admin, can, acc } = await book()
+  await api.call('members.update', { id: can.id, role: 'admin' })
+  await as(api, can.id)
+  const other = createApi(db)
+  await as(other, admin.id)
+  await other.call('members.remove', { id: can.id })
+  await assert.rejects(api.call('members.add', { name: 'Late' }), code('locked'))
+  // The triggers also ignore a removed actor named as the author.
+  await assert.rejects(
+    db.batch([{ sql: `INSERT INTO accounts (parent_id, name, type, currency_id, created_by, updated_by)
+      SELECT parent_id, 'Ghost', type, currency_id, ?, ? FROM accounts WHERE id = ?`, params: [can.id, can.id, acc('bank')] }]),
+    /permission_denied/)
+})
+
+test('demoting an admin clears the grants unless new ones are given; grant changes reach activity_log', async () => {
+  const { api, db, ece } = await book()
+  await api.call('members.update', { id: ece.id, role: 'admin' })
+  await api.call('members.update', { id: ece.id, role: 'member' })
+  assert.deepEqual((await api.call('members.list', {})).find((m) => m.id === ece.id)!.grants, none)
+  await api.call('members.update', { id: ece.id, grants: { accounts: true, rates: false } })
+  const log = await db.query(`SELECT summary FROM activity_log WHERE operation = 'members.update' AND ok = 1 ORDER BY id DESC LIMIT 1`)
+  assert.equal(log[0].summary, `${ece.id} accounts=1 rates=0`)
+})

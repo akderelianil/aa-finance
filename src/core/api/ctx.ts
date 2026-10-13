@@ -90,14 +90,17 @@ export function update(ctx: Ctx, table: string, rowId: number, set: Record<strin
 export type Grant = 'accounts' | 'rates' | 'contacts'
 
 /** ApiError('permission_denied') unless the caller is an admin or holds the grant. The DB triggers check it again. */
+const GRANT_COLUMN: Record<Grant, string> = { accounts: 'can_manage_accounts', rates: 'can_manage_rates', contacts: 'can_manage_contacts' }
+
 export async function needGrant(ctx: Ctx, grant: Grant): Promise<void> {
-  const ok = await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND (kind <> 'user' OR role = 'admin' OR can_manage_${grant} = 1)`, [ctx.actor])
+  const column = GRANT_COLUMN[grant] ?? fail('permission_denied', { grant })
+  const ok = await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND deleted_at IS NULL AND (kind <> 'user' OR role = 'admin' OR ${column} = 1)`, [ctx.actor])
   if (!ok) fail('permission_denied', { grant })
 }
 
 /** ApiError('admin_only') unless the caller is an admin. The DB triggers check it again. */
 export async function needAdmin(ctx: Ctx): Promise<void> {
-  if (!(await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND role = 'admin'`, [ctx.actor]))) fail('admin_only')
+  if (!(await one(ctx.db, `SELECT 1 FROM actors WHERE id = ? AND role = 'admin' AND deleted_at IS NULL`, [ctx.actor]))) fail('admin_only')
 }
 
 export async function baseCurrency(db: Db): Promise<{ code: string; minor: number }> {

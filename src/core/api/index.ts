@@ -4,7 +4,7 @@ import * as z from 'zod/mini'
 import type { Db } from '../db.ts'
 import * as accounts from './accounts.ts'
 import * as contacts from './contacts.ts'
-import type { Ctx, Op } from './ctx.ts'
+import { one, type Ctx, type Op } from './ctx.ts'
 import * as entries from './entries.ts'
 import { ApiError, toApiError } from './errors.ts'
 import * as fx from './fx.ts'
@@ -110,8 +110,13 @@ export function createApi(db: Db, options: ApiOptions = {}): Api {
     const op = ops[name] as Op
     const start = performance.now()
     const ms = () => Math.round(performance.now() - start)
-    const id = actor
+    let id = actor
     try {
+      // A member removed in another window must not keep acting on this session.
+      if (id !== null && !(await one(db, 'SELECT 1 FROM actors WHERE id = ? AND deleted_at IS NULL', [id]))) {
+        actor = null
+        id = null
+      }
       if (!op) throw new ApiError('unknown_op', name)
       if (id === null && op && !openOps.has(name)) throw new ApiError(await anyMember() ? 'locked' : 'not_setup')
       const parsed = z.safeParse(op.input, input)

@@ -18,7 +18,7 @@ Columns besides the common ones. Rules: [rules](rules.md).
 | `contacts` | `kind` (individual, brand, business), `name`, `default_income_account_id`, `default_expense_account_id` |
 | `brand_businesses` | `brand_id`, `business_id` (many-to-many link) |
 | `lines` | `entry_id`, `account_id`, `entry_date`, `amount`, `base_amount`, `rate`, `memo`, `position` |
-| `actors` grants | `can_manage_accounts`, `can_manage_rates`, `can_manage_contacts` (0/1, default 0), migration `0013`. Triggers `*_permission_insert/update` on `accounts`, `fx_rates`, `contacts`, `brand_businesses` raise `permission_denied` unless the actor is an admin, not a user, or holds the grant. Only an admin changes them (`admin_only`); `audit_log` records the change |
+| `actors` grants | `can_manage_accounts`, `can_manage_rates`, `can_manage_contacts` (0/1, default 0), migration `0013`. Triggers `*_permission_insert/update` on `accounts`, `fx_rates`, `contacts`, `brand_businesses` raise `permission_denied` unless the actor is a live admin, not a user, or a live member holding the grant (0014 added the live check). Only an admin changes them (`admin_only`); `audit_log` records the change |
 | `member_pins` | `member_id`, `hash`, `salt`, `iterations` (PBKDF2-SHA256), `failed_count`, `wait_until` (epoch ms). One live row per member; no row = PIN not set. No audit trigger, so the hash never enters `audit_log`. A reset soft-deletes the row |
 | `audit_log` | `table_name`, `row_id`, `op`, `old`, `new` (JSON), `actor_id`, `at` |
 | `activity_log` | `actor_id`, `operation`, `summary`, `ok`, `error_code`, `duration_ms`, `at` |
