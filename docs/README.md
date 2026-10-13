@@ -24,7 +24,7 @@ The user talks to the main session. For a multi-role request the main session fi
 
 | Agent | Role | Owns | Memory |
 |---|---|---|---|
-| [product-lead](../.claude/agents/product-lead.md) | Analyses a directive, splits it by role, writes briefs | `docs/README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `.claude/briefs/**` | `.claude/agent-memory/product-lead/` |
+| [product-lead](../.claude/agents/product-lead.md) | Analyses a directive, splits it by role, writes briefs | `docs/README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `.claude/briefs/**`, own inbox and `product-craft` skill | `.claude/agent-memory/product-lead/` |
 | [interaction-designer](../.claude/agents/interaction-designer.md) | UX | `docs/ux/**` | `.claude/agent-memory/interaction-designer/` |
 | [ui-designer](../.claude/agents/ui-designer.md) | UI | `docs/ui/**`, `src/ui/**` | `.claude/agent-memory/ui-designer/` |
 | [backend-engineer](../.claude/agents/backend-engineer.md) | Backend | `docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**` | `.claude/agent-memory/backend-engineer/` |
