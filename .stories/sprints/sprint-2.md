@@ -10,6 +10,6 @@
 | ID | Title | Points | Status |
 | --- | --- | --- | --- |
 | harness-plan-4 | Generated API and error-code references | 5 | todo |
-| harness-plan-5 | Security guardrails and small core fixes | 3 | in-progress |
+| harness-plan-5 | Security guardrails and small core fixes | 3 | done |
 
 ## Total Points: 8

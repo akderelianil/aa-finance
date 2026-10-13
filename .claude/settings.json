@@ -347,5 +347,18 @@
       "Skill(ecc:workspace-surface-audit)",
       "Skill(ecc:x-api)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --disable-warning=ExperimentalWarning \"$CLAUDE_PROJECT_DIR/scripts/hooks/guard-migrations.ts\""
+          }
+        ]
+      }
+    ]
   }
 }
