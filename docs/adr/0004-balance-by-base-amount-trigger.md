@@ -1,7 +1,7 @@
 # ADR-0004: Entries balance on `base_amount`, enforced by trigger
 
 **Date**: 2026-10-13 (recorded from schema `0001` and `entries.ts`)
-**Status**: accepted
+**Status**: accepted; extended by [ADR-0010](0010-amounts-commodities-balancing.md)
 **Deciders**: product owner, backend
 
 ## Context

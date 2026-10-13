@@ -33,3 +33,6 @@ Accessibility is mandatory, but no screen reader can be automated reliably acros
 1. Mutation testing and fuzzing as quality tools on money and crypto code (more CI time): accepted?
 2. Coverage floor of 80 percent overall and 100 percent on money, rules and crypto: accepted?
 3. Accessibility manual testing by volunteers and later paid testers: accepted?
+
+## Owner round 19 and the accessibility question
+The owner accepted questions 1 and 2 and asked whether accessibility should be shelved until the app is built and has many users. Assistant position: shelve the **manual screen-reader testing**, not the **building**. Accessible markup, keyboard paths, focus order and contrast cost little when done from the first screen and a great deal to retrofit; automated checks (axe, roles and names, keyboard-only flows) stay as merge gates. Manual testing with real screen readers waits for users, then volunteers and paid testers. Recorded in ADR-0018; the owner may overrule.

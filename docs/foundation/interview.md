@@ -256,3 +256,12 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 2 | Community scenario packs | Allowed from the start, reviewed as pull requests. |
 | 3 | Price plugins | Prices from a provider plugin are inserted automatically, marked fetched; the user's own price outranks them; entries always wait for approval. |
 | 4 | Plugin rule | Accepted: no plugin holds ledger read and network together. |
+
+## Round 19 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 to 4 | Notifications | Accepted: login-time reminder helper with explicit consent; minimal text by default; first release covers due plan items; macOS after signing. |
+| 5 | Mutation testing and fuzzing | Accepted. |
+| 6 | Coverage floor | Accepted: 80 percent overall, 100 percent on money, rules and crypto. |
+| 7 | Accessibility | Asked whether to shelve accessibility until the app has grown and has users. Assistant: shelve only the manual screen-reader testing (see options 07, ADR-0018). Awaiting the owner's reply. |

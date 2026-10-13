@@ -1,7 +1,7 @@
 # ADR-0007: The admin grants who may change shared data
 
 **Date**: 2026-10-13
-**Status**: accepted
+**Status**: superseded by [ADR-0015](0015-per-account-roles.md)
 **Deciders**: product owner
 
 ## Context

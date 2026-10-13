@@ -1,7 +1,7 @@
 # ADR-0006: Exchange rates are manual
 
 **Date**: 2026-10-13 (recorded from `entries.ts` and the product rules)
-**Status**: accepted
+**Status**: accepted; extended by [ADR-0010](0010-amounts-commodities-balancing.md)
 **Deciders**: product owner
 
 ## Context

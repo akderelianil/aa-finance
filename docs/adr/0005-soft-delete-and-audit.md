@@ -1,7 +1,7 @@
 # ADR-0005: Soft delete only, with an audit trail
 
 **Date**: 2026-10-13 (recorded from the schema and `schema.test.ts`)
-**Status**: accepted
+**Status**: superseded by [ADR-0012](0012-revisions-as-truth.md)
 **Deciders**: product owner
 
 ## Context

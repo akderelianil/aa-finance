@@ -1,7 +1,7 @@
 # ADR-0001: Local-first: SQLite behind a thin Rust shell
 
 **Date**: 2026-10-13 (recorded from the code; the Supabase version was retired earlier, tag `supabase-final`)
-**Status**: accepted
+**Status**: superseded in part by [ADR-0008](0008-shared-rust-core.md) (core language) and [ADR-0009](0009-chromium-shell-react-ui.md) (shell); local-first SQLite stays
 **Deciders**: product owner
 
 ## Context

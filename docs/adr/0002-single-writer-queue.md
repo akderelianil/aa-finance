@@ -1,7 +1,7 @@
 # ADR-0002: Single-writer queue and `max(id)+1` ids
 
 **Date**: 2026-10-13 (recorded from the code)
-**Status**: accepted
+**Status**: superseded by [ADR-0011](0011-identity-numbering-time.md)
 **Deciders**: backend
 
 ## Context
