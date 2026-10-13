@@ -13,3 +13,11 @@ export async function migrate(db: Db, migrations: string[]): Promise<number> {
   }
   return migrations.length
 }
+
+/** Deletes activity_log rows older than the `activity_log_days` setting. Before setup there is no setting and nothing goes. */
+export async function pruneActivityLog(db: Db): Promise<void> {
+  await db.batch([{
+    sql: `DELETE FROM activity_log WHERE at < CAST(unixepoch('subsec') * 1000 AS INTEGER)
+            - (SELECT CAST(value AS INTEGER) FROM settings WHERE key = 'activity_log_days') * 86400000`,
+  }])
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { coreAccounts, recommendedAccounts } from './chart.ts'
 import type { Db, Statement, Value } from './db.ts'
-import { migrate } from './migrate.ts'
+import { migrate, pruneActivityLog } from './migrate.ts'
 import { setup } from './setup.ts'
 import { openNodeDb, readMigrations } from './test/node-db.ts'
 
@@ -245,6 +245,17 @@ test('activity_log rows are pruned only after activity_log_days', async () => {
   await ctx.db.batch([{ sql: "DELETE FROM activity_log WHERE operation = 'old'" }])
   await assert.rejects(ctx.db.batch([{ sql: "DELETE FROM activity_log WHERE operation = 'new'" }]), /log_immutable/)
   await assert.rejects(ctx.db.batch([{ sql: "UPDATE activity_log SET ok = 0" }]), /log_immutable/)
+})
+
+test('pruneActivityLog drops only rows older than activity_log_days', async () => {
+  const ctx = await fresh()
+  const old = Date.now() - 400 * 86_400_000
+  await ctx.db.batch([
+    { sql: 'INSERT INTO activity_log (actor_id, operation, ok, at) VALUES (?, ?, 1, ?)', params: [ctx.actor, 'old', old] },
+    { sql: 'INSERT INTO activity_log (actor_id, operation, ok) VALUES (?, ?, 1)', params: [ctx.actor, 'new'] },
+  ])
+  await pruneActivityLog(ctx.db)
+  assert.deepEqual((await ctx.db.query('SELECT operation FROM activity_log')).map((r) => r.operation), ['new'])
 })
 
 test('balance query reads only the covering index', async () => {

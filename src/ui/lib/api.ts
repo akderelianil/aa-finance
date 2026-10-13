@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { notify } from './notify.ts'
 import { ApiError, createApi, type Input, type OpName, type Output } from '../../core/api/index.ts'
 import type { Db } from '../../core/db.ts'
-import { migrate } from '../../core/migrate.ts'
+import { migrate, pruneActivityLog } from '../../core/migrate.ts'
 import { devDb } from '../dev-db.ts'
 import { migrations, tauriDb } from '../tauri-db.ts'
 
@@ -20,8 +20,8 @@ export function setMember(id: number) {
   api.use(id)
 }
 
-/** Runs the migrations once, before the first call. */
-export const ready = migrate(db, migrations)
+/** Runs the migrations once, then drops activity_log rows past their keep time, before the first call. */
+export const ready = migrate(db, migrations).then(() => pruneActivityLog(db))
 
 export async function call<K extends OpName>(op: K, input: Input<K>): Promise<Output<K>> {
   await ready
