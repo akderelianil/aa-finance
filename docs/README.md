@@ -16,6 +16,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 | [DEVELOPMENT](DEVELOPMENT.md) | Commands, run the real app, machine notes | EN |
 | [REPO-SCAN](REPO-SCAN.md) | Repo scan notes: layers, findings, next steps (2026-10-13) | EN |
+| [HARNESS-PLAN](HARNESS-PLAN.md) | Harness audit score and improvement plan (2026-10-13) | EN |
 
 Project rules live in `.claude/rules/` (ECC common, typescript and react subsets). Agents, skills and hooks come from the ECC plugin; the picks are in `CLAUDE.md`.
 
