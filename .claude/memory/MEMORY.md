@@ -1,2 +1,4 @@
-- [Foundation reset direction](foundation-reset-direction.md) — agreed product direction; CLAUDE.md holds the rules
-- [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, hold the line; answer in Turkish
+- [Foundation reset direction](foundation-reset-direction.md) — agreed product direction and where the decisions live
+- [Rebuild status](rebuild-status.md) — current sprint state and the first thing to do next session
+- [Workflow notes](workflow-notes.md) — tools, commands and gotchas (ledger, plan-canvas, Claude Docs, cargo)
+- [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, explain terms simply; answer in Turkish
