@@ -1,0 +1,1 @@
+- [Foundation reset direction](foundation-reset-direction.md) — owner's 2026-10-13 product direction; supersedes CLAUDE.md out-of-scope until ADRs land
