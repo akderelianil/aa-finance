@@ -1,6 +1,6 @@
 ---
 owner: backend-engineer
-status: draft
+status: decided by owner (ADR in story 5)
 ---
 
 # Options 1: shared core language, desktop shell and UI
@@ -47,3 +47,11 @@ Instead of a bake-off, the first vertical slice ships with measured budgets on t
 - RAM and installer size are the price of Chromium. The owner ranked resource use fourth, below compatibility.
 - Electron needs hardening (context isolation, sandbox, strict IPC), code signing and an update channel.
 - No local macOS or Windows machine: all platform testing runs in CI.
+
+## Decisions of the owner (round 11)
+1. Chromium-based shell, Electron first; RAM and installer cost accepted.
+2. Mobile: native screens (Swift, Kotlin), designed as a different product surface (quick entry, glance, reminders), after the desktop. The Rust core stays shared; the scenario engine describes forms as data so each platform renders them.
+3. Desktop v1 ships unsigned from GitHub Releases for the family and early users; signing, stores and auto-update on macOS wait for revenue. Free routes to check later: SignPath Foundation for Windows (open-source projects), Flathub for Linux; macOS notarization needs the paid Apple program.
+4. Supported systems: Windows 10 22H2 and 11, macOS 13+, Ubuntu 22.04+ and equivalents.
+5. No performance gates now. Measure and record from the first slice; optimize from numbers. The 1,000,000-entry test file is still built early, because it shapes the data design.
+6. React, with ReUI (shadcn on Base UI) where it fits; accessibility checked per component (virtualized grids need a screen-reader test).

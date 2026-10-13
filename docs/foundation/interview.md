@@ -177,3 +177,14 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 6 | Test machines | None. GitHub Actions matrix (owner has Pro; the repo will be public). |
 | 7 | UI plugins | Not needed soon; after the product matures. |
 | 8 | Mobile technology | Did not understand; explained with examples in the next reply. |
+
+## Round 11 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Chromium shell | Accepted, including the RAM and installer cost. |
+| 2 | Mobile | Option B: native screens. Desktop and mobile have different purposes: mobile is for daily, quick actions and simple information; analysis and planning happen on the computer. Desktop first; decide later which features go to mobile and how. Asked for the assistant's opinion and criticism. |
+| 3 | Signing | No budget now; no store listings; do it later when the app earns money. |
+| 4 | OS versions | Accepted: Windows 10 22H2 and 11, macOS 13+, Ubuntu 22.04+ and equivalents. |
+| 5 | Performance budgets | Do not set limits now; build correct, high quality first, then measure and optimize. |
+| 6 | Web UI | React stays; keep using ReUI (shadcn) where possible. |
