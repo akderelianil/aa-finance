@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { today } from '@/lib/amount'
 import { useOp } from '@/lib/api'
 import { shown, useAccountTree, useBook, type AccountNode, type AccountType } from '@/lib/ledger'
@@ -162,9 +163,18 @@ export default function Reports() {
       <div className="flex items-end gap-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
           <TabsList>
-            <TabsTrigger value="trial">{t('rep.trial')}</TabsTrigger>
-            <TabsTrigger value="balance">{t('rep.balance')}</TabsTrigger>
-            <TabsTrigger value="income">{t('rep.incomeStatement')}</TabsTrigger>
+            <Tooltip>
+              <TooltipTrigger render={<TabsTrigger value="trial" />}>{t('rep.trial')}</TooltipTrigger>
+              <TooltipContent>{t('rep.trialHint')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger render={<TabsTrigger value="balance" />}>{t('rep.balance')}</TooltipTrigger>
+              <TooltipContent>{t('rep.balanceHint')}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger render={<TabsTrigger value="income" />}>{t('rep.incomeStatement')}</TooltipTrigger>
+              <TooltipContent>{t('rep.incomeStatementHint')}</TooltipContent>
+            </Tooltip>
           </TabsList>
         </Tabs>
         {tab === 'income' && (

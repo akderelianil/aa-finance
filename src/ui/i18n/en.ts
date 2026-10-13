@@ -146,8 +146,11 @@ export const en: Translation = {
   rep: {
     subtitle: 'Trial balance, balance sheet and income statement ({{currency}})',
     trial: 'Trial Balance',
+    trialHint: 'Debit and credit totals of every account. Equal totals mean the books balance.',
     balance: 'Balance Sheet',
+    balanceHint: 'Assets, liabilities and equity on a given day.',
     incomeStatement: 'Income Statement',
+    incomeStatementHint: 'Income minus expense over the chosen range.',
     asOf: 'As of',
     depth: 'Depth',
     allLevels: 'All',

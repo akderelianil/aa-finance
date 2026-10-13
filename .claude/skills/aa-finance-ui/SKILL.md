@@ -30,7 +30,7 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 - **Copy:** sentence case, consistent terms, no filler and no invented numbers. UI text lives in `src/ui/i18n/` (Turkish and English).
 - **States:** every data region has an empty state with an action, a `Skeleton` while loading, and an inline error with Retry.
 - **Confirmation:** friction matches the stakes. Quick Entry saves with no extra confirm. Delete, void, locked-root change and member removal ask first and say what changes.
-- **Status words:** one word, icon and Badge colour per state, used everywhere: Taslak (draft), İşlendi (posted), Kur eksik (`rate_missing`), İptal. Add a state to this list before using it.
+- **Status words:** one word, icon and Badge colour per state the user can see, used everywhere. `draft` exists only inside one atomic write and `rate_missing` is an error, so neither is a status; an entry is posted or deleted. Add a state to the UI only with a persisted, visible meaning.
 - **Errors:** every message says what happened, what to do, and where to go. Neutral tone, never blame the user. Message keys live in `src/ui/i18n/`.
 - **Jargon:** accounting terms stay; the first appearance in a screen gets a tooltip with a one-line meaning.
 - **Entry forms:** everyday words first, accounting detail one click deeper. Every blocking rule has a message. Save is never silently disabled.

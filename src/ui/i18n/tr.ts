@@ -144,8 +144,11 @@ export const tr = {
   rep: {
     subtitle: 'Mizan, bilanço ve gelir tablosu ({{currency}})',
     trial: 'Mizan',
+    trialHint: 'Her hesabın borç ve alacak toplamı. Toplamlar eşitse defter dengelidir.',
     balance: 'Bilanço',
+    balanceHint: 'Belirli bir günde varlıklar, borçlar ve özkaynak.',
     incomeStatement: 'Gelir Tablosu',
+    incomeStatementHint: 'Seçilen aralıkta gelir eksi gider.',
     asOf: 'Tarih itibarıyla',
     depth: 'Düzey',
     allLevels: 'Tümü',
