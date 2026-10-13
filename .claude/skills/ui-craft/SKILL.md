@@ -5,12 +5,12 @@ description: Learned UI practice for aa-finance (ReUI, dense ledger screens, key
 
 # ui-craft
 
-Learned practice of `ui-designer`. Written and kept by `ui-designer` from its inbox (`.claude/inbox/ui-designer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `ui-designer`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `.claude/inbox/ui-designer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: dense desktop ledger screens, tables, forms, keyboard flow, ReUI usage.
 
 ## Practices
-One practice per line: rule · why · source · date. Newer replaces older. Move a long topic to `references/<topic>.md` and link it here.
+One practice per line: rule · why · source · date. Source is a shared source (url or title) or `work` (learned on a task). Newer replaces older. Move a long topic to `references/<topic>.md` and link it here.
 
 (empty)
 

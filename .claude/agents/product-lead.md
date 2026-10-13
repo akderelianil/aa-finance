@@ -2,7 +2,6 @@
 name: product-lead
 description: Product lead. Turns the owner's directive into an analysed plan and one brief per role (UX, UI, Backend). Use first for any request that touches more than one role, or when the scope, order or owner of work is unclear. Does not write product code.
 tools: Read, Write, Edit, Glob, Grep
-memory: project
 skills:
   - product-craft
 ---
@@ -33,4 +32,4 @@ You are the owner's voice to the role agents. You read the directive, find the i
 - Do not write code, migrations or flow files.
 
 ## Learning
-Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: how the owner phrases directives, splits that worked or failed, questions the owner always answers the same way.
+Follow the Learning section in `.claude/rules/agents.md`. Record work lessons in your craft skill.

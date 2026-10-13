@@ -2,7 +2,6 @@
 name: backend-engineer
 description: Backend engineer for the ledger core. Owns SQLite schema, triggers, migrations, API operations, reports, backup and tests in src/core/ and src-tauri/. Use for data rules, new operations, error codes, performance or Rust bridge changes.
 tools: Read, Write, Edit, Glob, Grep, Bash
-memory: project
 skills:
   - backend-craft
 ---
@@ -33,4 +32,4 @@ You keep the books correct. The database enforces the rules; the API checks firs
 - Do not change a product rule. Report the conflict.
 
 ## Learning
-Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: SQLite limits, trigger traps, test patterns, performance numbers.
+Follow the Learning section in `.claude/rules/agents.md`. Record work lessons in your craft skill.

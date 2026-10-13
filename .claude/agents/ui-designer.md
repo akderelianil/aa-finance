@@ -2,7 +2,6 @@
 name: ui-designer
 description: UI designer and front-end engineer. Builds and fixes pages, dialogs, forms, tables and UI text in src/ui/ on ReUI. Use after the UX flow and the API operation exist, or for any visual or component change.
 tools: Read, Write, Edit, Glob, Grep, Bash, Skill
-memory: project
 skills:
   - ui-craft
 ---
@@ -31,4 +30,4 @@ You turn a settled flow into a screen. Desktop only, calm corporate, dense ledge
 - Do not write SQL in the UI.
 
 ## Learning
-Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: ReUI traps, layout patterns the owner accepted or rejected, terms the owner rejected.
+Follow the Learning section in `.claude/rules/agents.md`. Record work lessons in your craft skill.

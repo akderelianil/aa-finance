@@ -22,13 +22,13 @@ Writing and agent rules live in `.claude/rules/` (`writing.md`, `agents.md`, `ui
 
 The user talks to the main session. For a multi-role request the main session first calls `product-lead`, then sends each brief to the role agent.
 
-| Agent | Role | Owns | Memory |
+| Agent | Role | Owns | Knowledge |
 |---|---|---|---|
-| [product-lead](../.claude/agents/product-lead.md) | Analyses a directive, splits it by role, writes briefs | `docs/README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `.claude/briefs/**`, own inbox and `product-craft` skill | `.claude/agent-memory/product-lead/` |
-| [interaction-designer](../.claude/agents/interaction-designer.md) | UX | `docs/ux/**` | `.claude/agent-memory/interaction-designer/` |
-| [ui-designer](../.claude/agents/ui-designer.md) | UI | `docs/ui/**`, `src/ui/**` | `.claude/agent-memory/ui-designer/` |
-| [backend-engineer](../.claude/agents/backend-engineer.md) | Backend | `docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**` | `.claude/agent-memory/backend-engineer/` |
-| main session | Dispatch, shared files | `CLAUDE.md`, `.claude/**` (except agent memory), `docs/DEVELOPMENT.md` | auto memory |
+| [product-lead](../.claude/agents/product-lead.md) | Analyses a directive, splits it by role, writes briefs | `docs/README.md`, `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `.claude/briefs/**`, own inbox and `product-craft` skill | `product-craft` skill |
+| [interaction-designer](../.claude/agents/interaction-designer.md) | UX | `docs/ux/**` | `ux-craft` skill |
+| [ui-designer](../.claude/agents/ui-designer.md) | UI | `docs/ui/**`, `src/ui/**` | `ui-craft` skill |
+| [backend-engineer](../.claude/agents/backend-engineer.md) | Backend | `docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**` | `backend-craft` skill |
+| main session | Dispatch, shared files | `CLAUDE.md`, `.claude/**` (except craft skills and inboxes), `docs/DEVELOPMENT.md` | auto memory |
 
 ## Obsidian
 Open `docs/` as the vault. Settings in `.obsidian/app.json` keep relative Markdown links. Only `app.json` is in git.

@@ -5,12 +5,12 @@ description: Learned product practice for aa-finance (scoping, prioritising, bri
 
 # product-craft
 
-Learned practice of `product-lead`. Written and kept by `product-lead` from its inbox (`.claude/inbox/product-lead/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `product-lead`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `.claude/inbox/product-lead/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: turning owner directives into small, ordered, checkable briefs.
 
 ## Practices
-One practice per line: rule · why · source · date. Newer replaces older. Move a long topic to `references/<topic>.md` and link it here.
+One practice per line: rule · why · source · date. Source is a shared source (url or title) or `work` (learned on a task). Newer replaces older. Move a long topic to `references/<topic>.md` and link it here.
 
 (empty)
 
