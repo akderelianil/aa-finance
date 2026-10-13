@@ -28,8 +28,8 @@ Goal: text that a person or an agent understands in one read, with few tokens.
 ## Frontmatter (files under `docs/`)
 ```yaml
 ---
-owner: ui-designer   # an agent name, or "main"
+owner: product-designer  # an agent name, or "main"
 status: active       # active | frozen
 ---
 ```
-Agents: `product-lead`, `interaction-designer`, `ui-designer`, `backend-engineer`. The owner edits the file; others propose changes (see [agent rules](agents.md)). Do not read `archive/` or `arsiv/` unless asked.
+Agents: `product-lead`, `product-designer`, `backend-engineer`. The owner edits the file; others propose changes (see [agent rules](agents.md)). Do not read `archive/` or `arsiv/` unless asked.

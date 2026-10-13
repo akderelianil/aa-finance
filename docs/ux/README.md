@@ -1,5 +1,5 @@
 ---
-owner: interaction-designer
+owner: product-designer
 status: active
 ---
 

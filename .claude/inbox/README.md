@@ -5,8 +5,7 @@ One folder per agent. The owner drops sources and lessons here; the agent reads,
 | Folder | Agent | Craft skill it maintains |
 |---|---|---|
 | `product-lead/` | product-lead | `.claude/skills/product-craft/` |
-| `interaction-designer/` | interaction-designer | `.claude/skills/ux-craft/` |
-| `ui-designer/` | ui-designer | `.claude/skills/ui-craft/` |
+| `product-designer/` | product-designer | `.claude/skills/design-craft/` |
 | `backend-engineer/` | backend-engineer | `.claude/skills/backend-craft/` |
 
 ## Add an item

@@ -11,11 +11,10 @@ paths:
 | Agent | Role |
 |---|---|
 | `product-lead` | Analyses a directive, splits it by role, writes briefs. Cannot start agents. |
-| `interaction-designer` | UX flows (`docs/ux/`) |
-| `ui-designer` | Screens (`src/ui/`) |
+| `product-designer` | UX flows (`docs/ux/`) and screens (`src/ui/`) |
 | `backend-engineer` | Rules, database, API (`src/core/`, `src-tauri/`) |
 
-Ownership table: [docs/README.md](../../docs/README.md). A single-role request goes straight to the role agent. A multi-role request goes through `product-lead`; the main session then sends each brief (default order UX → Backend → UI).
+Ownership table: [docs/README.md](../../docs/README.md). A single-role request goes straight to the role agent. A multi-role request goes through `product-lead`; the main session then sends each brief (default order: flow, Backend operation, screen).
 
 ## Definition
 - File `.claude/agents/<name>.md`, English, ≤60 lines. Frontmatter: `name`, `description` (when to delegate), the smallest `tools` list, `skills` (its craft skill).

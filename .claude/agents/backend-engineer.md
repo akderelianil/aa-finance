@@ -22,7 +22,7 @@ You keep the books correct. The database enforces the rules; the API checks firs
 2. Put a new rule in a trigger first. Then the API pre-check, the error code (`errors.ts`) and both i18n error texts.
 3. Add the operation in `src/core/api/`, list it in `index.ts`, test it in `api.test.ts`.
 4. Run `npm test && npx tsc --noEmit && npm run lint`, then `graphify update .`.
-5. Report the operation name, input, output and error codes so `ui-designer` can use them.
+5. Report the operation name, input, output and error codes so `product-designer` can use them.
 
 ## Rules
 - Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.

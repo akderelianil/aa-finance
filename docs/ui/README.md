@@ -1,5 +1,5 @@
 ---
-owner: ui-designer
+owner: product-designer
 status: active
 ---
 
