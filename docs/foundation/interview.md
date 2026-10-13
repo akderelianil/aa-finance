@@ -95,3 +95,18 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | 8 | Telemetry | Asked for an explanation first. |
 | 9 | Existing code | Do not keep as reference; learn from the experience and write a better version from scratch. |
 | 10 | Discovery | Continue. |
+
+## Round 6 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Budget, goals, plans | Yes, backlog. The owner wants to discuss the other backlog ideas too. |
+| 2 | Instalments and loans | Show estimated future payments, never in the journal. A transaction is a completed event; an unrealized payment cannot be posted. Loan interest (principal/interest split) is computed automatically. |
+| 3 | Bank import, reconciliation | Not out of scope; backlog. |
+| 4 | First reports | Balance Sheet, Income Statement, Cash Flow. |
+| 5 | Valuation | Reports and balances show the latest price, virtually (no ledger entry), with an info tip warning. |
+| 6 | Business use | No. Personal finance only; not designed for commercial use. |
+| 7 | Automatic backup | Accepted. |
+| 8 | Undo | Accepted. Also an activity history (which user did what, when, what changed); backlog. |
+| 9 | Scenarios as data | Did not understand; explain. |
+| 10 | Billing and entity | Based in Turkey. No own business; a family company exists and can be used for licenses and documents if needed. |
