@@ -3,7 +3,7 @@
 **ID:** foundation-reset-1
 **Epic:** foundation-reset
 **Sprint:** 5
-**Status:** in-progress
+**Status:** done
 **Points:** 3
 
 ## Context
