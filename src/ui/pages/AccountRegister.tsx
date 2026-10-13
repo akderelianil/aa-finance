@@ -182,7 +182,7 @@ export default function AccountRegister() {
     autoResetPageIndex: false,
   })
 
-  const remove = useWrite('entries.delete')
+  const remove = useWrite('entries.delete', { inline: true })
   // A new entry starts with this account on the first line.
   const startEntry = () => {
     const d = newDraft()

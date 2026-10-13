@@ -202,7 +202,7 @@ export default function Journal() {
     autoResetExpanded: false,
   })
 
-  const remove = useWrite('entries.delete')
+  const remove = useWrite('entries.delete', { inline: true })
   const newEntry = <Button onClick={() => setDraft(newDraft())}><PlusIcon data-icon="inline-start" />{t('gj.new')}</Button>
 
   return (

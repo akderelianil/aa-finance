@@ -40,7 +40,7 @@ export default function Rates() {
   const [deleting, setDeleting] = useState<FxRate | null>(null)
   const rates = useOp('fx.list', { currency: currency || undefined })
   const accounts = useOp('accounts.list', {})
-  const remove = useWrite('fx.delete')
+  const remove = useWrite('fx.delete', { inline: true })
   // Currencies the book uses first: those of its accounts.
   const used = [...new Set((accounts.data ?? []).map((a) => a.currency).filter((c) => c !== base))].sort()
 
@@ -172,7 +172,7 @@ function RateForm({ onClose, base, first }: { onClose: () => void; base: string;
   const [date, setDate] = useState(today())
   const [rate, setRate] = useState('')
   const [attempted, setAttempted] = useState(false)
-  const set = useWrite('fx.set')
+  const set = useWrite('fx.set', { inline: true })
   const parsed = parseDecimal(rate, 12)
   const rateError = !parsed || !/[1-9]/.test(parsed) ? t('fx.rateInvalid') : null
 

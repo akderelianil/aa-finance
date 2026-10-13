@@ -91,8 +91,8 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
   const [color, setColor] = useState<string>(old?.color ?? MEMBER_COLORS[count % MEMBER_COLORS.length])
   const [role, setRole] = useState<Member['role']>(old?.role ?? 'member')
   const [tried, setTried] = useState(false)
-  const add = useWrite('members.add')
-  const edit = useWrite('members.update')
+  const add = useWrite('members.add', { inline: true })
+  const edit = useWrite('members.update', { inline: true })
   const save = old ? edit : add
   const nameMissing = !name.trim()
 

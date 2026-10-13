@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from '@/components/ui/toast'
+import { notify } from '@/lib/notify'
 import { DataState } from '@/components/DataState'
 import { SettingRow } from '@/components/SettingRow'
 import { MembersCard } from '@/components/members/MembersCard'
@@ -86,7 +86,7 @@ function SettingsForm({ values }: { values: Values }) {
       .sort((a, b) => a.label.localeCompare(b.label, i18n.language))
   }, [i18n.language])
   const admin = values.me.role === 'admin'
-  const save = useWrite('settings.update')
+  const save = useWrite('settings.update', { inline: true })
   const daysNumber = Number(days)
   const daysError = !Number.isInteger(daysNumber) || daysNumber < 1 ? t('settings.daysInvalid') : null
   const nameError = !groupName.trim() ? t('settings.nameInvalid') : null
@@ -190,9 +190,9 @@ function DataCard() {
     setBusy(kind)
     try {
       const out = await job()
-      if (out && done) toast.add({ title: done, description: typeof out === 'string' ? out : undefined, timeout: 4000 })
+      if (out && done) notify.success(done, typeof out === 'string' ? out : undefined)
     } catch (e) {
-      toast.add({ title: errorText(e), timeout: 6000 })
+      notify.error(errorText(e))
     } finally {
       setBusy(null)
     }
@@ -267,7 +267,7 @@ function DangerCard({ admin }: { admin: boolean }) {
         const { count } = await call('entries.deleteAll', {})
         await qc.invalidateQueries()
         setKind(null)
-        toast.add({ title: t('danger.recordsDone', { count }), timeout: 4000 })
+        notify.success(t('danger.recordsDone', { count }))
       } else await resetAll()
     } catch (e) {
       setError(e)

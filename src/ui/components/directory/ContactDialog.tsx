@@ -43,8 +43,8 @@ function ContactForm({ target, contacts, onClose }: { target: ContactTarget; con
   const [income, setIncome] = useState(editing?.incomeAccount ? String(editing.incomeAccount) : '')
   const [expense, setExpense] = useState(editing?.expenseAccount ? String(editing.expenseAccount) : '')
   const [attempted, setAttempted] = useState(false)
-  const create = useWrite('contacts.create')
-  const update = useWrite('contacts.update')
+  const create = useWrite('contacts.create', { inline: true })
+  const update = useWrite('contacts.update', { inline: true })
   const pending = create.isPending || update.isPending
 
   const accounts = useOp('accounts.list', {})

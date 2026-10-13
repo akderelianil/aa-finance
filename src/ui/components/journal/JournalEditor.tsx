@@ -130,8 +130,8 @@ export function JournalEditor({ draft, onChange, accounts, byId, base, minor, fm
     dateError,
   ].filter((x): x is string => !!x)
 
-  const post = useWrite('entries.post')
-  const update = useWrite('entries.update')
+  const post = useWrite('entries.post', { inline: true })
+  const update = useWrite('entries.update', { inline: true })
   const save = draft.id ? update : post
 
   function submit() {

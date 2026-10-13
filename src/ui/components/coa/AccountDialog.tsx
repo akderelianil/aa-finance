@@ -79,8 +79,8 @@ function Form({ target, roots, currencies, onClose }: Props & { target: AccountT
   })
   const groups = groupTree(roots)
 
-  const create = useWrite('accounts.create')
-  const update = useWrite('accounts.update')
+  const create = useWrite('accounts.create', { inline: true })
+  const update = useWrite('accounts.update', { inline: true })
   const save = edit ? update : create
 
   function onSubmit(e: FormEvent) {

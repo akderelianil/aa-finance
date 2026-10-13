@@ -23,3 +23,4 @@ Screens, components and style. Flow decisions come from [ux](../ux/README.md); d
 
 - Check every UI change in a browser (`playwright-cli` skill): light and dark mode, then close the session.
 - The UI calls named API operations only, never SQL.
+- Feedback goes through `notify` (`lib/notify.ts`) only; pages never import the toast component. A write op uses `useWrite(op)`: one toast runs → done or failed, text from `ops.<op>` in `i18n`. A form that shows its error inline passes `{ inline: true }`, so the error is not shown twice. Other results: `notify.success/info/warning/error`.

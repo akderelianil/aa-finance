@@ -33,7 +33,7 @@ export default function Directory() {
   const contacts = useOp('contacts.list', {})
   const balances = useOp('contacts.balances', {})
   const { fmt } = useBook()
-  const remove = useWrite('contacts.delete')
+  const remove = useWrite('contacts.delete', { inline: true })
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
   const [target, setTarget] = useState<ContactTarget | null>(null)

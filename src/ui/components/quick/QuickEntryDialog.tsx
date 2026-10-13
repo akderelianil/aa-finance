@@ -17,7 +17,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { amountIssue, currencySymbol, fromBase, parseDecimal, toDecimal, toMinor, today } from '@/lib/amount'
-import { track } from '@/lib/notify'
+import { notify } from '@/lib/notify'
 import { call, useErrorText, useOp } from '@/lib/api'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode } from '@/lib/ledger'
 import { useQueryClient } from '@tanstack/react-query'
@@ -273,7 +273,8 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
         const ownerOf = (id: number) => accounts.data?.find((a) => a.id === id)?.owner ?? null
         entry = { ...entry, lines: entry.lines.map((l) => ([null, Number(member)].includes(ownerOf(l.account)) ? { ...l, member: Number(member) } : l)) }
       }
-      await track(call('entries.post', entry), {
+      await notify.track(call('entries.post', entry), {
+        inline: true,
         pending: t('ops.entries.post.pending'),
         done: t('ops.entries.post.done'),
         error: errorText,

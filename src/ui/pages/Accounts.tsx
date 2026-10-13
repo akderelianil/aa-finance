@@ -148,7 +148,7 @@ export default function Accounts() {
   })
 
   const archive = useWrite('accounts.archive')
-  const remove = useWrite('accounts.delete')
+  const remove = useWrite('accounts.delete', { inline: true })
   const select = (n: AccountNode) => setSelected({ [n.id]: true })
   const handlers: AccountHandlers = {
     openRegister: (n) => navigate(`/hesaplar/${n.id}`),
