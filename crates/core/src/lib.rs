@@ -1,16 +1,22 @@
-//! The shared core of aa-finance: ledger rules, scenarios, amounts, revisions, keys and sync.
-//! This crate is a skeleton; the first real code arrives with story `core-rebuild-2` (ADR-0008, ADR-0012).
+//! The shared core of aa-finance (ADR-0008): revisions as truth (ADR-0012), global ids (ADR-0011).
+//! Writing an entry, an account or a commodity means writing an immutable revision; the core rebuilds the
+//! projection (the current state) in the same transaction. This story covers the store and its verification;
+//! amounts, scenarios and the named-operation API follow.
+
+pub mod error;
+pub mod fixture;
+pub mod ids;
+pub mod migrate;
+mod projection;
+mod store;
+
+pub use error::{Error, Result, RuleCode};
+pub use ids::Id;
+pub use projection::Drift;
+pub use store::{DocKind, ImportedRevision, NewRevision, Store};
 
 /// The version of the named-operation API this build speaks.
 pub const API_VERSION: u32 = 0;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn api_version_starts_at_zero_before_the_first_release() {
-        // Arrange / Act / Assert
-        assert_eq!(API_VERSION, 0);
-    }
-}
+/// The version of the rules that validated a revision when it was written.
+pub const RULES_VERSION: u32 = 1;

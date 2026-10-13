@@ -40,3 +40,13 @@ Every user-made thing (entry, account, commodity, price, setting, member, grant)
 
 ### Risks
 - Revision storage grows forever; segments and snapshots keep it manageable.
+
+## Implementation notes (story core-rebuild-2, 2026-10-13)
+Found while building the store and in the independent Rust and silent-failure reviews:
+- Revision bodies reference commodities and accounts by their global id, never by code, so a rename breaks no old revision.
+- A local write must continue the current head of its document (`parent_id` equals the head, or `None` for a new document); otherwise the core returns `Conflict`. Revisions that arrive from sync enter through a separate import path that keeps their ids and may fork a document; `set_server_seq` re-projects because the head can change. Non-head leaves are listed as conflicts.
+- All revisions of a document share one kind, and a parent belongs to the same document.
+- The projection is writable only inside a projection session opened by the core. The gate stops faulty writers, not hostile ones. A line carried over unchanged from the previous head of its entry may sit on an archived account (an old entry can still be corrected); a changed or new line may not.
+- Invariants are checked again by triggers when lines of a posted entry change, and by `verify_projection`, which also checks line numbering. `rebuild_projection` empties and replays the whole projection (commodities, accounts parents first, entries).
+- A line uses the commodity of its account, and an account in use cannot change commodity; an account cannot become its own ancestor.
+- The first migration was edited during this story because no release exists yet; the rule against editing an applied migration starts with the first release.
