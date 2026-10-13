@@ -4,12 +4,6 @@ mod db;
 use std::sync::Mutex;
 use tauri::Manager;
 
-/// The UI sends text to the terminal (L0 spike results). Remove with the spike page.
-#[tauri::command]
-fn dev_log(msg: String) {
-    eprintln!("{msg}");
-}
-
 pub fn run() {
     tauri::Builder::default()
         // A second start would write the same file from another process: focus the first window instead.
@@ -33,8 +27,7 @@ pub fn run() {
             backup::backup_to,
             backup::backup_auto,
             backup::restore_from,
-            backup::reset_data,
-            dev_log
+            backup::reset_data
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

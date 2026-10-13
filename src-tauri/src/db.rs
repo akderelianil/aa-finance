@@ -91,8 +91,12 @@ pub fn db_query(db: tauri::State<Db>, sql: String, params: Vec<Json>) -> Result<
 #[tauri::command]
 pub fn db_batch(db: tauri::State<Db>, statements: Vec<Statement>) -> Result<(), String> {
     let mut conn = db.0.lock().map_err(|e| e.to_string())?;
+    run_batch(&mut conn, &statements)
+}
+
+fn run_batch(conn: &mut Connection, statements: &[Statement]) -> Result<(), String> {
     let tx = conn.transaction().map_err(|e| e.to_string())?;
-    for s in &statements {
+    for s in statements {
         let p = bind(&s.params)?;
         if p.is_empty() {
             tx.execute_batch(&s.sql)
@@ -102,4 +106,36 @@ pub fn db_batch(db: tauri::State<Db>, statements: Vec<Statement>) -> Result<(), 
         .map_err(|e| e.to_string())?;
     }
     tx.commit().map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn stmt(sql: &str, params: Vec<Json>) -> Statement {
+        Statement { sql: sql.into(), params }
+    }
+
+    #[test]
+    fn integers_beyond_the_safe_range_are_refused() {
+        assert!(matches!(to_sql(&Json::from(MAX_SAFE)), Ok(Sql::Integer(_))));
+        assert!(to_sql(&Json::from(-MAX_SAFE)).is_ok());
+        assert!(to_sql(&Json::from(MAX_SAFE + 1)).is_err());
+        assert!(to_json(ValueRef::Integer(MAX_SAFE + 1)).is_err());
+        assert!(to_json(ValueRef::Integer(-MAX_SAFE)).is_ok());
+    }
+
+    #[test]
+    fn a_failing_batch_leaves_nothing_behind() {
+        let mut c = Connection::open_in_memory().unwrap();
+        c.execute_batch("CREATE TABLE t (x INTEGER NOT NULL)").unwrap();
+        let bad = [
+            stmt("INSERT INTO t VALUES (?)", vec![Json::from(1)]),
+            stmt("INSERT INTO t VALUES (?)", vec![Json::Null]),
+        ];
+        assert!(run_batch(&mut c, &bad).is_err());
+        assert_eq!(c.query_row("SELECT count(*) FROM t", [], |r| r.get::<_, i64>(0)).unwrap(), 0);
+        run_batch(&mut c, &bad[..1]).unwrap();
+        assert_eq!(c.query_row("SELECT count(*) FROM t", [], |r| r.get::<_, i64>(0)).unwrap(), 1);
+    }
 }

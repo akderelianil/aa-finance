@@ -76,7 +76,7 @@ export const set = write(
   }),
   async (ctx, input) => {
     // Only the caller's own name is open to a member. The settings_admin trigger checks it again.
-    const { userName, ...book } = input
+    const { userName: _own, ...book } = input
     if (Object.values(book).some((v) => v !== undefined)) await needAdmin(ctx)
     const values: [string, string | null | undefined][] = [
       ['language', input.language],

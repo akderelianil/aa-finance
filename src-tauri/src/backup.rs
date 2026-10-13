@@ -26,19 +26,26 @@ fn safe(name: &str) -> Result<&str, String> {
     }
 }
 
-/// A consistent copy of the live database. VACUUM INTO refuses an existing file, so an
-/// existing target (the save dialog already asked) is removed first; never the live file.
+/// A consistent copy of the live database. VACUUM INTO refuses an existing file, so the copy goes to a
+/// sibling `.tmp` file and replaces the target only when it is complete: a failed copy (disk full) keeps
+/// the old file. Never the live file.
 fn copy_to(conn: &Connection, path: &Path) -> Result<(), String> {
     let live = conn.path().and_then(|p| Path::new(p).canonicalize().ok());
-    if path.exists() {
-        if live.is_some() && path.canonicalize().ok() == live {
-            return Err("cannot overwrite the open database".into());
-        }
-        std::fs::remove_file(path).map_err(|e| e.to_string())?;
+    if live.is_some() && path.canonicalize().ok() == live {
+        return Err("cannot overwrite the open database".into());
     }
-    conn.execute("VACUUM INTO ?1", [path.to_string_lossy()])
-        .map(|_| ())
+    let mut name = path.file_name().ok_or("bad backup path")?.to_os_string();
+    name.push(".tmp");
+    let tmp = path.with_file_name(name);
+    let _ = std::fs::remove_file(&tmp);
+    let copied = conn
+        .execute("VACUUM INTO ?1", [tmp.to_string_lossy()])
         .map_err(|e| e.to_string())
+        .and_then(|_| std::fs::rename(&tmp, path).map_err(|e| e.to_string()));
+    if copied.is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+    copied
 }
 
 #[tauri::command]
@@ -173,6 +180,12 @@ mod tests {
         // A backup never overwrites the open file.
         assert!(copy_to(&live, &d.join("live.sqlite")).is_err());
         copy_to(&live, &d.join("b1.sqlite")).unwrap();
+        // Copying onto an existing backup replaces it, and a failed copy keeps the old file.
+        copy_to(&live, &d.join("b1.sqlite")).unwrap();
+        assert!(!d.join("b1.sqlite.tmp").exists());
+        std::fs::write(d.join("keep.sqlite"), "old").unwrap();
+        assert!(copy_to(&live, &d.join("no-such-dir").join("keep.sqlite")).is_err());
+        assert_eq!(std::fs::read_to_string(d.join("keep.sqlite")).unwrap(), "old");
         live.execute("INSERT INTO lines VALUES (99)", []).unwrap();
 
         restore_into(&mut live, &d.join("b1.sqlite"), 2, &d.join("before.sqlite")).unwrap();
