@@ -26,6 +26,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Both logs live in the SQLite file: `audit_log` (triggers: who changed a row) and `activity_log` (API: who did what).
 - Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - Secrets: none in v1. If a token is needed, keep it in the gitignored root `.env`, load it per command, never print or commit it.
+- Work tracking: `.stories/` via `ecc:story-lifecycle` (epic -> stories -> sprint). Write only through its `ledger.js`. Do not also run the GitHub-issue `epic-*` commands for the same work.
 - Git: commit by default; push only when asked (the remote is a local path).
 
 ## Docs and ECC
