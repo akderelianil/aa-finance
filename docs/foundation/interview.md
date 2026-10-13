@@ -26,3 +26,20 @@ Answers are the owner's, translated from Turkish. Assistant challenges are marke
 
 ## What this changes (assistant analysis, to be argued in round 2)
 See the epic stories. Items that contradict the current docs: sync is no longer out of scope, mobile is no longer out of scope, the UI must hide accounting terms (CLAUDE.md says the UI uses them), investments need quantities and prices (not only money), and "no data loss" needs a stated recovery target.
+
+## Round 2 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| A1 | Cloud-folder sync (free tier) | Allowed; warn the user and state that the risk is theirs. |
+| A2 | Encryption and accounts | End-to-end encrypted. Privacy and security are the first priority. Recovery key and/or Google/Apple identity; owner is unsure how membership should work. |
+| A3 | Offline and conflicts | Offline work required. Same record edited by two members: the first to reach the server wins. |
+| A4 | License | Fully open source, MIT. |
+| B5 | Visibility | Not everyone reads everything (children). Chosen people can see all records. Default: a member sees only their own records. |
+| B6 | Leaving a family | A leaving member does not take records (they affect family reports and goals). One person belongs to one family only. |
+| C7 | Cost basis | The user picks the method. Realized and unrealized gain/loss reports are mandatory. Multi-currency needs daily price data. |
+| C8 | Precision | Set per currency/commodity, like GnuCash. Wants the assistant's view. |
+| C9 | Prices | A price history table is wanted. |
+| D10 | Platforms | Windows, macOS and Linux must all work without problems. |
+| D11 | Scale | 100k to 1M entries is ambitious; performance is a priority. |
+| D12 | Append-only | Accepted for the backend; the UI must still offer create, edit and delete. |
