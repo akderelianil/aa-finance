@@ -47,3 +47,20 @@ Each step ends with `npm run verify` green and a commit.
 
 ## Order and effort
 1 (half a day) → 2 → 4 → 3 → 5 → 6 → 7. Re-run the audit after step 2 and step 5; the target is the non-GitHub categories at 8/10 or better.
+
+## Re-audit after sprint 1 (2026-10-13)
+Score **35/39** (was 18/39). Stories `harness-plan-1` and `harness-plan-2` are done, plus the GitHub tooling.
+
+| Category | Before | After |
+|---|---|---|
+| Tool Coverage | 10 | 10 |
+| Context Efficiency | 10 | 10 |
+| Quality Gates | 6 | 10 |
+| Memory Persistence | 0 | 10 |
+| Eval Coverage | 0 | 0 |
+| Security Guardrails | 3 | 7 |
+| GitHub Integration | 0 | 10 |
+
+Two checks still fail:
+- **Eval Coverage** (`evals/` or three `tests/**/*.test.js`). A rubric limit: the project has 71 tests in `src/**/*.test.ts` that the audit does not look at. Real gap is E2E (story 6). Passing the check needs an `evals/` folder with fixtures; add it only if it carries real flows (the Playwright smoke path can live there), not as an empty folder.
+- **Hook guardrails** (a `PreToolUse` hook in `.claude/settings.json`). Real work in story 5. Candidate guard that matches a project rule: block edits to applied migrations (`src/core/migrations/*.sql`).
