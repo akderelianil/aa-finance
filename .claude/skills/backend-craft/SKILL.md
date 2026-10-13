@@ -5,7 +5,7 @@ description: Learned backend practice for aa-finance (SQLite, double-entry, Taur
 
 # backend-craft
 
-Learned practice of `backend-engineer`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `.claude/inbox/backend-engineer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `backend-engineer`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `docs/backend/inbox/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: SQLite rules and triggers, accounting correctness, API design, Rust bridge, tests.
 

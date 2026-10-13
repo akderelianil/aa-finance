@@ -1,4 +1,4 @@
-// Quick Entry flows (docs/ux): pure builders from a form to an entries.post input.
+// Quick Entry flows (docs/product-designer/ux): pure builders from a form to an entries.post input.
 // They give exact base amounts whenever currencies differ, so the entry balances without FX rounding.
 import type { EntryInput, LineInput } from './api/entries.ts'
 import type { AccountType } from './chart.ts'

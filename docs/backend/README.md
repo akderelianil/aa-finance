@@ -5,13 +5,17 @@ status: active
 
 # Backend
 
-Rules, database, API and backup in `src/core/` and `src-tauri/`. No UI and no Tauri code in `src/core/`.
+Architecture, database, API and backup in `src/core/` and `src-tauri/`. No UI and no Tauri code in `src/core/`.
 
-| Doc | Content |
+| Folder | Content |
 |---|---|
-| [local-first](local-first.md) | Stack, database rules, tables, API, backup, budgets |
-| [ledger-model](ledger-model.md) | GnuCash mapping, account template, multi-currency |
-| [ARCHITECTURE](../ARCHITECTURE.md) | Product decisions and scope (shared) |
+| [architecture/](architecture/overview.md) | Goals, stack, plugins, out of v1, open decisions |
+| [database/](database/rules.md) | [rules](database/rules.md) (triggers, audit, money), [tables](database/tables.md), [ledger-model](database/ledger-model.md) (GnuCash mapping, account template, currencies) |
+| [api/](api/operations.md) | Named operations, errors, reports, paging |
+| [runtime/](runtime/backup.md) | [backup](runtime/backup.md) and restore, [performance](runtime/performance.md) budgets |
+| `inbox/` | Sources the owner shares for this agent. Rules: [inbox](../inbox/README.md) |
+
+Product decisions and scope (shared): [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## Working rules
 1. Never edit an applied migration. Add `src/core/migrations/NNNN_name.sql`.

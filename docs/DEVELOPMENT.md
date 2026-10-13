@@ -5,7 +5,7 @@ status: active
 
 # Development notes
 
-Commands, machine notes and test data. Design: [ARCHITECTURE](ARCHITECTURE.md), [backend](backend/README.md), [ui](ui/README.md).
+Commands, machine notes and test data. Design: [ARCHITECTURE](ARCHITECTURE.md), [backend](backend/README.md), [ui](product-designer/ui/README.md).
 
 ## Commands
 Run from the repo root.
@@ -37,7 +37,7 @@ Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 - The remote is a local path: commit, and push only when asked.
 
 ## Working rules
-Backend rules: [backend/README](backend/README.md#working-rules). UI rules: [ui/README](ui/README.md).
+Backend rules: [backend/README](backend/README.md#working-rules). UI rules: [ui/README](product-designer/ui/README.md).
 1. Check every UI change in a browser (playwright-cli skill): light and dark mode, then close the session. Screenshots go to `.playwright-cli/` (gitignored).
 2. After code changes run `graphify update .`.
 

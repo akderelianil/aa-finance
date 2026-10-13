@@ -44,7 +44,7 @@ Hızlı Kayıt tek ekrandır: Gider · Gelir · Transfer · Borç sekmeleri, Gid
 | Kredi Kartı | | 500 |
 
 ## Kurallar
-- Her kayıt: ≥2 satır, toplam Borç = toplam Alacak ([CLAUDE.md](../../CLAUDE.md)).
+- Her kayıt: ≥2 satır, toplam Borç = toplam Alacak ([CLAUDE.md](../../../CLAUDE.md)).
 - Gider satırı Borç, ödeme hesabı Alacak.
 - Gider hesabı Grup hesabı olamaz (Grup hesabı satır almaz).
 - Ödeme hesabının para birimi ana para biriminden farklıysa Kur sorulur; boşsa sunucu getirir.

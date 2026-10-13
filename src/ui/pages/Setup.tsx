@@ -40,7 +40,7 @@ function osCountry(): string | null {
   }
 }
 
-// First run: six steps, keyboard first, saved once at the end (setup.run). Flow: docs/ux/kurulum.md.
+// First run: six steps, keyboard first, saved once at the end (setup.run). Flow: docs/product-designer/ux/kurulum.md.
 export default function Setup({ onBack, onFinish }: { onBack: () => void; onFinish: () => void }) {
   const { t, i18n } = useTranslation()
   const qc = useQueryClient()

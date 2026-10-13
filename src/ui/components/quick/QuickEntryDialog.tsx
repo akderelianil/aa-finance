@@ -46,7 +46,7 @@ type Split = { key: number; account: string; money: string; amount: string }
 let nextKey = 1
 const emptySplit = (): Split => ({ key: nextKey++, account: '', money: '', amount: '' })
 
-// Hızlı Kayıt: Gider · Gelir · Transfer · Borç ([docs/ux](../../../../docs/ux/README.md)). Each form builds one
+// Hızlı Kayıt: Gider · Gelir · Transfer · Borç ([docs/product-designer/ux](../../../../docs/product-designer/ux/README.md)). Each form builds one
 // entries.post input with the core builders (src/core/quick.ts); the booking can be shown before saving.
 function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => void }) {
   const { t } = useTranslation()

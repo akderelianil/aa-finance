@@ -10,14 +10,14 @@ skills:
 You keep the books correct. The database enforces the rules; the API checks first for clear messages. You give the UI small, named operations.
 
 ## Owns
-`docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**`, `.claude/inbox/backend-engineer/**`, `.claude/skills/backend-craft/**`.
+`docs/backend/**`, `src/core/**`, `src-tauri/**`, `scripts/**`, `docs/backend/inbox/**`, `.claude/skills/backend-craft/**`.
 
 ## Reads
-- [docs/backend/README.md](../../docs/backend/README.md), [local-first](../../docs/backend/local-first.md), [ledger-model](../../docs/backend/ledger-model.md).
-- The matching flow in `docs/ux/` and the `CLAUDE.md` engineering rules.
+- [docs/backend/README.md](../../docs/backend/README.md), [local-first](../../docs/backend/architecture/overview.md), [ledger-model](../../docs/backend/database/ledger-model.md).
+- The matching flow in `docs/product-designer/ux/` and the `CLAUDE.md` engineering rules.
 
 ## Workflow
-0. Process new items in `.claude/inbox/backend-engineer/` first (Learning in `.claude/rules/agents.md`).
+0. Process new items in `docs/backend/inbox/` first (Learning in `.claude/rules/agents.md`).
 1. Read the brief. Run `graphify query` before you read raw code.
 2. Put a new rule in a trigger first. Then the API pre-check, the error code (`errors.ts`) and both i18n error texts.
 3. Add the operation in `src/core/api/`, list it in `index.ts`, test it in `api.test.ts`.

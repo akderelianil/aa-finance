@@ -11,10 +11,10 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 | Phase | Content |
 |---|---|
 | Ledger core (Oct 2026, Supabase) | Chart of Accounts, General Journal, Account Register, reports, Quick Entry, simple chart, ReUI. Retired in `archive/`; tag `supabase-final`. |
-| L0–L2 | Tauri shell, SQLite schema with triggers, core API with tests. See [local-first](backend/local-first.md). |
+| L0–L2 | Tauri shell, SQLite schema with triggers, core API with tests. See [local-first](backend/architecture/overview.md). |
 | L3 | UI on ReUI: Chart of Accounts, Journal and editor with history, Register, Reports, Quick Entry, Settings, Exchange Rates. |
 | L4 | Backup (manual, daily automatic, restore), Activity page, benchmark. |
-| X1 Setup and members | First-run setup in 6 keyboard steps ([kurulum](ux/kurulum.md)), members with roles, sidebar member menu. |
+| X1 Setup and members | First-run setup in 6 keyboard steps ([kurulum](product-designer/ux/kurulum.md)), members with roles, sidebar member menu. |
 | X1e Roles and format | Country sets date and number format. Journal shows the writer; a member sees Edit and Delete only on own entries. Book settings admin only (migration `0004`). |
 
 ## Now (X1 user flows)

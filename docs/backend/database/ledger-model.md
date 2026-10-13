@@ -5,7 +5,7 @@ status: active
 
 # Ledger model
 
-How the ledger is stored. Product decisions: [ARCHITECTURE](../ARCHITECTURE.md).
+How the ledger is stored. Product decisions: [ARCHITECTURE](../../ARCHITECTURE.md).
 
 ## GnuCash mapping
 | GnuCash | aa-finance |
@@ -19,7 +19,7 @@ How the ledger is stored. Product decisions: [ARCHITECTURE](../ARCHITECTURE.md).
 | account `code` | `accounts.code` (hidden in the UI, orders the tree) |
 | account commodity | `accounts.currency_id` (every account) |
 
-Amounts are signed: plus is debit, minus is credit. Rules the database enforces for every writer: [local-first](local-first.md#database-rules). A receipt with several categories is one entry with one line per category.
+Amounts are signed: plus is debit, minus is credit. Rules the database enforces for every writer: [local-first](rules.md). A receipt with several categories is one entry with one line per category.
 
 ## Account template
 `src/core/chart.ts` is the single source of the starting chart. `setup()` applies it once.

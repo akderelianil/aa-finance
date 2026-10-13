@@ -18,7 +18,7 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 6. Look at the screen in a browser (playwright-cli skill, `--browser=chromium`) in light and dark mode before you report it done.
 
 ## Project rules
-- **Tables:** ReUI `data-grid` for lists and ledgers. A plain `<table>` only inside a dialog preview or a split-line editor. Long lists page in SQL with `useServerPages` (`lib/grid.ts`); reports and trees do not page. Keep the loading skeleton at ≤10 rows ([ui conventions](../../../docs/ui/README.md#conventions)).
+- **Tables:** ReUI `data-grid` for lists and ledgers. A plain `<table>` only inside a dialog preview or a split-line editor. Long lists page in SQL with `useServerPages` (`lib/grid.ts`); reports and trees do not page. Keep the loading skeleton at ≤10 rows ([ui conventions](../../../docs/product-designer/ui/README.md#conventions)).
 - **Numbers:** right-aligned, `tabular-nums`, same decimals in a column, currency once per column or card. Format with `useBook().fmt` and `useFormat()`; they follow the book country.
 - **Sign:** a negative value uses `text-destructive` and also shows the sign or a Borç/Alacak label. Colour never carries meaning alone.
 - **Status:** ReUI `Badge` light variants (`@/components/reui/badge`). One accent colour (`primary`, calm blue).

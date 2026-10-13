@@ -1,12 +1,12 @@
 ---
 name: feedback-doc-system
-description: "Doc/agent system the user chose 2026-10-07: docs/code English (docs/ux Turkish); STE style; relative links; owner frontmatter; agent learning loop"
+description: "Doc/agent system the user chose 2026-10-07: docs/code English (docs/product-designer/ux Turkish); STE style; relative links; owner frontmatter; agent learning loop"
 metadata:
   type: feedback
 ---
 
 User wants token-efficient, simple docs and coordinated, self-learning agents. Decided 2026-10-07:
-- Language: user-facing docs (`docs/ux/**`) Turkish; all other files and content English. Chat replies stay Turkish.
+- Language: user-facing docs (`docs/product-designer/ux/**`) Turkish; all other files and content English. Chat replies stay Turkish.
 - Style (relaxed 2026-10-13): short, active, one term per concept. No hard word limits; STE is a guide, not a rule.
 - Links: relative Markdown links, not `[[wikilinks]]`. Obsidian vault = `docs/` only (`docs/.obsidian/app.json` in git).
 - No knowledge-graph DB for now; links + frontmatter are the graph.

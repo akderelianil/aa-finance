@@ -1,4 +1,4 @@
--- Schema v1. Rules: docs/backend/local-first.md#database-rules.
+-- Schema v1. Rules: docs/backend/database/rules.md#database-rules.
 -- A broken rule raises RAISE(ABORT, '<code>'). The API maps each code to a message.
 -- Times are unix ms. Money is integer minor units. Rates are decimal text.
 

@@ -5,7 +5,7 @@ description: Learned design practice for aa-finance (UX flows, information archi
 
 # design-craft
 
-Learned practice of `product-designer`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `.claude/inbox/product-designer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `product-designer`: what shared sources taught it and what it learned on tasks. The agent keeps this file (inbox: `docs/product-designer/inbox/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: how accounting-literate users enter, find and review money data with the fewest steps; dense desktop ledger screens, tables, forms, keyboard flow.
 
@@ -16,7 +16,7 @@ One practice per line: rule · why · source · date. Source is a shared source 
 - Code can silently deviate from a decision. Mark it "uygulanmadı / sapma" and ask; do not rewrite the decision. · found 3 such cases · work · 2026-10-08
 - To check built behavior, read the page component, `src/core/api/` and `src/ui/i18n/tr.ts` (the real UI words). · commit messages omit limits · work · 2026-10-12
 - Owner-given keyboard maps can clash with platform norms (Shift+Tab = back vs focus back; Enter = next vs Enter adds a row). Define the key per step and context, flag the clash. · found both in kurulum.md · work · 2026-10-12
-- Decisions move fast; docs/backend/local-first.md can lag. Check and flag to main. · kurulum sync · work · 2026-10-12
+- Decisions move fast; docs/backend/architecture/overview.md can lag. Check and flag to main. · kurulum sync · work · 2026-10-12
 
 ## Open questions
 Things a source raised that need the owner's decision.

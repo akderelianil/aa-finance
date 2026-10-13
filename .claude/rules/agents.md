@@ -1,7 +1,8 @@
 ---
 paths:
   - ".claude/agents/**"
-  - ".claude/inbox/**"
+  - "docs/inbox/**"
+  - "docs/*/inbox/**"
   - ".claude/skills/*-craft/**"
 ---
 
@@ -11,7 +12,7 @@ paths:
 | Agent | Role |
 |---|---|
 | `product-lead` | Analyses a directive, splits it by role, writes briefs. Cannot start agents. |
-| `product-designer` | UX flows (`docs/ux/`) and screens (`src/ui/`) |
+| `product-designer` | UX flows (`docs/product-designer/ux/`) and screens (`src/ui/`) |
 | `backend-engineer` | Rules, database, API (`src/core/`, `src-tauri/`) |
 
 Ownership table: [docs/README.md](../../docs/README.md). A single-role request goes straight to the role agent. A multi-role request goes through `product-lead`; the main session then sends each brief (default order: flow, Backend operation, screen).
@@ -32,7 +33,7 @@ One store per agent: its **craft skill** (`.claude/skills/<skill>/SKILL.md`, pre
 
 - **Entry:** one line: rule · why · source · date. Source is a shared source (url or title) or `work`. Skip what docs or git already hold. Newer replaces older; merge duplicates. Past ~100 lines, move topics to `references/<topic>.md` and link them.
 - **After a task:** record a lesson only if it is non-obvious and reusable.
-- **Inbox** (`.claude/inbox/<name>/`, format in the [inbox README](../inbox/README.md)): the main session saves a shared source with its content, because agents cannot browse. Process items with `status: new` at the start of a task and on "inbox'ı işle":
+- **Inbox** (`docs/product-designer/inbox/`, `docs/backend/inbox/`, `docs/inbox/` for `product-lead`; format in the [inbox README](../../docs/inbox/README.md)): the main session saves a shared source with its content, because agents cannot browse. Process items with `status: new` at the start of a task and on "inbox'ı işle":
   1. Judge it for this product. A source that conflicts with the `CLAUDE.md` product rules is flagged, not applied.
   2. Distill it into the craft skill.
   3. A project fact or decision goes to the report as a proposal. Do not store it in the skill.

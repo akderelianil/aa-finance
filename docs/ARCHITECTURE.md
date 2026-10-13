@@ -5,7 +5,7 @@ status: active
 
 # Architecture
 
-Product decisions and scope. Ledger model, account template, currencies: [ledger-model](backend/ledger-model.md). Stack, database rules, API: [local-first](backend/local-first.md).
+Product decisions and scope. Ledger model, account template, currencies: [ledger-model](backend/database/ledger-model.md). Stack, database rules, API: [local-first](backend/architecture/overview.md).
 
 ## Decisions
 - **Accounting standards first.** Users know accounting. The UI shows the ledger as it is: Chart of Accounts, General Journal, Account Register, reports.

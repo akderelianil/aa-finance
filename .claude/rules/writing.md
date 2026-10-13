@@ -10,7 +10,7 @@ paths:
 Goal: text that a person or an agent understands in one read, with few tokens.
 
 ## Language
-- `docs/ux/**` is Turkish: the owner reads and discusses it. Everything else is English: `CLAUDE.md`, other docs, `.claude/**`, code, comments, commits.
+- `docs/product-designer/ux/**` is Turkish: the owner reads and discusses it. Everything else is English: `CLAUDE.md`, other docs, `.claude/**`, code, comments, commits.
 - UI text lives in `src/ui/i18n/`. Use accounting terms from the product rules in `CLAUDE.md`.
 
 ## Style
@@ -32,4 +32,4 @@ owner: product-designer  # an agent name, or "main"
 status: active       # active | frozen
 ---
 ```
-Agents: `product-lead`, `product-designer`, `backend-engineer`. The owner edits the file; others propose changes (see [agent rules](agents.md)). Do not read `archive/` or `arsiv/` unless asked.
+Inbox items carry their own `status:` frontmatter instead. Agents: `product-lead`, `product-designer`, `backend-engineer`. The owner edits the file; others propose changes (see [agent rules](agents.md)). Do not read `archive/` or `arsiv/` unless asked.

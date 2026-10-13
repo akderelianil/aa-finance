@@ -5,7 +5,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 ## Stack
 - Tauri 2 (desktop only, no mobile or tablet layout) + SQLite (WAL) + TypeScript. UI: React + Vite + Tailwind, base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI).
 - `src/core/`: pure TypeScript (rules, SQL, named API operations, tests). Never imports UI or Tauri code. `src/ui/`: pages and components. `src-tauri/`: thin Rust (`db_query`, `db_batch`, backup).
-- Details: [docs/backend/local-first.md](docs/backend/local-first.md). Commands and machine notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Dev machine: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`. Package manager: npm.
+- Details: [docs/backend/architecture/overview.md](docs/backend/architecture/overview.md). Commands and machine notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Dev machine: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`. Package manager: npm.
 - `archive/` holds the retired Supabase version (`web/`, `supabase/`, seed scripts). Do not edit or read it unless the user asks. Tag `supabase-final` marks the last Supabase commit.
 
 ## Product rules
@@ -16,7 +16,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - A journal entry is a completed event only. Plans and reminders are not entries.
 - One ledger file = one family. Members have a role: `admin` manages members and book settings and edits any entry; `member` edits only own entries. Everyone reads everything. No PIN or sign-in.
 - Number and date format follow the book country; the UI language only picks the words.
-- Entry flows: Gider, Gelir, Transfer, Borç (Quick Entry dialog → `entries.post`) and Serbest kayıt (journal editor). Rebuild other flows one UX scenario at a time, starting from `docs/ux/`.
+- Entry flows: Gider, Gelir, Transfer, Borç (Quick Entry dialog → `entries.post`) and Serbest kayıt (journal editor). Rebuild other flows one UX scenario at a time, starting from `docs/product-designer/ux/`.
 - Out of scope: AI/auto-fill, bank import, notifications, bills/subscriptions, sync, mobile.
 
 ## Engineering rules
@@ -29,8 +29,8 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Git: commit by default; push only when asked (the remote is a local path).
 
 ## Docs and agents
-- Language: English for docs and code; `docs/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.
-- Docs are grouped by role: `docs/ux/`, `docs/ui/`, `docs/backend/`; shared files in `docs/`. Each role has an agent in `.claude/agents/`. Ownership, briefs, inboxes and learning: [.claude/rules/agents.md](.claude/rules/agents.md). Writing: [.claude/rules/writing.md](.claude/rules/writing.md).
+- Language: English for docs and code; `docs/product-designer/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.
+- Docs are grouped by role: `docs/product-designer/ux/`, `docs/product-designer/ui/`, `docs/backend/`; shared files in `docs/`. Each role has an agent in `.claude/agents/`. Ownership, briefs, inboxes and learning: [.claude/rules/agents.md](.claude/rules/agents.md). Writing: [.claude/rules/writing.md](.claude/rules/writing.md).
 - Skills load from the request; the user does not type slash commands. Any `src/ui/` work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first. Browser check: `playwright-cli`. Review or audit: `ponytail-review` / `ponytail-audit`.
 
 ## graphify
