@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Spinner } from '@/components/ui/spinner'
-import { toast } from '@/components/ui/toast'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { colorClass } from '@/lib/members'
 import { cn } from '@/lib/utils'
@@ -101,7 +100,7 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
     e.preventDefault()
     setTried(true)
     if (nameMissing) return
-    const done = { onSuccess: () => { toast.add({ title: t('members.saved'), timeout: 2500 }); onClose() } }
+    const done = { onSuccess: () => { onClose() } }
     if (!old) add.mutate({ name: name.trim(), color, role }, done)
     else edit.mutate({
       id: old.id,

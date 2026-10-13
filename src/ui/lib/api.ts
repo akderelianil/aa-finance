@@ -1,6 +1,7 @@
 // The UI's only door to data: the core API on the app's Db, wrapped in TanStack Query.
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { track } from './notify.ts'
 import { ApiError, createApi, type Input, type OpName, type Output } from '../../core/api/index.ts'
 import type { Db } from '../../core/db.ts'
 import { migrate } from '../../core/migrate.ts'
@@ -37,11 +38,18 @@ export function useOp<K extends OpName>(op: K, input: Input<K>, opts: { enabled?
   })
 }
 
-/** A write op. Any success refetches every query: reads are local and cheap. */
+/** A write op. Any success refetches every query: reads are local and cheap. A toast shows it running, done or failed. */
 export function useWrite<K extends OpName>(op: K) {
   const qc = useQueryClient()
+  const { t } = useTranslation()
+  const errorText = useErrorText()
   return useMutation({
-    mutationFn: (input: Input<K>) => call(op, input),
+    mutationFn: (input: Input<K>) =>
+      track(call(op, input), {
+        pending: t(`ops.${op}.pending` as never),
+        done: t(`ops.${op}.done` as never),
+        error: errorText,
+      }),
     onSuccess: () => qc.invalidateQueries(),
   })
 }

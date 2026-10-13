@@ -105,7 +105,6 @@ function SettingsForm({ values }: { values: Values }) {
       {
         onSuccess: () => {
           if (language !== i18n.language) void i18n.changeLanguage(language)
-          toast.add({ title: t('settings.saved'), timeout: 2500 })
         },
       },
     )

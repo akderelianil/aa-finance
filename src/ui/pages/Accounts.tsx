@@ -26,7 +26,6 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
 import { Empty, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from '@/components/ui/toast'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode, type AccountType } from '@/lib/ledger'
 import { useScope, useScopedAccounts } from '@/lib/scope'
@@ -155,7 +154,7 @@ export default function Accounts() {
     openRegister: (n) => navigate(`/hesaplar/${n.id}`),
     addChild: (n) => setTarget({ mode: 'create', parent: n }),
     edit: (n) => setTarget({ mode: 'edit', node: n }),
-    archive: (n) => archive.mutate({ id: n.id, archived: !n.archived }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) }),
+    archive: (n) => archive.mutate({ id: n.id, archived: !n.archived }),
     remove: (n) => { remove.reset(); setDeleting(n) },
   }
   const onContextMenu = (e: MouseEvent) => {
