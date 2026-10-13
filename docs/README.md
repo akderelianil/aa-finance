@@ -13,6 +13,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 | [backend/](backend/README.md) | Architecture, database, API, runtime, inbox | EN |
 | [inbox/](inbox/README.md) | How source notes are saved (inbox format) | EN |
 | [ARCHITECTURE](ARCHITECTURE.md) | Product decisions and scope | EN |
+| [adr/](adr/README.md) | Architecture decision records | EN |
 | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 | [DEVELOPMENT](DEVELOPMENT.md) | Commands, run the real app, machine notes | EN |
 | [REPO-SCAN](REPO-SCAN.md) | Repo scan notes: layers, findings, next steps (2026-10-13) | EN |

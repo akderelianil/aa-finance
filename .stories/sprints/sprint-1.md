@@ -10,6 +10,6 @@
 | ID | Title | Points | Status |
 | --- | --- | --- | --- |
 | harness-plan-1 | Local quality gate (verify, pre-commit, coverage threshold) | 3 | done |
-| harness-plan-2 | Durable memory and ADRs | 3 | todo |
+| harness-plan-2 | Durable memory and ADRs | 3 | done |
 
 ## Total Points: 6

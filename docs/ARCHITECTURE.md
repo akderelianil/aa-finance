@@ -8,6 +8,8 @@ status: active
 Product decisions and scope. Ledger model, account template, currencies: [ledger-model](backend/database/ledger-model.md). Stack, database rules, API: [local-first](backend/architecture/overview.md).
 
 ## Decisions
+Why each big decision was made, with alternatives: [ADRs](adr/README.md).
+
 - **Accounting standards first.** Users know accounting. The UI shows the ledger as it is: Chart of Accounts, General Journal, Account Register, reports.
 - **Double entry is mandatory.** Each entry has ≥2 lines. Total debit = total credit in the base currency. A DB trigger enforces it; the API checks it first.
 - **Local and private.** One SQLite file holds one ledger for one family. No server. Each member has a 6-digit PIN that opens a session: an app gate, not encryption ([pin-gate](pin-gate.md)).
