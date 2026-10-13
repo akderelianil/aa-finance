@@ -18,7 +18,7 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 6. Look at the screen in a browser (playwright-cli skill, `--browser=chromium`) in light and dark mode before you report it done.
 
 ## Project rules
-- **Tables:** ReUI `data-grid` for lists and ledgers. A plain `<table>` only inside a dialog preview or a split-line editor. Long lists page in SQL with `useServerPages` (`lib/grid.ts`); reports and trees do not page. Keep the loading skeleton at ≤10 rows ([DEVELOPMENT](../../../docs/DEVELOPMENT.md#ui)).
+- **Tables:** ReUI `data-grid` for lists and ledgers. A plain `<table>` only inside a dialog preview or a split-line editor. Long lists page in SQL with `useServerPages` (`lib/grid.ts`); reports and trees do not page. Keep the loading skeleton at ≤10 rows ([ui conventions](../../../docs/ui/README.md#conventions)).
 - **Numbers:** right-aligned, `tabular-nums`, same decimals in a column, currency once per column or card. Format with `useBook().fmt` and `useFormat()`; they follow the book country.
 - **Sign:** a negative value uses `text-destructive` and also shows the sign or a Borç/Alacak label. Colour never carries meaning alone.
 - **Status:** ReUI `Badge` light variants (`@/components/reui/badge`). One accent colour (`primary`, calm blue).
@@ -27,6 +27,7 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 - **Motion:** component defaults only. No entrance animation on ledger screens. A number is visible at once.
 - **Keyboard:** dialogs close with Esc, forms submit with Ctrl+Enter, Tab order follows the visual order.
 - **Copy:** sentence case, consistent terms, no filler and no invented numbers. UI text lives in `src/ui/i18n/` (Turkish and English).
+- **States:** every data region has an empty state with an action, a `Skeleton` while loading, and an inline error with Retry.
 - **Entry forms:** everyday words first, accounting detail one click deeper. Every blocking rule has a message. Save is never silently disabled.
 
 ## Not allowed

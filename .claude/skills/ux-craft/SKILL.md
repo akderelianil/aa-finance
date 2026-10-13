@@ -5,7 +5,7 @@ description: Learned UX practice for aa-finance (flows, information architecture
 
 # ux-craft
 
-Learned practice of `interaction-designer`. Written and kept by `interaction-designer` from its inbox (`.claude/inbox/interaction-designer/`). Rules: `.claude/rules/agents.md` (Inbox and skill learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `interaction-designer`. Written and kept by `interaction-designer` from its inbox (`.claude/inbox/interaction-designer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: how accounting-literate users enter, find and review money data with the fewest steps.
 

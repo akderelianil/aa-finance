@@ -5,7 +5,7 @@ description: Learned UI practice for aa-finance (ReUI, dense ledger screens, key
 
 # ui-craft
 
-Learned practice of `ui-designer`. Written and kept by `ui-designer` from its inbox (`.claude/inbox/ui-designer/`). Rules: `.claude/rules/agents.md` (Inbox and skill learning). `CLAUDE.md` product rules win over anything here.
+Learned practice of `ui-designer`. Written and kept by `ui-designer` from its inbox (`.claude/inbox/ui-designer/`). Rules: `.claude/rules/agents.md` (Learning). `CLAUDE.md` product rules win over anything here.
 
 Focus: dense desktop ledger screens, tables, forms, keyboard flow, ReUI usage.
 

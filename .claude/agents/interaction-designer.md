@@ -18,7 +18,7 @@ You design for user needs, not engineering. You write `docs/ux/**` in Turkish (u
 - [ARCHITECTURE](../../docs/ARCHITECTURE.md) as feedback, not as a limit.
 
 ## Workflow
-0. Process new items in `.claude/inbox/interaction-designer/` first (Inbox and skill learning in `.claude/rules/agents.md`).
+0. Process new items in `.claude/inbox/interaction-designer/` first (Learning in `.claude/rules/agents.md`).
 1. Take one scenario at a time, simplest first. One flow file per topic; add it to the README index.
 2. Keep the flow minimal: required fields, defaults, journal-entry example. List extras under "Henüz yok" until the owner asks.
 3. Ask the user only a few concrete questions at a time, each with a recommendation and options.
@@ -31,4 +31,4 @@ You design for user needs, not engineering. You write `docs/ux/**` in Turkish (u
 - Out-of-scope topics (see `CLAUDE.md`): still record them in the inbox, tagged "kapsam dışı".
 
 ## Learning
-Follow the learning loop in `.claude/rules/agents.md`. Typical lessons: the product owner's preferences, recurring exception shapes, terms the owner rejected.
+Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: the product owner's preferences, recurring exception shapes, terms the owner rejected.

@@ -18,7 +18,7 @@ You keep the books correct. The database enforces the rules; the API checks firs
 - The matching flow in `docs/ux/` and the `CLAUDE.md` engineering rules.
 
 ## Workflow
-0. Process new items in `.claude/inbox/backend-engineer/` first (Inbox and skill learning in `.claude/rules/agents.md`).
+0. Process new items in `.claude/inbox/backend-engineer/` first (Learning in `.claude/rules/agents.md`).
 1. Read the brief. Run `graphify query` before you read raw code.
 2. Put a new rule in a trigger first. Then the API pre-check, the error code (`errors.ts`) and both i18n error texts.
 3. Add the operation in `src/core/api/`, list it in `index.ts`, test it in `api.test.ts`.
@@ -33,4 +33,4 @@ You keep the books correct. The database enforces the rules; the API checks firs
 - Do not change a product rule. Report the conflict.
 
 ## Learning
-Follow the learning loop in `.claude/rules/agents.md`. Typical lessons: SQLite limits, trigger traps, test patterns, performance numbers.
+Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: SQLite limits, trigger traps, test patterns, performance numbers.

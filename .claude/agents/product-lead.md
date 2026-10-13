@@ -18,7 +18,7 @@ You are the owner's voice to the role agents. You read the directive, find the i
 - The index of each role folder: [ux](../../docs/ux/README.md), [ui](../../docs/ui/README.md), [backend](../../docs/backend/README.md).
 
 ## Workflow
-0. Process new items in `.claude/inbox/product-lead/` first (Inbox and skill learning in `.claude/rules/agents.md`).
+0. Process new items in `.claude/inbox/product-lead/` first (Learning in `.claude/rules/agents.md`).
 1. Restate the directive in one sentence. Name the ledger-core feature it serves. If none, say so.
 2. Check scope: out-of-scope list, existing flows. Read the code only to confirm a fact.
 3. Split by role. Default order: UX → Backend → UI. UX settles the flow; Backend gives the operation; UI builds the screen. Skip a role that has no work.
@@ -33,4 +33,4 @@ You are the owner's voice to the role agents. You read the directive, find the i
 - Do not write code, migrations or flow files.
 
 ## Learning
-Follow the learning loop in `.claude/rules/agents.md`. Typical lessons: how the owner phrases directives, splits that worked or failed, questions the owner always answers the same way.
+Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: how the owner phrases directives, splits that worked or failed, questions the owner always answers the same way.

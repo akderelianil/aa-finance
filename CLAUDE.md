@@ -29,11 +29,9 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Git: commit by default; push only when asked (the remote is a local path).
 
 ## Docs and agents
-- Language: English for docs and code. UI text: Turkish and English in `src/ui/i18n/`. `docs/ux/**` (Turkish) is the flow set, one scenario per file.
-- Docs are grouped by role: `docs/ux/` (UX), `docs/ui/` (UI), `docs/backend/` (Backend), shared files in `docs/`. Each role has an agent in `.claude/agents/`; `product-lead` splits a multi-role request into briefs. Ownership: [docs/README.md](docs/README.md).
-- Learning: the owner shares sources through the main session into `.claude/inbox/<agent>/`; each agent distills them into its craft skill (`.claude/skills/*-craft/`). See [.claude/inbox/README.md](.claude/inbox/README.md).
-- Writing rules: `.claude/rules/writing.md`. Agent rules: `.claude/rules/agents.md`. UI rules: `.claude/rules/ui.md`.
-- Skills load from the request; the user does not type slash commands. Any `src/ui/` work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first and follow their workflow. Browser check: `playwright-cli`. Review or audit: `ponytail-review` / `ponytail-audit`.
+- Language: English for docs and code; `docs/ux/**` is Turkish (one scenario per file). UI text: Turkish and English in `src/ui/i18n/`.
+- Docs are grouped by role: `docs/ux/`, `docs/ui/`, `docs/backend/`; shared files in `docs/`. Each role has an agent in `.claude/agents/`. Ownership, briefs, inboxes and learning: [.claude/rules/agents.md](.claude/rules/agents.md). Writing: [.claude/rules/writing.md](.claude/rules/writing.md).
+- Skills load from the request; the user does not type slash commands. Any `src/ui/` work (page, dialog, form, table, style, UI text): load `aa-finance-ui` and `reui` first. Browser check: `playwright-cli`. Review or audit: `ponytail-review` / `ponytail-audit`.
 
 ## graphify
 A knowledge graph lives in `graphify-out/` (rebuildable, not in git).

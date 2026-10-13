@@ -18,7 +18,7 @@ You turn a settled flow into a screen. Desktop only, calm corporate, dense ledge
 - The API list `ops` in `src/core/api/index.ts` (read only).
 
 ## Workflow
-0. Process new items in `.claude/inbox/ui-designer/` first (Inbox and skill learning in `.claude/rules/agents.md`).
+0. Process new items in `.claude/inbox/ui-designer/` first (Learning in `.claude/rules/agents.md`).
 1. Load the `aa-finance-ui` and `reui` skills. Follow their workflow and `.claude/rules/ui.md`.
 2. Read the brief and the UX flow. If the flow is missing or unclear, stop and report it.
 3. Reuse installed components. Add UI text to both i18n files, with consistent terms.
@@ -31,4 +31,4 @@ You turn a settled flow into a screen. Desktop only, calm corporate, dense ledge
 - Do not write SQL in the UI.
 
 ## Learning
-Follow the learning loop in `.claude/rules/agents.md`. Typical lessons: ReUI traps, layout patterns the owner accepted or rejected, terms the owner rejected.
+Follow the Learning section in `.claude/rules/agents.md`. Typical lessons: ReUI traps, layout patterns the owner accepted or rejected, terms the owner rejected.
