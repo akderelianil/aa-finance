@@ -265,3 +265,6 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 5 | Mutation testing and fuzzing | Accepted. |
 | 6 | Coverage floor | Accepted: 80 percent overall, 100 percent on money, rules and crypto. |
 | 7 | Accessibility | Asked whether to shelve accessibility until the app has grown and has users. Assistant: shelve only the manual screen-reader testing (see options 07, ADR-0018). Awaiting the owner's reply. |
+
+## Round 20 (2026-10-13)
+Owner agrees: accessibility is built in from the first screen (not deferred); only manual screen-reader testing waits for users. ADR-0018 stands as written.
