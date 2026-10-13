@@ -15,3 +15,6 @@ Sade başlangıç. Eski UX belgeleri silindi (git geçmişinde). Her akış tek 
 | [transfer](transfer.md) | Hesaplar arası, ATM çekme/yatırma, kart ödemesi; isteğe bağlı masraf |
 | [borc](borc.md) | Borç Verme, Borç Alma, Tahsilat, Ödeme (Rehber kişileri arasında); kredi yok |
 | [rehber](rehber.md) | Kişi, Marka, Firma listesi; Marka ↔ Firma bağı; varsayılan hesaplar |
+
+## Aday senaryolar
+- **Geçmiş:** bir kaydın değişiklik geçmişi (kim, ne zaman, eski → yeni değer), `audit_log` ve `activity_log` üzerinden. Öncelik sahibin kararı.

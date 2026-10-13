@@ -20,6 +20,7 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 ## Project rules
 - **Tables:** ReUI `data-grid` for lists and ledgers. A plain `<table>` only inside a dialog preview or a split-line editor. Long lists page in SQL with `useServerPages` (`lib/grid.ts`); reports and trees do not page. Keep the loading skeleton at ≤10 rows ([ui conventions](../../../docs/product-designer/ui/README.md#conventions)).
 - **Numbers:** right-aligned, `tabular-nums`, same decimals in a column, currency once per column or card. Format with `useBook().fmt` and `useFormat()`; they follow the book country.
+- **Exact amounts:** round or abbreviate (1,2 B) only on chart axes and summary cards. Entry previews, confirmations, registers, statements and reports show the exact amount.
 - **Sign:** a negative value uses `text-destructive` and also shows the sign or a Borç/Alacak label. Colour never carries meaning alone.
 - **Status:** ReUI `Badge` light variants (`@/components/reui/badge`). One accent colour (`primary`, calm blue).
 - **Charts:** a bar chart for a time trend; `Progress` and a percentage for shares, no pie charts. At most two series colours: `--chart-2` income, `--chart-4` expense.
@@ -28,6 +29,10 @@ The `reui` skill (`.claude/skills/reui/SKILL.md`) owns the workflow, components 
 - **Keyboard:** dialogs close with Esc, forms submit with Ctrl+Enter, Tab order follows the visual order.
 - **Copy:** sentence case, consistent terms, no filler and no invented numbers. UI text lives in `src/ui/i18n/` (Turkish and English).
 - **States:** every data region has an empty state with an action, a `Skeleton` while loading, and an inline error with Retry.
+- **Confirmation:** friction matches the stakes. Quick Entry saves with no extra confirm. Delete, void, locked-root change and member removal ask first and say what changes.
+- **Status words:** one word, icon and Badge colour per state, used everywhere: Taslak (draft), İşlendi (posted), Kur eksik (`rate_missing`), İptal. Add a state to this list before using it.
+- **Errors:** every message says what happened, what to do, and where to go. Neutral tone, never blame the user. Message keys live in `src/ui/i18n/`.
+- **Jargon:** accounting terms stay; the first appearance in a screen gets a tooltip with a one-line meaning.
 - **Entry forms:** everyday words first, accounting detail one click deeper. Every blocking rule has a message. Save is never silently disabled.
 
 ## Not allowed

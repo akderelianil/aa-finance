@@ -12,7 +12,8 @@ Focus: SQLite rules and triggers, accounting correctness, API design, Rust bridg
 ## Practices
 One practice per line: rule · why · source · date. Source is a shared source (url or title) or `work` (learned on a task). Newer replaces older. Move a long topic to `references/<topic>.md` and link it here.
 
-(empty)
+- Error messages answer three things: what happened, what the user can do, where to go. Neutral, never blaming. A stable code maps to one i18n key; the API check supplies the clear message, the trigger the code. · fintech UX guide §06 · theskinsfactory.com/definitive-fintech-ui-ux-design-guide · 2026-10-13
+- Audit queries should return before/after values, actor and time in a shape the UI can show as a plain history list. · guide §16 · same · 2026-10-13
 
 ## Open questions
 Things a source raised that need the owner's decision.

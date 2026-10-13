@@ -17,6 +17,8 @@ One practice per line: rule · why · source · date. Source is a shared source 
 - To check built behavior, read the page component, `src/core/api/` and `src/ui/i18n/tr.ts` (the real UI words). · commit messages omit limits · work · 2026-10-12
 - Owner-given keyboard maps can clash with platform norms (Shift+Tab = back vs focus back; Enter = next vs Enter adds a row). Define the key per step and context, flag the clash. · found both in kurulum.md · work · 2026-10-12
 - Decisions move fast; docs/backend/architecture/overview.md can lag. Check and flag to main. · kurulum sync · work · 2026-10-12
+- Fintech UX guide, distilled. Exact amounts on confirmations and registers (abbreviate only on axes); colour never the only carrier of meaning; summary first, detail one click away; chart only if faster than a table; confirmation proportional to irreversibility; every failure names a way out; name intermediate states. Most of the guide (KYC, MFA, mobile, crypto, AI, notifications) is out of scope. · generic, shallow on tables and forms · theskinsfactory.com/definitive-fintech-ui-ux-design-guide · 2026-10-13
+- Candidate scenario: "Geçmiş" (human-readable change history: who, when, old → new value, from `audit_log`/`activity_log`). Not yet a flow; owner decides priority. · guide §16 · 2026-10-13
 
 ## Open questions
 Things a source raised that need the owner's decision.
