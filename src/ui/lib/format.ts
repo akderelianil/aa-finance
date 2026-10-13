@@ -3,16 +3,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useOp } from './api'
-
-/** The country's own locale (und-TR → tr-TR); the UI language when no country is set. */
-export const formatLocale = (country: string | null | undefined, language: string) => {
-  if (!country) return language
-  try {
-    return new Intl.Locale('und', { region: country }).maximize().toString()
-  } catch {
-    return language
-  }
-}
+import { formatLocale } from './locale'
 
 const day = { day: '2-digit', month: '2-digit', year: 'numeric' } as const
 

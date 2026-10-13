@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { Account } from '../../core/api/accounts.ts'
 import type { AccountType } from '../../core/chart.ts'
 import { useOp } from './api'
-import { formatLocale } from './format'
+import { formatLocale } from './locale'
 
 export type { Account, AccountType }
 

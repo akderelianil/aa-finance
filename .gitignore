@@ -16,3 +16,7 @@ docs/.obsidian/*
 
 .dev/
 .claude/briefs/
+
+# Playwright
+test-results/
+playwright-report/

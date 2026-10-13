@@ -15,9 +15,9 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-3 | Every entry has ≥2 lines and balances on `base_amount` | PR-3.1 to PR-3.2 |
 | PR-4 | Every account has a currency; rates are manual (given rate > given base > stored > `rate_missing`) | PR-4.1 to PR-4.5 |
 | PR-5 | A journal entry is a completed event only | absence of a feature |
-| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.7 |
-| PR-7 | Number and date format follow the book country | PR-7.1 (partial) |
-| PR-8 | Entry flows: Gider, Gelir, Transfer, Borç, Serbest kayıt | PR-8.1 to PR-8.4 |
+| PR-6 | One file = one family; roles; own-entry rule; PIN gate | PR-6.1 to PR-6.9 |
+| PR-7 | Number and date format follow the book country | PR-7.1 to PR-7.2 |
+| PR-8 | Entry flows: Gider, Gelir, Transfer, Borç, Serbest kayıt | PR-8.1 to PR-8.5 |
 | PR-9 | Out of scope: AI, bank import, notifications, bills, sync, mobile | absence of features |
 
 ## Evidence
@@ -34,6 +34,8 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-4.5 | PR-4 | a given rate wins over a given base amount, which wins over the stored rate | test: a given rate wins over a given base amount, which wins over the stored rate |
 | PR-4.4 | PR-4 | `fx.list`, `fx.delete` (soft delete) | test: fx.list returns live rates newest first, filtered by currency; remove hides a rate |
 | PR-5.1 | PR-5 | no plan or reminder tables; entries are `draft` then `posted` | test: NONE |
+| PR-6.8 | PR-6 | grants UI: no "New account" without the grant, visible after the admin grants it (browser) | test: a member sees "New account" only after the admin grants accounts |
+| PR-6.9 | PR-6 | idle lock, then another member, then the same member again: the open dialog and draft come back (browser) | test: an open Quick Entry draft comes back when its member signs in again |
 | PR-6.7 | PR-6 | grants: `permission_denied` by API and triggers; only the admin changes them | test: without a grant a member cannot change accounts, rates or contacts; reading stays open |
 | PR-6.6 | PR-6 | `members.remove`: admin only, not self, last admin stays | test: members.remove: admin only, another member only, entries and history stay |
 | PR-6.1 | PR-6 | triggers `entry_not_owner`, `admin_only`, `last_admin` | test: members: setup adds them, admin manages, a member edits only own name and own entries |
@@ -41,15 +43,15 @@ Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is en
 | PR-6.3 | PR-6 | 5 wrong tries → 30 s wait, kept in the file | test: pin: 5 wrong tries wait 30 s, restart keeps it, recovery after the wait, success clears |
 | PR-6.4 | PR-6 | admin reset, not self | test: pin: admin resets another member, not self; a member cannot reset |
 | PR-6.5 | PR-6 | hash stored, never logged | test: pin: setup stores the first admin PIN with the hash, never in audit_log; setup binds the admin |
-| PR-7.1 | PR-7 | decimal parsing for both separator styles; the locale choice (`formatLocale`) has no test yet (story 6) | test: parseDecimal accepts both separator styles and returns a canonical string |
+| PR-7.1 | PR-7 | decimal parsing for both separator styles | test: parseDecimal accepts both separator styles and returns a canonical string |
+| PR-7.2 | PR-7 | `formatLocale`: the book country picks the locale, the UI language is the fallback | test: formatLocale gives the country locale, whatever the UI language |
 | PR-8.1 | PR-8 | `quick.ts` expense builder | test: expense: splits on a card; a foreign payment converts with the last split taking the rounding |
 | PR-8.2 | PR-8 | `quick.ts` income builder | test: income: received into an asset, split over income accounts |
 | PR-8.3 | PR-8 | `quick.ts` transfer builder | test: transfer: ATM with fee, card payment, and across currencies |
+| PR-8.5 | PR-8 | Gider through the real UI: setup, PIN, Quick Entry, journal, trial balance (browser) | test: setup, PIN, Quick Entry, journal, trial balance |
 | PR-8.4 | PR-8 | `quick.ts` debt builder | test: debt: lend, borrow, collect, repay move the right sides |
 | PR-9.1 | PR-9 | no code for these features | test: NONE |
 
 ## Open gaps
-- PR-6: the grants UI (Settings > Members) and the hidden controls were checked by hand in the browser, not by an automated test; story `harness-plan-6` adds E2E.
-- PR-7: no test for the book-country locale (`formatLocale`); story `harness-plan-6` moves it to a pure module and tests it.
 - PR-1, PR-5, PR-9: scope and absence rules; reviewed by hand against the ROADMAP.
 - UI terms in PR-2 (Yevmiye, Hesap Planı, Mizan…) are checked by the i18n tests only for key completeness, not wording.

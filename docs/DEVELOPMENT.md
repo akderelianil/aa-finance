@@ -21,6 +21,8 @@ Run from the repo root.
 | Demo book (stop Vite first) | `npm run seed` |
 | Benchmark on 10k entries | `npm run bench` |
 
+E2E (browser, Playwright): `npx playwright install chromium` once (or `E2E_CHROMIUM=<path to chrome>`), then `npm run e2e`. It starts Vite on port 5198 with a throwaway SQLite file and runs `evals/e2e/`: setup, PIN, Quick Entry, journal, trial balance, grants UI, draft kept across members.
+
 Minimum check after a change: `npm run verify:web` (tests with a coverage floor, `tsc`, lint); with `src-tauri/` changes also `npm run verify:rust`. `npm run verify` runs both; the pre-commit hook (`npm run hooks:install`) runs the web part.
 
 ## Run the real app

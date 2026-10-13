@@ -1,14 +1,14 @@
 // Test titles that exist in the repo, and the test titles a Markdown trace file names. Docs-check support only.
 import { readdirSync, readFileSync } from 'node:fs'
 
-const ROOTS = ['src', 'scripts'].map((dir) => new URL(`../../../${dir}/`, import.meta.url))
+const ROOTS = ['src', 'scripts', 'evals'].map((dir) => new URL(`../../../${dir}/`, import.meta.url))
 
 function* testFiles(dir: URL): Generator<URL> {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === 'node_modules') continue
     const next = new URL(entry.name + (entry.isDirectory() ? '/' : ''), dir)
     if (entry.isDirectory()) yield* testFiles(next)
-    else if (entry.name.endsWith('.test.ts')) yield next
+    else if (entry.name.endsWith('.test.ts') || entry.name.endsWith('.spec.ts')) yield next
   }
 }
 

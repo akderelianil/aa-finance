@@ -18,5 +18,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "scripts/dev-db.ts", "scripts/hooks", "scripts/gen-api-docs.ts", "scripts/gen-api-docs.test.ts", "scripts/gen-changelog.ts", "scripts/gen-changelog.test.ts", "vite.config.ts"]
+  "include": ["src", "scripts/dev-db.ts", "scripts/hooks", "scripts/gen-api-docs.ts", "scripts/gen-api-docs.test.ts", "scripts/gen-changelog.ts", "scripts/gen-changelog.test.ts", "evals", "playwright.config.ts", "vite.config.ts"]
 }
