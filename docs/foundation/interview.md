@@ -224,3 +224,12 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 4 | Region | EU, Germany preferred. |
 | 5 | Quota | Decide later. |
 | 6 | Self-hosting | Accepted: Docker image and docs, no user support. |
+
+## Round 15 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Region | EU is enough (Germany not required). |
+| 2 | Server language | TypeScript on Workers accepted. |
+| 3 | Security review | Yes: independent security review of the key design. |
+| + | Self-hosting idea | Send self-hosters to their own Cloudflare account instead of a VPS and Docker, to avoid extra work. Asked for the assistant's opinion. |
