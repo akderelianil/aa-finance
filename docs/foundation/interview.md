@@ -188,3 +188,15 @@ Owner approved the vision with one change: remove the "adults 18+" statement; no
 | 4 | OS versions | Accepted: Windows 10 22H2 and 11, macOS 13+, Ubuntu 22.04+ and equivalents. |
 | 5 | Performance budgets | Do not set limits now; build correct, high quality first, then measure and optimize. |
 | 6 | Web UI | React stays; keep using ReUI (shadcn) where possible. |
+
+## Round 12 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Entry numbers | Drop gapless numbers. The user may want to write the identity number of a bought product or service invoice: an optional free "No" field. |
+| 2 | Dust rounding | Did not understand; explained with an example in the next reply. |
+| 3 | History scope | Everything has revisions (entries, accounts, prices, settings, members). |
+| 4 | Period lock | Keep, at the admin's choice. |
+| 5 | Book currency | Fixed per ledger; reports can show any unit. A later re-base tool is welcome. |
+| 6 | Archive | Accounts and commodities in use are archived, never deleted. |
+| 7 | Independent review | Yes: database-reviewer and architect run on options 02 (results follow). |
