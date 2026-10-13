@@ -14,7 +14,5 @@ docs/.obsidian/*
 .claude/agent-memory-local/
 .playwright-cli/
 
-# graphify: local cache and rebuildable output
-graphify-out/
 .dev/
 .claude/briefs/
