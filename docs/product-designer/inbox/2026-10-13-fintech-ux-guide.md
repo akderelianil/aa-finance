@@ -2,7 +2,7 @@
 status: done
 from: owner
 source: https://www.theskinsfactory.com/definitive-fintech-ui-ux-design-guide
-result: design-craft practices + aa-finance-ui rules (exact amounts, confirmation, status words, errors, jargon)
+result: UI conventions in docs/product-designer/ui (exact amounts, confirmation, status words, errors, jargon)
 ---
 Why it matters: owner found a good fintech UX/UI guide and wants lessons for aa-finance.
 

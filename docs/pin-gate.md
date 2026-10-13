@@ -41,7 +41,6 @@ Ledger-core link: none directly. It protects access to the core. Judged as a sma
 2. **Backend**: migration, hash, operations, gate, tests.
 3. **Design screen** uses the Backend operations. In practice: Backend first, then the screen stage.
 
-Briefs: `.claude/briefs/2026-10-13-pin-gate-design.md`, `.claude/briefs/2026-10-13-pin-gate-backend.md`.
 
 ## Docs and rules that must change
 | File | Change | Who |

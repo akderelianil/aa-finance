@@ -35,8 +35,7 @@ Technologies in use. Versions come from `package.json` and `src-tauri/Cargo.toml
 | Type check | `tsc` | `npx tsc --noEmit`. |
 | Lint | oxlint | `npm run lint`. |
 | Dev in a browser | Vite plugin `scripts/dev-db.ts` | Serves a `node:sqlite` database for Playwright checks. |
-| Browser checks | Playwright (`playwright-cli` skill) | Light and dark mode. |
-| Code graph | graphify | `graphify query` before reading raw code. |
+| Browser checks | Playwright (`playwright-cli`) | Light and dark mode. |
 
 ## Decisions
 - No ORM, no query builder, no DuckDB: plain SQL files in `src/core/`.

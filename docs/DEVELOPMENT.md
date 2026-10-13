@@ -38,8 +38,7 @@ Minimum check after a change: `npm test && npx tsc --noEmit && npm run lint`.
 
 ## Working rules
 Backend rules: [backend/README](backend/README.md#working-rules). UI rules: [ui/README](product-designer/ui/README.md).
-1. Check every UI change in a browser (playwright-cli skill): light and dark mode, then close the session. Screenshots go to `.playwright-cli/` (gitignored).
-2. After code changes run `graphify update .`.
+1. Check every UI change in a browser (`playwright-cli`): light and dark mode, then close the session. Screenshots go to `.playwright-cli/` (gitignored).
 
 ## Test data
 `npm run seed` writes a family book to `.dev/aa-finance.sqlite` (gitignored): Ahmet (admin), Ayşe, Fatma and Dursun, 344 entries from 2026-07-01 to 2026-09-30. It covers Gider, Gelir, Transfer, Borç and Serbest kayıt, USD and EUR, splits, fees, the Rehber, edits, deletes and an admin fix of a member entry. The script is `scripts/dev/seed-local.ts`. The Supabase demo accounts and seed scripts are retired in `archive/`.
