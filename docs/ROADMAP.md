@@ -10,7 +10,7 @@ Goal: a GnuCash-style double-entry core for professional personal-finance users.
 ## Done
 | Phase | Content |
 |---|---|
-| Ledger core (Oct 2026, Supabase) | Chart of Accounts, General Journal, Account Register, reports, Quick Entry, simple chart, ReUI. Retired in `archive/`; tag `supabase-final`. |
+| Ledger core (Oct 2026, Supabase) | Chart of Accounts, General Journal, Account Register, reports, Quick Entry, simple chart, ReUI. Retired; the code is kept in tag `supabase-final`. |
 | L0–L2 | Tauri shell, SQLite schema with triggers, core API with tests. See [local-first](backend/architecture/overview.md). |
 | L3 | UI on ReUI: Chart of Accounts, Journal and editor with history, Register, Reports, Quick Entry, Settings, Exchange Rates. |
 | L4 | Backup (manual, daily automatic, restore), Activity page, benchmark. |

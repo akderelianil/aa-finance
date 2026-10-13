@@ -5,7 +5,7 @@ status: draft
 
 # Repo scan (2026-10-13)
 
-Read-only scan by `ecc:code-explorer`. `archive/` ignored. Tests, `tsc`, lint and coverage were **not** run. Line numbers may drift.
+Read-only scan by `ecc:code-explorer`. Tests, `tsc`, lint and coverage were **not** run. Line numbers may drift.
 
 ## Layers
 - `src/core/`: pure TS. `db.ts:8-16` is the `Db` interface (`query`, `batch`). `api/` holds the named ops (accounts, contacts, entries, fx, logs, members, reports, settings), `ctx.ts`, `errors.ts`, `index.ts` (op registry). Also `quick.ts`, `money.ts`, `pin.ts`, `chart.ts`, `setup.ts`, `countries.ts`, `migrate.ts`, `migrations/0001..0012`.
@@ -54,7 +54,7 @@ Read-only scan by `ecc:code-explorer`. `archive/` ignored. Tests, `tsc`, lint an
 7. Continue with the ROADMAP "Next" item (Hızlı Kayıt review).
 
 ## Inventory (`repo-scan` pre-scan, 2026-10-13)
-- Project source: 612 files, 7.49 MB. Of that, `src/` 148 files (1.20 MB), `src-tauri/` 31 (482 KB), `docs/` 32 (71 KB), `scripts/` 3, `archive/` 235 (1.84 MB). Stack: 282 TS/JS files, 2 CSS. No bundled third-party code.
+- Project source: 612 files, 7.49 MB. Of that, `src/` 148 files (1.20 MB), `src-tauri/` 31 (482 KB), `docs/` 32 (71 KB), `scripts/` 3, `archive/` 235 (1.84 MB, deleted afterwards). Stack: 282 TS/JS files, 2 CSS. No bundled third-party code.
 - Disk: 12 GB total, 99.9% build output. `src-tauri/target/` alone is 11.83 GB (`debug` 5.75 GB, `release` 1.20 GB); `node_modules/` 239 MB; `dist/` 1.4 MB. Clean with `cargo clean` when space is needed.
 - Git: 1 repo, 229 commits, all within the last year.
 - Same-name directories (`ui/`, `scripts/`, `inbox/`) are different things (docs vs code, archive vs live), not duplicates.

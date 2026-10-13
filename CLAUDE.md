@@ -6,7 +6,7 @@ Professional personal-finance app with double-entry bookkeeping, modeled on GnuC
 - Tauri 2 (desktop only, no mobile or tablet layout) + SQLite (WAL) + TypeScript. UI: React + Vite + Tailwind, base **ReUI** (`@reui` registry, MCP `reui`) on shadcn `base-nova` (Base UI).
 - `src/core/`: pure TypeScript (rules, SQL, named API operations, tests). Never imports UI or Tauri code. `src/ui/`: pages and components. `src-tauri/`: thin Rust (`db_query`, `db_batch`, backup).
 - Details: [docs/backend/architecture/overview.md](docs/backend/architecture/overview.md). Commands and machine notes: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Dev machine: WSL2 Ubuntu 24.04 (bash); the repo lives in `~/aa-finance`, not on `/mnt/c`. Package manager: npm.
-- `archive/` holds the retired Supabase version (`web/`, `supabase/`, seed scripts). Do not edit or read it unless the user asks. Tag `supabase-final` marks the last Supabase commit.
+- The retired Supabase version (`web/`, `supabase/`, seed scripts) is gone from `main`. Tag `supabase-final` marks the last Supabase commit; read it only if the user asks.
 
 ## Product rules
 - Ledger core first: Chart of Accounts, General Journal, Account Register, Reports. Judge every feature against this core.
