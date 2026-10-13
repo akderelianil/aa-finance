@@ -18,7 +18,7 @@ export type AccountHandlers = {
 }
 
 // One rule set for the detail panel and the right-click menu. Locked (system) accounts never change.
-export function accountActions(n: AccountNode, h: AccountHandlers, t: TFunction, canManage = true): AccountAction[] {
+export function accountActions(n: AccountNode, h: AccountHandlers, t: TFunction, canManage: boolean): AccountAction[] {
   const out: AccountAction[] = []
   if (!n.placeholder) out.push({ key: 'register', label: t('coa.openRegister'), onSelect: () => h.openRegister(n) })
   if (canManage && takesChildren(n) && !n.archived)

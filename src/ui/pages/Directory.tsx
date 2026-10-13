@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { useGrants } from '@/lib/grants'
+import { cn } from '@/lib/utils'
 import { useBook } from '@/lib/ledger'
 import type { Contact, ContactKind } from '../../core/api/contacts.ts'
 
@@ -35,6 +36,7 @@ export default function Directory() {
   const balances = useOp('contacts.balances', {})
   const { fmt } = useBook()
   const canManage = useGrants().contacts
+  const Tag = canManage ? 'button' : 'div'
   const remove = useWrite('contacts.delete', { inline: true })
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
@@ -110,9 +112,9 @@ export default function Directory() {
                 const links = c.partners.map((id) => names.get(id)).filter(Boolean).join(', ')
                 return (
                   <li key={c.id} className="flex items-center gap-1 pe-2">
-                    <button
-                      type="button" disabled={!canManage} onClick={() => setTarget({ mode: 'edit', contact: c })} aria-label={`${t('dir.edit')}: ${c.name}`}
-                      className="flex min-w-0 flex-1 items-center gap-3 p-3 text-start transition-colors hover:bg-muted/50"
+                    <Tag
+                      {...(canManage ? { type: 'button' as const, onClick: () => setTarget({ mode: 'edit', contact: c }), 'aria-label': `${t('dir.edit')}: ${c.name}` } : {})}
+                      className={cn('flex min-w-0 flex-1 items-center gap-3 p-3 text-start', canManage && 'transition-colors hover:bg-muted/50')}
                     >
                       <Avatar><AvatarFallback>{c.name.trim().slice(0, 1).toLocaleUpperCase(i18n.language)}</AvatarFallback></Avatar>
                       <span className="flex min-w-0 flex-1 flex-col">
@@ -127,7 +129,7 @@ export default function Directory() {
                           </span>
                         )) : <span className="text-xs text-muted-foreground">{t('dir.settled')}</span>}
                       </span>
-                    </button>
+                    </Tag>
                     {canManage && <DropdownMenu>
                       <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={t('common.actions')} />}>
                         <MoreHorizontalIcon />

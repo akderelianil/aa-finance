@@ -67,9 +67,9 @@ export default function Rates() {
       cell: ({ row: { original: r } }) => r.rate,
       meta: { headerClassName: 'text-end [&>div]:justify-end', cellClassName: 'text-end tabular-nums', skeleton: <Skeleton className="ml-auto h-4 w-16" /> },
     },
-    {
+    ...(!canManage ? [] : [{
       id: 'actions', header: () => null, size: 56, enableSorting: false,
-      cell: ({ row: { original: r } }) => !canManage ? null : (
+      cell: ({ row: { original: r } }: { row: { original: FxRate } }) => (
         <Button
           variant="ghost" size="icon-xs" aria-label={t('common.delete')}
           onClick={() => { remove.reset(); setDeleting(r) }}
@@ -78,7 +78,8 @@ export default function Rates() {
         </Button>
       ),
       meta: { skeleton: <Skeleton className="size-5" /> },
-    },
+    }]),
+  // The delete handlers are stable setState/mutation functions.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [t, i18n.language, base, fmtDate, canManage])
 

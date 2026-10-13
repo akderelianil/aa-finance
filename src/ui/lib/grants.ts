@@ -4,6 +4,7 @@ import { useOp } from './api.ts'
 
 const NONE: Grants = { accounts: false, rates: false, contacts: false }
 
+/** None while the member list loads, so a control never shows up and then disappears. */
 export function useGrants(): Grants {
   const members = useOp('members.list', {})
   return members.data?.find((m) => m.me)?.grants ?? NONE

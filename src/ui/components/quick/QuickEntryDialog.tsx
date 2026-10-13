@@ -18,7 +18,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { amountIssue, currencySymbol, fromBase, parseDecimal, toDecimal, toMinor, today } from '@/lib/amount'
 import { notify } from '@/lib/notify'
-import { call, useErrorText, useOp } from '@/lib/api'
+import { ApiError, call, useErrorText, useOp } from '@/lib/api'
+import { useGrants } from '@/lib/grants'
 import { flattenTree, shown, useAccountTree, useBook, type AccountNode } from '@/lib/ledger'
 import { useKept } from '@/lib/kept'
 import { useQueryClient } from '@tanstack/react-query'
@@ -87,6 +88,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
   const [showBooking, setShowBooking] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [saving, setSaving] = useState(false)
+  const grants = useGrants()
   const [saveError, setSaveError] = useState<unknown>(null)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -240,6 +242,14 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
       setAttempted(true)
       setTimeout(() => rootRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(), 50)
       return
+    }
+    // Nothing is created when a part of it would be refused: no half-saved debt with an orphan Rehber record.
+    if (kind === 'debt' && debtGroup) {
+      const needsAccount = !debtAccounts.some((a) => a.currency === acc(money)?.currency)
+      if ((person.startsWith(NEW) && !grants.contacts) || (needsAccount && !grants.accounts)) {
+        setSaveError(new ApiError('permission_denied'))
+        return
+      }
     }
     setSaving(true)
     setSaveError(null)
@@ -432,7 +442,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
             hint={person.startsWith(NEW) ? t('quick.newPersonHint') : undefined}>
             <AccountCombobox
               accounts={people} value={person} onChange={setPerson} invalid={!!show('person')} aria-label={t('quick.person')}
-              creatable placeholder={t('quick.personPlaceholder')} createLabel={(name) => t('quick.newAccount', { name })}
+              creatable={grants.contacts} placeholder={t('quick.personPlaceholder')} createLabel={(name) => t('quick.newAccount', { name })}
             />
           </Field>
           {account('money', moneyLabel, assets, money, setMoney)}
@@ -479,7 +489,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
       {(kind === 'expense' || kind === 'income') && (single ? (
         <div className="grid grid-cols-2 gap-3">
           {account('money', t('quick.account'), moneyList, money, setMoney)}
-          {account(`acc${splits[0].key}`, categoryLabel, categories, splits[0].account, (v) => setSplit(splits[0].key, { account: v }), true)}
+          {account(`acc${splits[0].key}`, categoryLabel, categories, splits[0].account, (v) => setSplit(splits[0].key, { account: v }), grants.accounts)}
         </div>
       ) : (
         account('money', t('quick.account'), moneyList, money, setMoney)
@@ -520,7 +530,7 @@ function QuickForm({ onClose, onFree }: { onClose: () => void; onFree: () => voi
                 {splits.map((s, i) => (
                   <tr key={s.key} className="align-top [&>td]:px-1 [&>td]:py-0.5">
                     <td>{picker(`mon${s.key}`, moneyList, s.money || money, (v) => setSplit(s.key, { money: v === money ? '' : v }), `${t('quick.account')} ${i + 1}`)}</td>
-                    <td>{picker(`acc${s.key}`, categories, s.account, (v) => setSplit(s.key, { account: v }), `${categoryLabel} ${i + 1}`, true)}</td>
+                    <td>{picker(`acc${s.key}`, categories, s.account, (v) => setSplit(s.key, { account: v }), `${categoryLabel} ${i + 1}`, grants.accounts)}</td>
                     <td>
                       <AmountInput
                         value={s.amount} currency={currencySymbol(rowCur(s))} exponent={minor(rowCur(s))} aria-label={t('quick.amount')}

@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Frame, FrameDescription, FrameHeader, FramePanel, FrameTitle } from '@/components/reui/frame'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -191,8 +191,9 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
         </Field>
         {role === 'member' && (
           <Field>
-            <FieldLabel id="member-grants">{t('members.grants')}</FieldLabel>
-            <div role="group" aria-labelledby="member-grants" className="flex flex-wrap gap-x-6 gap-y-2">
+            <fieldset className="flex flex-col gap-2">
+            <FieldLegend variant="label">{t('members.grants')}</FieldLegend>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
               {GRANT_KEYS.map((k) => (
                 <Label key={k} className="gap-2 font-normal">
                   <Checkbox checked={grants[k]} disabled={!admin} onCheckedChange={(v) => setGrants((g) => ({ ...g, [k]: v === true }))} />
@@ -201,6 +202,7 @@ function MemberForm({ target, admin, count, onClose }: { target: Target; admin: 
               ))}
             </div>
             <FieldDescription>{admin ? t('members.grantsHint') : t('members.adminOnly')}</FieldDescription>
+            </fieldset>
           </Field>
         )}
         {save.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(save.error)}</AlertDescription></Alert>}
@@ -317,11 +319,13 @@ function RemoveMemberDialog({ member, onClose }: { member: Member | null; onClos
   const { t } = useTranslation()
   const errorText = useErrorText()
   const remove = useWrite('members.remove', { inline: true })
+  const last = useRef(member)
+  if (member) last.current = member
   return (
     <AlertDialog open={!!member} onOpenChange={(o) => { if (!o) { remove.reset(); onClose() } }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t('members.removeTitle', { name: member?.name })}</AlertDialogTitle>
+          <AlertDialogTitle>{t('members.removeTitle', { name: (member ?? last.current)?.name })}</AlertDialogTitle>
           <AlertDialogDescription>{t('members.removeBody')}</AlertDialogDescription>
         </AlertDialogHeader>
         {remove.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(remove.error)}</AlertDescription></Alert>}
