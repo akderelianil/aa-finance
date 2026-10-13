@@ -42,8 +42,8 @@ export function useWrite<K extends OpName>(op: K, opts: { inline?: boolean } = {
     mutationFn: (input: Input<K>) =>
       notify.track(call(op, input), {
         inline: opts.inline,
-        pending: t(`ops.${op}.pending` as never),
-        done: t(`ops.${op}.done` as never),
+        pending: t(`ops.${op}.pending`),
+        done: t(`ops.${op}.done`),
         error: errorText,
       }),
     onSuccess: () => qc.invalidateQueries(),

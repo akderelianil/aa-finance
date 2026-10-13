@@ -1,6 +1,6 @@
 // Stable error codes. Triggers raise the database codes; the API adds its own. The UI maps codes to messages.
 
-const dbCodes = new Set([
+export const dbErrorCodes: ReadonlySet<string> = new Set([
   'account_archived', 'account_deleted', 'account_field_fixed', 'account_has_children', 'account_has_lines',
   'account_locked', 'account_parent_cycle', 'account_parent_missing', 'account_parent_type', 'account_placeholder',
   'base_currency_fixed', 'base_currency_missing', 'contact_account_type', 'contact_deleted', 'contact_has_lines', 'contact_insert_deleted',
@@ -12,7 +12,7 @@ const dbCodes = new Set([
 ])
 
 // "UNIQUE constraint failed: <columns>" → code.
-const uniqueCodes: [string, string][] = [
+export const uniqueErrorCodes: readonly (readonly [string, string])[] = [
   ['accounts.parent_id, accounts.name', 'account_name_taken'],
   ['fx_rates.currency_id, fx_rates.date', 'fx_rate_exists'],
   ['index \'contacts_name\'', 'contact_name_taken'],
@@ -37,9 +37,9 @@ export function toApiError(e: unknown): ApiError {
   if (e instanceof ApiError) return e
   const msg = e instanceof Error ? e.message : String(e)
   if (msg.includes('UNIQUE constraint failed')) {
-    const hit = uniqueCodes.find(([cols]) => msg.includes(cols))
+    const hit = uniqueErrorCodes.find(([cols]) => msg.includes(cols))
     if (hit) return new ApiError(hit[1])
   }
-  const code = msg.match(/[a-z]+(?:_[a-z]+)+/g)?.find((w) => dbCodes.has(w))
+  const code = msg.match(/[a-z]+(?:_[a-z]+)+/g)?.find((w) => dbErrorCodes.has(w))
   return code ? new ApiError(code) : new ApiError('internal', msg)
 }

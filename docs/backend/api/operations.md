@@ -7,6 +7,7 @@ status: active
 
 Named operations in `src/core/api/`. The UI never writes SQL.
 
+- Generated lists of every op (kind, access, input fields) and every error code (origin, English message): [reference](reference.md).
 - The UI calls only the API, never SQL. The API is named JSON operations: `api.call('entries.post', input)`. The list is `ops` in `src/core/api/index.ts`, with one `API_VERSION`.
 - Each op has a Zod (`zod/mini`) input schema, a TypeScript output type and stable error codes. A failure is always an `ApiError` with a `code` (bad input: `invalid_input`). Output schemas come with the plugin bridge.
 - `call()` checks the gate (see PIN gate below), validates the input and uses the signed-in member as actor. It writes the `activity_log` row in the same transaction as the op's write. A failed write is logged with its error code (`members.signIn` and `members.setPin` log their own failures). Reads are not logged.
