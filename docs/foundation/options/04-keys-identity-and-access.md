@@ -1,6 +1,6 @@
 ---
 owner: backend-engineer
-status: draft
+status: reviewed (2026-10-13), changes pending owner answers
 ---
 
 # Options 4: identity, keys, recovery and access control
@@ -54,3 +54,33 @@ XChaCha20-Poly1305, Ed25519, X25519, HKDF-SHA256, BLAKE2 or SHA-256, HPKE (RFC 9
 2. Should a newly granted member see the account's past entries? (Proposed: yes.)
 3. Optional encrypted backups with a passphrase: offer?
 4. Email one-time code for first registration: acceptable for the hosted service?
+
+## Independent security review (2026-10-13) and resulting design changes
+The security-reviewer agent produced a threat model and found gaps. It made no claim that the design is secure, read no code (none exists) and did not verify Electron updater behaviour, HPKE crate maturity or Cloudflare jurisdiction details.
+
+### Threat model
+- **Assets:** ledger content; member, account and device keys; the recovery key; membership log integrity; the update channel; the billing email.
+- **Actors:** curious insider (a member, or an admin with full read access); local malware or a thief on a member's device; a remote criminal (mail takeover, phishing, malicious plugin or update); a curious or breached server operator or Cloudflare; a revoked member.
+- **Top threats, ranked:** 1 a tampered update or installer (no signing budget today); 2 a malicious plugin or injected renderer code; 3 enrollment and invite substitution by the server or a mailbox attacker; 4 a compromised member or admin device (the admin holds every key); 5 rollback, withholding or forking of the log by the server; 6 recovery-key mishandling; 7 metadata leakage.
+
+### Design changes adopted
+1. **Trust anchor and enrollment.** Joining a family or becoming an admin requires an out-of-band check (QR or a short code compared between people). The invite is bound to the invitee's public key. A new device of an existing member needs approval from an existing device as a signed log entry; the emailed one-time code alone never grants keys.
+2. **Signatures cover everything that matters:** family id, document id, parent id, reader-set id, the set of wrapped keys, algorithm id, protocol version and the ciphertext hash, with domain separation per object type. AEAD associated data binds family, document and revision ids. Canonical encoding is deterministic CBOR (RFC 8949 section 4.2); no one signs re-serialized JSON. Clients enforce a minimum set of algorithms (no downgrade).
+3. **Freshness.** Signed monotonic sequence numbers, a signed per-family checkpoint over `server_seq`, clients remember the last head they saw and refuse a regression, and devices compare heads inside encrypted documents.
+4. **Revocation and rotation.** Account keys have epochs; only an admin rotates; writes under an old epoch after the rotation are rejected by log position, not arrival; the race between a revoke and offline revisions is resolved by position in the signed log.
+5. **Plain statement of a limit.** Write rights are enforced by clients, not by cryptography. A malicious member with a modified client could write into or leak entries across accounts. Cryptography enforces reads only. Acceptable for a family; stated in the user documentation.
+6. **Admin recovery is visible.** Re-enrolling a member whose devices are gone, using a recovery key, or promoting an admin is logged and shown to every member (like a changed safety number). Proposed: admin-granting actions need a second admin's co-sign when a second admin exists.
+7. **Recovery key:** HKDF with a context string, a checksum, never on the clipboard or in logs, verified locally only, and its use triggers a notice to other members.
+8. **Request signing** carries a nonce and timestamp; the server rejects replays. Linux fallback key file: Argon2id.
+9. **Metadata users should know about:** wrap counts and the account ids each revision is wrapped for reveal the account graph and the shape of each transaction to the server, besides ids, sizes and times.
+10. **Self-hosting:** the client pins the server URL per family; the deployment secret that creates the first admin is a trust anchor and is handled like a root credential.
+
+### Electron, plugins, updates and supply chain (rules for the ADR)
+- Electron: `contextIsolation` on, `sandbox` on, no Node integration in the renderer, strict CSP, no remote content, navigation and `window.open` denied, permission requests denied, a minimal preload with a fixed list of operations, every IPC message validated by sender and schema. Private keys live only in the Rust core process, never in the renderer or the main process.
+- Plugins: WebAssembly or a separate process, no network by default, official and hash-pinned at first.
+- Updates: an independent update-signing key (Ed25519 or minisign) pinned inside the app and verified by the client, whatever the operating system says; reproducible CI builds with provenance; release credentials behind hardware 2FA. Electron's updater needs a signed app on macOS, so unsigned auto-update is not available there.
+- **Gate:** paid sync does not launch with unsigned installers. Windows signing (SignPath Foundation for open source, if the project qualifies) and the Apple Developer ID are planned before that launch. Unsigned installers train users to click through warnings, which helps lookalike malware.
+- Supply chain: lockfiles, `npm ci`, `cargo-deny` and `cargo-vet`, no install scripts, GitHub Actions pinned by SHA, minimal CI secrets, no secrets exposed to pull requests from forks (the repository will be public), Electron kept current for Chromium patches.
+
+### Still open
+Key transparency or head gossip at family scale is untested; HPKE and crate choices need a check at ADR time; the exact epoch and race rules need a small formal write-up and tests before release.
