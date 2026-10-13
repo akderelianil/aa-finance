@@ -123,3 +123,31 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | 6 | First release | Local and free only. Paid features such as sync come in a later release. |
 | 7 | Notifications | Backlog, but very important. |
 | 8 | Most urgent scenarios | Income/Expense, Transfer, Borrow/Lend. |
+
+## Round 8 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | First release scope | Option B: income/expense, transfer, debt; Balance Sheet, Income Statement, simple Cash Flow; multi-currency. Investments and the gain/loss report move to the next release; the data model carries them from day one. |
+| 2 | Sync readiness | Accepted: global ids, an event log, undo records from the start. "Keep telling me the truth and steer me." |
+| 3 | Idea picks | Top five: 1 Quick entry (UI + API/CLI; important), 2 privacy mode, 3 asset card, 4 credit-card cycle, 5 net worth and reports in another currency or unit. All other assistant ideas go to the backlog. |
+| 4 | Vehicles and property | Accepted: value estimate history instead of mandatory depreciation (example: a February estimate from used-market prices). |
+| 5 | Notifications | Must arrive while the app is closed (a due date needs a reminder). |
+| 6 | Credit card | Confirmed: statement day, limit, interest rates and related card facts per card; instalments tie to the cycle. |
+| 7 | Child mode | Removed. Every user is 18 or older. |
+| 8 | Closing discovery | Yes, close with this round if no new topic appears. |
+
+## Deferred to story 4 (technical research, not owner questions)
+- Crypto and commodity amount storage (range versus decimals); research with a data-engineer view.
+- UI and shell technology (Tauri, Flutter, Compose Multiplatform, native, Electron); spike.
+- Language of the shared core (Rust with UniFFI is the leading candidate).
+- Sync protocol, server shape (Cloudflare Workers + Durable Objects + R2 versus a portable server), self-hosting.
+- Key hierarchy and family key rotation; passkey and recovery details.
+- Permission model details (RBAC per account), masked counter-lines.
+- Plan/schedule entity, loan and card calculators, background notification service per operating system.
+- Plugin sandbox (WASM or process), permission manifest, API versioning.
+Outside this epic: payment provider and company set-up (Turkey), legal advice.
+
+## Assistant positions the owner accepted or has not yet contested
+Accepted: RBAC over visible accounts, live database refuses to open in a cloud-synced folder, conflict losers kept, server AGPL and clients MIT, leaving members receive a copy, E2EE with mandatory recovery key, plugins sandboxed and permissioned, append-only with revisions, owner data promise = open schema plus CSV export plus a separate full restorable backup.
+Open for the owner to confirm: DCO versus CLA (explained in round 5 answer), telemetry off by default with opt-in crash reports (explained), full backup file separate from CSV export (explained), scenario templates as data (accepted in round 7).
