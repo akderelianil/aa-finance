@@ -43,3 +43,23 @@ See the epic stories. Items that contradict the current docs: sync is no longer 
 | D10 | Platforms | Windows, macOS and Linux must all work without problems. |
 | D11 | Scale | 100k to 1M entries is ambitious; performance is a priority. |
 | D12 | Append-only | Accepted for the backend; the UI must still offer create, edit and delete. |
+
+## Round 3 (2026-10-13)
+
+| # | Topic | Owner answer |
+|---|---|---|
+| 1 | Visibility unit | Per account. Backend and server follow accounting standards fully; the UI adapts with its own logic. |
+| 2 | Who sees all | Not only the admin: any member granted access to accounts. Discuss RBAC and decide. |
+| 3.1 | Cloud-folder file | Accepted: detect and refuse by default, allow with explicit override. |
+| 3.2 | Conflicts | Accepted: the losing edit is kept and shown as a conflict, never dropped. |
+| 3.3 | License | Accepted: clients and core MIT, server AGPL. |
+| 3.4 | Leaving a member | Accepted: the member may export all their data in any format; the family keeps the same records so reports stay intact. |
+| 3.5 | Crypto precision | Unsure (Bitcoin and altcoins). Research it with a data-engineer view. |
+| 3.6 | Erasure | Accepted: a user can delete all their data at once. |
+| 4 | Recovery model | Did not understand the question; re-ask in plain words. |
+| 5 | Local file encryption | No. All data sits on the user's own device; the OS protects it; the user is responsible. |
+| 6 | Attachments | Yes, backlog (receipts, invoices, files). |
+| 7 | Import/export | Yes, backlog. |
+| 8 | UI technology | Low React/ReUI attachment (used only for shadcn components). Priorities in order: 1 compatibility, 2 low resource use, 3 performance, 4 privacy and security. Wants "close to native". Open to critique. |
+| 9 | Locked-period edits from old devices | Apply the assistant's proposal: keep as a conflict. |
+| 10 | Business | No device or person limit in the free tier. The owner runs the sync server alone and carries cost and operations. |
