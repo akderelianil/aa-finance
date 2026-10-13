@@ -17,16 +17,19 @@ for (const f of [path, `${path}-wal`, `${path}-shm`]) rmSync(f, { force: true })
 const db = openNodeDb(path)
 await migrate(db, readMigrations())
 const api = createApi(db)
+const DEV_PIN = '123456' // every dev member signs in with this
 
 // ---------- setup, members ----------
 await api.call('setup.run', {
   baseCurrency: 'TRY', language: 'tr', userName: 'Ahmet', recommended: true, country: 'TR',
-  groupName: 'Akdereli Ailesi', members: ['Ayşe', 'Fatma', 'Dursun'],
+  groupName: 'Akdereli Ailesi', pin: DEV_PIN, members: ['Ayşe', 'Fatma', 'Dursun'],
 })
 const memberId: Record<string, number> = {}
 for (const m of await api.call('members.list', {})) memberId[m.name] = m.id
-const as = (who: string) => api.use(memberId[who])
-as('Ahmet')
+api.lock() // setup signs Ahmet in; first PINs are set while locked
+for (const [name, id] of Object.entries(memberId)) if (name !== 'Ahmet') await api.call('members.setPin', { id, pin: DEV_PIN })
+const as = (who: string) => api.call('members.signIn', { id: memberId[who], pin: DEV_PIN })
+await as('Ahmet')
 
 const currencies = await api.call('currencies.list', {})
 const book: quick.Book = { base: 'TRY', minor: (c) => currencies.find((x) => x.code === c)!.minorUnit }
@@ -382,25 +385,25 @@ for (const e of events) {
 {
   const lineOf = async (tag: string) => (await api.call('entries.get', { id: posted[tag].id })).lines
   const t = (tag: string) => posted[tag]
-  as('Ayşe')
+  await as('Ayşe')
   await api.call('entries.update', {
     id: t('fix-amount').id,
     lines: (await lineOf('fix-amount')).map((l) => ({ account: l.account, amount: l.amount > 0 ? tl(784.5) : -tl(784.5) })),
   })
-  as('Fatma')
+  await as('Fatma')
   await api.call('entries.update', { id: t('fix-desc').id, description: 'Akşam yemeği (Kadıköy)', reference: 'FİŞ-8841' })
-  as('Dursun')
+  await as('Dursun')
   await api.call('entries.update', { id: t('fix-date').id, date: '2026-08-05' })
-  as('Ayşe')
+  await as('Ayşe')
   await api.call('entries.delete', { id: t('dup-ayse-2').id })
-  as('Fatma')
+  await as('Fatma')
   await api.call('entries.delete', { id: t('del-fatma').id })
   // A member cannot touch another member's entry; the admin can.
-  as('Dursun')
+  await as('Dursun')
   await api.call('entries.update', { id: t('admin-fix').id, description: 'x' }).then(
     () => { throw new Error('member edited someone else’s entry') },
     (e) => { if (e.code !== 'entry_not_owner') throw e })
-  as('Ahmet')
+  await as('Ahmet')
   await api.call('entries.update', { id: t('admin-fix').id, description: 'Market (Ahmet düzeltti)' })
   // Housekeeping: an unused account goes, a closed one is archived, a rate and a contact are corrected.
   await api.call('accounts.delete', { id: trash })
