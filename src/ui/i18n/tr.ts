@@ -254,6 +254,8 @@ export const tr = {
     example: '1 {{currency}} = bu kadar {{base}}',
     empty: 'Kur yok.',
     emptyHint: 'Yabancı para hesaplarının kayıtları için kur ekle.',
+    deleteTitle: '{{currency}} kurunu sil ({{date}})?',
+    deleteBody: 'Bu tarihe düşen yabancı para kayıtları önceki son kuru kullanır; önceki kur yoksa kayıt yapılamaz. Gerekirse yeni kur ekle.',
   },
   welcome: {
     title: 'Defteri kim kullanıyor?',

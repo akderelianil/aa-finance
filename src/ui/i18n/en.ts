@@ -256,6 +256,8 @@ export const en: Translation = {
     example: '1 {{currency}} = this many {{base}}',
     empty: 'No rates.',
     emptyHint: 'Add rates for entries on foreign-currency accounts.',
+    deleteTitle: 'Delete the {{currency}} rate ({{date}})?',
+    deleteBody: 'Foreign-currency entries on this date use the previous rate; with no earlier rate, they cannot be saved. Add a new rate if needed.',
   },
   welcome: {
     title: 'Who is using the book?',

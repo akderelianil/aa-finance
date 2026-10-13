@@ -10,13 +10,16 @@ import { DataGridColumnHeader } from '@/components/reui/data-grid/data-grid-colu
 import { DataGridScrollArea } from '@/components/reui/data-grid/data-grid-scroll-area'
 import { DataGridTable } from '@/components/reui/data-grid/data-grid-table'
 import { Frame, FramePanel } from '@/components/reui/frame'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toast } from '@/components/ui/toast'
 import { parseDecimal, today } from '@/lib/amount'
 import { useErrorText, useOp, useWrite } from '@/lib/api'
 import { useFormat } from '@/lib/format'
@@ -32,6 +35,7 @@ export default function Rates() {
   const { date: fmtDate } = useFormat()
   const [currency, setCurrency] = useState('')
   const [adding, setAdding] = useState(false)
+  const [deleting, setDeleting] = useState<FxRate | null>(null)
   const rates = useOp('fx.list', { currency: currency || undefined })
   const accounts = useOp('accounts.list', {})
   const remove = useWrite('fx.delete')
@@ -64,7 +68,7 @@ export default function Rates() {
       cell: ({ row: { original: r } }) => (
         <Button
           variant="ghost" size="icon-xs" aria-label={t('common.delete')}
-          onClick={() => remove.mutate({ id: r.id }, { onError: (e) => toast.add({ title: errorText(e), timeout: 4000 }) })}
+          onClick={() => { remove.reset(); setDeleting(r) }}
         >
           <Trash2Icon />
         </Button>
@@ -119,6 +123,24 @@ export default function Rates() {
           </DataGrid>
         </FramePanel>
       </Frame>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) setDeleting(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('fx.deleteTitle', { currency: deleting?.currency ?? '', date: deleting ? fmtDate(deleting.date) : '' })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('fx.deleteBody')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {remove.error && <Alert variant="destructive" role="alert"><AlertDescription>{errorText(remove.error)}</AlertDescription></Alert>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive" disabled={remove.isPending}
+              onClick={(ev) => { ev.preventDefault(); if (deleting) remove.mutate({ id: deleting.id }, { onSuccess: () => setDeleting(null) }) }}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <RateDialog open={adding} onClose={() => setAdding(false)} base={base} first={currency || used[0] || ''} />
     </>
   )
