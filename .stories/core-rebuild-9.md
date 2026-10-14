@@ -13,7 +13,8 @@ Close the loop: every prototype spec requirement is carried, changed or dropped 
 ## Acceptance Criteria
 
 - [ ] Trace test passes for the new suite; no spec requirement is unmapped
-- [ ] legacy/ removed; docs/RULES-TRACE.md rewritten for the new tests
+- [x] legacy/ removed from main (done early on 2026-10-14 by the owner; the tag prototype-final keeps it)
+- [ ] docs/RULES-TRACE.md rewritten for the new tests; its trace test (deleted with legacy/) is replaced by a new one
 
 ## Technical Notes
 

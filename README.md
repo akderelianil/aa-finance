@@ -5,7 +5,7 @@ Free and private on your own device. Paid, end-to-end encrypted sync is planned 
 protocols stay open source.
 
 > **Status: early development.** The foundation is being rebuilt (Rust core, Electron app). There is nothing to
-> install yet. The earlier prototype (Tauri, SQLite, TypeScript) is kept in [`legacy/`](legacy/) and is frozen.
+> install yet. The earlier prototype (Tauri, SQLite, TypeScript) was removed from `main` and is kept in the git tag [`prototype-final`](https://github.com/akderelianil/aa-finance/tree/prototype-final).
 
 ## What it is for
 A person with no accounting knowledge can run every money decision of daily life with it, in plain words, while
@@ -29,14 +29,13 @@ The full vision is in [docs/foundation/vision.md](docs/foundation/vision.md); th
 | `docs/` | Vision, decisions (ADR), design, test catalog; see [docs/README.md](docs/README.md) |
 | `scripts/` | Repository tools (changelog, story ledger, test catalog) |
 | `.stories/` | Work tracking: epics, stories, sprints |
-| `legacy/` | The frozen prototype, kept until the rebuild covers its behavior |
 
 ## Build and test
 You need Rust (stable) and Node.js 24.
 
 ```sh
 cargo test --workspace      # the Rust core
-npm run verify              # repository scripts, test catalog and the prototype web checks
+npm run verify              # repository scripts and the test catalog
 ```
 
 ## License and contributing

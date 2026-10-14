@@ -2,18 +2,8 @@ version: 2
 # Monthly while the project is in fast development: every Dependabot run uses Actions minutes in a private
 # repository. Security updates are not affected by this schedule.
 updates:
-  - package-ecosystem: npm
-    directory: /legacy
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
   - package-ecosystem: cargo
     directory: /
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 3
-  - package-ecosystem: cargo
-    directory: /legacy/src-tauri
     schedule:
       interval: monthly
     open-pull-requests-limit: 3

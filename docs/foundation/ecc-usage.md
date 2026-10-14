@@ -12,7 +12,7 @@ ECC 2.2.3 ships 71 agents, 311 skills, 97 commands and 29 hooks. `.claude/settin
 | Unclear or risky requirement | skill `ecc:intent-driven-development` | Turns a vague story into acceptance criteria before code. Skip for stories whose criteria are already written. |
 | Design question with a real trade-off | `ecc:architect` or skill `ecc:council`, then `ecc:architecture-decision-records` | Only when a decision would be hard to reverse (schema, API, crypto). Record it as an ADR; supersede, never rewrite. |
 | Contract between core and UI | skill `ecc:contract-first`, `ecc:api-design` | Named operations are the public API (ADR-0008). Fix the shape before the code. |
-| Write the test | `ecc:tdd-guide` / skill `ecc:tdd-workflow`, `ecc:rust-testing` | Tests first is a project rule. The legacy specs are the acceptance source. |
+| Write the test | `ecc:tdd-guide` / skill `ecc:tdd-workflow`, `ecc:rust-testing` | Tests first is a project rule. The prototype specs in `docs/backend/specs/` are the acceptance source. |
 | Implement | plain editing, skill `ecc:rust-patterns` for Rust | No agent needed for routine code. |
 | Build breaks | `ecc:rust-build-resolver` (Rust), `ecc:build-error-resolver` (TS) | Minimal diffs only; never for design changes. |
 | Review | see section 2 | Review depth follows risk. |
@@ -46,7 +46,6 @@ Hooks are on since 2026-10-14 (`pluginConfigs.ecc@ecc.options.hooks_enabled` in 
 | `governance-capture`, `mcp-health-check`, `hookify-runtime`, `skill:track` | Bookkeeping and MCP health | Silent. |
 | Stop: `cost-tracker`, `session-end`, `evaluate-session`, `desktop-notify` | Session summary and metrics | Silent. `/ecc:cost-report` reads the metrics. |
 | Stop: `format-typecheck`, `check-console-log` | JS and TypeScript checks | Irrelevant while only Rust changes. If noisy, add to `ECC_DISABLED_HOOKS`. |
-| Project hook `guard-migrations.ts` | Blocks edits under `legacy/src/core/migrations/` | Part of the "never edit an applied migration" rule. |
 
 To silence one hook without turning all off: `ECC_DISABLED_HOOKS=<id>[,<id>]` in the `env` block of `.claude/settings.json`.
 
@@ -60,8 +59,8 @@ Observations accumulate automatically. The analysis that turns them into instinc
 |---|---|
 | `/ecc:plan`, `/ecc:plan-canvas` | A change that needs owner approval (new epic, ADR, scope change). Not for single stories. |
 | `/ecc:blueprint` | Planning a multi-story epic with dependencies. |
-| `ecc:code-explorer` | First touch of an unfamiliar area (for example `legacy/` while porting a spec). |
-| `ecc:spec-miner` | Extracting behavior from legacy code when specs are missing. |
+| `ecc:code-explorer` | First touch of an unfamiliar area (for example the prototype tag while porting a spec). |
+| `ecc:spec-miner` | Extracting behavior from the prototype code in the tag `prototype-final` when specs are missing. |
 | `ecc:e2e-runner` | Browser flows once `apps/desktop/` exists (`desktop-ui` epic). |
 | `ecc:refactor-cleaner`, `ecc:code-simplifier`, `/ecc:simplify` | After a story is green, never mixed into it. |
 | `ecc:doc-updater`, `/ecc:update-docs` | After an API or architecture change. |

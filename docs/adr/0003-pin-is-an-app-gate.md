@@ -1,6 +1,6 @@
 # ADR-0003: PIN is an app gate, not encryption
 
-**Date**: 2026-10-13 (decision made with the PIN gate plan; see [pin-gate](../../legacy/docs/pin-gate.md))
+**Date**: 2026-10-13 (decision made with the PIN gate plan; see [pin-gate](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/pin-gate.md))
 **Status**: superseded by [ADR-0014](0014-keys-identity-recovery.md) for security; the PIN stays a device gate
 **Deciders**: product owner
 

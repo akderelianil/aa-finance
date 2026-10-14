@@ -1,13 +1,9 @@
 #!/bin/sh
-# Runs the local quality gate before each commit. Legacy Rust tests only when legacy/src-tauri/ is staged.
+# Runs the local quality gate before each commit: repo scripts, test catalog and the Rust workspace.
 # Skip once with: SKIP_VERIFY=1 git commit ...
 [ "${SKIP_VERIFY:-0}" = "1" ] && exit 0
 cd "$(git rev-parse --show-toplevel)" || exit 1
 npm run --silent verify || exit 1
-if git diff --cached --name-only | grep -q '^legacy/src-tauri/'; then
-  npm run --silent verify:rust-legacy || exit 1
-fi
-# The Rust workspace of the rebuild joins this gate when Cargo.toml exists at the root (core-rebuild-2 and later).
 if [ -f Cargo.toml ]; then
   cargo test --workspace --quiet || exit 1
 fi

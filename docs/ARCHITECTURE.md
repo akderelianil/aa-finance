@@ -17,4 +17,4 @@ The architecture is being rebuilt in epic `foundation-reset`. Product direction:
 Shared core language, UI and shell technology, amount storage for crypto and commodities, sync protocol and server shape, key hierarchy, notification service, plugin sandbox.
 
 ## Legacy
-The prototype design (Tauri + SQLite + TypeScript, single writer, PIN gate, admin grants) is described in [legacy/docs/backend/architecture](../legacy/docs/backend/architecture/overview.md) and ADR 0001 to 0007, marked legacy or under review.
+The prototype design (Tauri + SQLite + TypeScript, single writer, PIN gate, admin grants) is described in [prototype architecture](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/backend/architecture/overview.md) (git tag `prototype-final`) and ADR 0001 to 0007, marked legacy or under review.

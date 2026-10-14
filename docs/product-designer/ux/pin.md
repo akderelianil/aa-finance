@@ -5,7 +5,7 @@ status: active
 
 # PIN kapısı
 
-Her Üyenin 6 haneli bir PIN'i vardır. Açılışta, Üye değiştirirken ve boşta kalınca sorulur. Plan ve kararlar: [pin-gate](../../../legacy/docs/pin-gate.md). Kurulum ve roller: [kurulum](kurulum.md).
+Her Üyenin 6 haneli bir PIN'i vardır. Açılışta, Üye değiştirirken ve boşta kalınca sorulur. Plan ve kararlar: [pin-gate](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/pin-gate.md). Kurulum ve roller: [kurulum](kurulum.md).
 
 ## Temel kurallar
 | Konu | Kural |

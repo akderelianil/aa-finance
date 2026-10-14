@@ -10,7 +10,7 @@ Epic `foundation-reset`, story 6. Decisions: [ADR 0008 to 0019](../adr/README.md
 ## Repository move (step CR-0)
 1. Tag the prototype as `prototype-final` and move its code (`src/`, `src-tauri/`, scripts, prototype tests) to `legacy/`. Specs and ADRs stay in `docs/`.
 2. New layout: a Rust workspace in `crates/` (core, cli, helper later), the Electron app in `apps/desktop/`, shared UI tokens and scenario packs in `packages/`.
-3. The legacy tree stays only until the core reaches spec parity (step CR-8), then it is deleted; the tag keeps it.
+3. The legacy tree stays only until the core reaches spec parity (step CR-8), then it is deleted; the tag keeps it. (Done early: the owner had it deleted from `main` on 2026-10-14.)
 
 ## Epics
 | Epic | Goal | Status |

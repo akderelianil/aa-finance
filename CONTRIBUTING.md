@@ -22,7 +22,6 @@ By signing off you state that you wrote the change or have the right to submit i
 - Decisions that are hard to reverse are recorded as an ADR in [docs/adr/](docs/adr/README.md); an ADR is
   superseded by a new one, not rewritten.
 - Money is exact: scaled integers and decimal text, never floating point.
-- Do not add features to `legacy/`; it is a frozen prototype.
 
 ## Reporting a vulnerability
 Do not open a public issue. Use a private security advisory on this repository (see [SECURITY.md](SECURITY.md)).

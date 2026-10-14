@@ -1,6 +1,6 @@
 # Behavior specs
 
-> Code paths in these specs (`src/core/...`, `src-tauri/...`) now live under `legacy/` (prototype, frozen). See [legacy/README](../../../legacy/README.md).
+> Code paths in these specs (`src/core/...`, `src-tauri/...`) are in the git tag `prototype-final` (the prototype, frozen), where the files sit at the repository root: `git show prototype-final:src/core/money.ts`, or browse https://github.com/akderelianil/aa-finance/tree/prototype-final.
 
 > Index of the mined behavior specs.
 > Last verified: 2026-10-13 (commit 32d9165)

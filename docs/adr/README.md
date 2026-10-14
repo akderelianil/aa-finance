@@ -31,5 +31,5 @@ Short records of decisions that shape the code. Format: Nygard (context, decisio
 | [0020](0020-coverage-floor-95-on-money-rules-crypto.md) | Coverage floor of 95 percent on money, rules and crypto (supersedes the floor in 0018) | accepted | 2026-10-14 |
 
 
-Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](../../legacy/docs/backend/architecture/overview.md) (technical design), [PIN gate](../../legacy/docs/pin-gate.md) (full PIN plan).
+Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/backend/architecture/overview.md) (technical design), [PIN gate](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/pin-gate.md) (full PIN plan).
 The epic `foundation-reset` replaced the prototype decisions on 2026-10-13: ADR 0008 to 0019 are the foundation of the rebuild; see [audit](../foundation/audit.md).

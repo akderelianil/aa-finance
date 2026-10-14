@@ -346,7 +346,7 @@ fn rounding_differences_go_to_a_line_but_real_imbalance_is_refused() {
 
 #[test]
 fn the_prototype_cases_hold() {
-    // legacy/src/core/money.test.ts
+    // prototype-final:src/core/money.test.ts
     assert_eq!(to_base(1234, 2, &rate("35"), 0).unwrap(), 432);
     assert_eq!(to_base(-10_000, 2, &rate("34.1"), 2).unwrap(), -341_000);
     assert_eq!(to_base(1000, 0, &rate("0.2155"), 2).unwrap(), 21_550);

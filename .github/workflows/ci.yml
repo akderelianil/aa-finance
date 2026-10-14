@@ -2,8 +2,8 @@ name: CI
 
 # While the project changes every day, CI runs on code changes only, and only on Ubuntu. The three-system
 # matrix (Ubuntu, Windows, macOS) is started by hand: Actions -> CI -> Run workflow, or
-# `gh workflow run ci.yml`. When the repository is public, standard runners are free and the matrix can run
-# on every push again (docs/foundation/ci.md).
+# `gh workflow run ci.yml`. This stays so after the repository is public, until the product has matured
+# (owner decision of 2026-10-14; see docs/foundation/ci.md).
 on:
   push:
     branches: [main]

@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test --disable-warning=ExperimentalWarning \"scripts/**/*.test.ts\"",
-    "verify:legacy": "npm --prefix legacy run verify:web",
-    "verify:rust-legacy": "cargo test --manifest-path legacy/src-tauri/Cargo.toml",
     "test:catalog": "node --disable-warning=ExperimentalWarning scripts/test-catalog.ts",
     "test:catalog:check": "node --disable-warning=ExperimentalWarning scripts/test-catalog.ts --check",
-    "verify": "npm run test && npm run test:catalog:check && npm run verify:legacy",
+    "verify": "npm run test && npm run test:catalog:check",
     "story": "node --disable-warning=ExperimentalWarning scripts/story.ts",
     "changelog": "node --disable-warning=ExperimentalWarning scripts/gen-changelog.ts",
     "hooks:install": "sh scripts/hooks/install.sh"

@@ -1,11 +1,11 @@
 ---
 owner: product-lead
-status: active
+status: historical
 ---
 
 # Rules trace
 
-Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is enforced and the test that proves it. `test: <title>` is the exact title of a test in the repo; a test fails when a named test disappears or when a rule has no row. `test: NONE` means no automated test fits yet (the rule belongs to the rebuild, epic `foundation-reset`, or is about scope). Rows that cite a test prove the **retired prototype**; the rebuild must carry the same behavior, then the rows point at new tests. Code paths below live under `legacy/` (frozen prototype). Behavior specs: [backend/specs](backend/specs/README.md). Why: [ADRs](adr/README.md), [foundation](foundation/README.md).
+Each Product rule in [CLAUDE.md](../CLAUDE.md#product-rules) with where it is enforced and the test that proves it. `test: <title>` is the exact title of a test in the repo; a test fails when a named test disappears or when a rule has no row. `test: NONE` means no automated test fits yet (the rule belongs to the rebuild, epic `foundation-reset`, or is about scope). Rows that cite a test prove the **retired prototype**; the rebuild must carry the same behavior, then the rows point at new tests. Code paths below are in the git tag `prototype-final` (the prototype tree was deleted from `main` on 2026-10-14, together with the trace test that checked this table); `core-rebuild-9` rewrites the table for the new tests. Behavior specs: [backend/specs](backend/specs/README.md). Why: [ADRs](adr/README.md), [foundation](foundation/README.md).
 
 ## Rules
 | Rule | Summary | Evidence |
