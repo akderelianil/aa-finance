@@ -19,7 +19,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 | [adr/](adr/README.md) | Architecture decision records | EN |
 | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 
-Project rules live in `.claude/rules/` (ECC common, typescript and react subsets). Agents, skills and hooks come from the ECC plugin; the picks are in `CLAUDE.md`.
+Project rules live in `.claude/rules/` (ECC common, typescript and react subsets). Agents, skills and hooks come from the ECC plugin; which tool to use when is in [foundation/ecc-usage.md](foundation/ecc-usage.md).
 
 ## Obsidian
 Open `docs/` as the vault. Settings in `.obsidian/app.json` keep relative Markdown links. Only `app.json` is in git.
