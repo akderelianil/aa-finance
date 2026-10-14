@@ -1125,7 +1125,7 @@ fn a_server_sequence_can_be_recorded_for_any_kind_of_document() {
 }
 
 #[test]
-fn a_database_that_cannot_run_wal_is_refused_as_an_internal_error() {
+fn an_in_memory_store_reports_journal_mode_memory() {
     // Arrange
     let w = world();
     // Act / Assert: an in-memory store reports journal mode memory, never WAL, and opens fine
@@ -1135,4 +1135,208 @@ fn a_database_that_cannot_run_wal_is_refused_as_an_internal_error() {
         .query_row("PRAGMA journal_mode", [], |r| r.get(0))
         .unwrap();
     assert_eq!(mode, "memory");
+}
+
+// ---- Failure paths: references that do not exist, deep trees, and a database that breaks ----
+
+#[test]
+fn a_missing_commodity_reference_is_reported() {
+    // Arrange
+    let mut w = world();
+    let body = account_body("Orphan", new_id(), None, false);
+    // Act
+    let result = w
+        .store
+        .write_revision(rev(DocKind::Account, new_id(), None, body));
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::MissingReference {
+            kind: "commodity",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn a_server_sequence_for_an_unknown_revision_is_a_missing_reference() {
+    // Arrange
+    let mut w = world();
+    // Act
+    let result = w.store.set_server_seq(new_id(), 1);
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::MissingReference {
+            kind: "revision",
+            ..
+        })
+    ));
+}
+
+#[test]
+fn a_ledger_file_must_support_wal_or_it_is_refused() {
+    // ":memory:" opens an in-memory database that cannot use WAL, like a drive that does not support it.
+    let result = Store::open(std::path::Path::new(":memory:"));
+    assert!(matches!(result, Err(Error::Internal(m)) if m.contains("WAL")));
+}
+
+#[test]
+fn a_revision_body_that_cannot_be_read_stops_a_rebuild_and_leaves_the_projection_alone() {
+    // Arrange: a stored revision damaged behind the core's back (the immutability trigger removed).
+    let mut w = world();
+    let conn = w.store.raw_connection();
+    conn.execute_batch(
+        "DROP TRIGGER revision_immutable;
+         UPDATE revision SET body = '{\"nonsense\": true}' WHERE doc_kind = 'commodity';",
+    )
+    .unwrap();
+    let before = count(&w.store, "SELECT count(*) FROM account");
+    // Act
+    let result = w.store.rebuild_projection();
+    // Assert
+    assert!(matches!(result, Err(Error::InvalidBody(_))));
+    assert_eq!(count(&w.store, "SELECT count(*) FROM account"), before);
+}
+
+#[test]
+fn an_account_tree_deeper_than_the_limit_is_refused_like_a_cycle() {
+    // Arrange: a chain of 10,001 accounts written straight into the projection.
+    let mut w = world();
+    w.store
+        .tamper(
+            "WITH RECURSIVE base(b) AS (SELECT coalesce(max(id), 0) FROM account),
+                  n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 10001)
+             INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived)
+             SELECT randomblob(16), (SELECT id FROM revision LIMIT 1), 'chain' || i,
+                    CASE WHEN i = 1 THEN NULL ELSE (SELECT b FROM base) + i - 1 END,
+                    'asset', (SELECT id FROM commodity LIMIT 1), 0
+             FROM n ORDER BY i",
+        )
+        .unwrap();
+    let deepest: Id = w
+        .store
+        .raw_connection()
+        .query_row(
+            "SELECT uuid FROM account WHERE name = 'chain10001'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    // Act
+    let result = w.store.write_revision(rev(
+        DocKind::Account,
+        new_id(),
+        None,
+        account_body("Too deep", w.try_id, Some(deepest), false),
+    ));
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::Rule(RuleCode::AccountParentCycle))
+    ));
+}
+
+fn sabotaged(sql: &str) -> World {
+    let w = world();
+    w.store.raw_connection().execute_batch(sql).unwrap();
+    w
+}
+
+fn post_lunch(w: &mut World) -> aa_core::Result<Id> {
+    let body = entry_body(w, "posted", &[(w.food, 100), (w.cash, -100)]);
+    w.store
+        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+}
+
+#[test]
+fn a_broken_database_is_an_error_when_verifying_never_a_clean_report() {
+    // Each case damages one table or column, then asks for the verification.
+    let cases = [
+        "ALTER TABLE account RENAME COLUMN archived TO archived_gone;",
+        "ALTER TABLE entry RENAME COLUMN memo TO memo_gone;",
+        "ALTER TABLE line RENAME TO line_gone;",
+    ];
+    for sql in cases {
+        let w = sabotaged(sql);
+        assert!(
+            matches!(w.store.verify_projection(), Err(Error::Sqlite(_))),
+            "{sql}"
+        );
+    }
+}
+
+#[test]
+fn a_broken_database_is_an_error_when_rebuilding_the_projection() {
+    // The projector must report a failure to open or close its session, not carry on.
+    let cases = [
+        "CREATE TRIGGER boom BEFORE UPDATE ON projection_session WHEN NEW.open = 1 BEGIN SELECT RAISE(ABORT, 'boom'); END;",
+        "CREATE TRIGGER boom BEFORE UPDATE ON projection_session WHEN NEW.open = 0 BEGIN SELECT RAISE(ABORT, 'boom'); END;",
+        "ALTER TABLE revision RENAME COLUMN doc_kind TO doc_kind_gone;",
+    ];
+    for sql in cases {
+        let mut w = sabotaged(sql);
+        assert!(
+            matches!(w.store.rebuild_projection(), Err(Error::Sqlite(_))),
+            "{sql}"
+        );
+    }
+}
+
+#[test]
+fn a_broken_database_is_an_error_when_writing_an_entry_and_nothing_is_stored() {
+    let cases = [
+        "ALTER TABLE line RENAME TO line_gone;",
+        "ALTER TABLE line RENAME COLUMN line_no TO line_gone;",
+        "CREATE TRIGGER vanish AFTER INSERT ON entry BEGIN DELETE FROM entry WHERE id = NEW.id; END;",
+    ];
+    for sql in cases {
+        let mut w = sabotaged(sql);
+        let revisions = count(&w.store, "SELECT count(*) FROM revision");
+        let result = post_lunch(&mut w);
+        assert!(matches!(result, Err(Error::Sqlite(_))), "{sql}");
+        assert_eq!(
+            count(&w.store, "SELECT count(*) FROM revision"),
+            revisions,
+            "{sql}"
+        );
+    }
+}
+
+#[test]
+fn a_rebuild_that_cannot_find_a_parent_account_reports_the_missing_reference() {
+    // Arrange: a parent account whose revisions were lost behind the core's back.
+    let mut w = world();
+    let (parent, child) = (new_id(), new_id());
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            parent,
+            None,
+            account_body("Parent", w.try_id, None, false),
+        ))
+        .unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            child,
+            None,
+            account_body("Child", w.try_id, Some(parent), false),
+        ))
+        .unwrap();
+    let conn = w.store.raw_connection();
+    conn.execute_batch("DROP TRIGGER revision_no_delete; PRAGMA foreign_keys = OFF;")
+        .unwrap();
+    conn.execute("DELETE FROM revision WHERE doc_id = ?1", [parent])
+        .unwrap();
+    // Act
+    let result = w.store.rebuild_projection();
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::MissingReference {
+            kind: "account",
+            ..
+        })
+    ));
 }

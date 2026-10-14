@@ -28,3 +28,4 @@ CI on Windows, macOS and Ubuntu, quality gates, supply-chain protection, and a r
 | release-and-quality-2 | RQ-2 Supply-chain protection | todo |
 | release-and-quality-3 | RQ-3 Release pipeline and update key | todo |
 | release-and-quality-4 | RQ-4 Accessibility harness and manual checklist | todo |
+| release-and-quality-5 | RQ-5 Freeze the deterministic form of a revision body | todo |

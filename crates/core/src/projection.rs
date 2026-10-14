@@ -198,8 +198,10 @@ pub(crate) fn rebuild_all(conn: &Connection) -> Result<()> {
                     Err(other) => return Err(other),
                 }
             }
-            if retry.len() == before {
-                return Err(last_missing.unwrap_or(Error::Internal("rebuild made no progress")));
+            // Every document that failed on a missing parent left one error behind, so a pass that
+            // retries all of them made no progress and that error is the reason.
+            if let Some(missing) = last_missing.filter(|_| retry.len() == before) {
+                return Err(missing);
             }
             pending = retry;
         }
@@ -517,4 +519,22 @@ fn check_entries(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>)
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ids::new_id;
+    use crate::migrate::migrate;
+
+    #[test]
+    fn rebuilding_a_document_without_revisions_is_an_internal_error() {
+        // Arrange: the public API never asks for this; the guard protects against a caller bug.
+        let mut conn = Connection::open_in_memory().unwrap();
+        migrate(&mut conn).unwrap();
+        // Act
+        let result = rebuild(&conn, DocKind::Entry, new_id(), false);
+        // Assert
+        assert!(matches!(result, Err(Error::Internal(m)) if m.contains("without revisions")));
+    }
 }

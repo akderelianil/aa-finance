@@ -12,9 +12,9 @@ The data foundation (ADR-0011, ADR-0012): STRICT tables, UUIDv7 ids, immutable r
 
 ## Acceptance Criteria
 
-- [ ] Revisions are immutable; a posted entry sums to exactly zero (trigger on draft to posted)
-- [ ] verify_projection rebuilds the projection and finds no drift on the generated 1,000,000-entry file
-- [ ] Migration framework with user_version; tests first, 100 percent on the module
+- [x] Revisions are immutable; a posted entry sums to exactly zero (trigger on draft to posted)
+- [x] verify_projection rebuilds the projection and finds no drift on the generated 1,000,000-entry file
+- [x] Migration framework with user_version; tests first, 100 percent on the module
 
 ## Technical Notes
 
@@ -22,6 +22,6 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 
 ## Definition of Done
 
-- [ ] Tests written first cover the acceptance criteria
+- [x] Tests written first cover the acceptance criteria
 - [ ] Code review and verification loop passed
-- [ ] Code merged to main
+- [x] Code merged to main

@@ -4,7 +4,7 @@ use crate::error::{Error, Result};
 use crate::ids::{new_id, Id};
 use crate::migrate::{migrate, SCHEMA_VERSION};
 use crate::{projection, RULES_VERSION};
-use rusqlite::{params, Connection, TransactionBehavior};
+use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use std::path::Path;
 
 /// The kinds of documents that have revisions.
@@ -149,11 +149,17 @@ impl Store {
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let (kind, doc_id): (String, Id) = tx.query_row(
-            "SELECT doc_kind, doc_id FROM revision WHERE id = ?1",
-            params![revision_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )?;
+        let (kind, doc_id): (String, Id) = tx
+            .query_row(
+                "SELECT doc_kind, doc_id FROM revision WHERE id = ?1",
+                params![revision_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?
+            .ok_or_else(|| Error::MissingReference {
+                kind: "revision",
+                what: revision_id.to_string(),
+            })?;
         tx.execute(
             "UPDATE revision SET server_seq = ?2 WHERE id = ?1",
             params![revision_id, server_seq],
