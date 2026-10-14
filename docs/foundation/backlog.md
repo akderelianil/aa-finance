@@ -30,12 +30,12 @@ All other ideas go to the backlog: gold/dollar-denominated net worth is covered 
 - Next: investments with cost method and gain/loss report; scenario engine content.
 - Later: paid sync, attachments, bank import, reconciliation, notifications while the app is closed (very important for the architecture, not urgent; owner: backlog, not v1), budgets and goals, mobile.
 
-## Open decisions from the core-rebuild-3 review (2026-10-14)
-Found by the reviewers on `amount.rs` and `rate.rs`; the code follows the prototype until the owner decides.
+## Decisions from the core-rebuild-3 review (owner, 2026-10-14)
+Found by the reviewers on `amount.rs` and `rate.rs`.
 
-| Question | Now | Why it matters |
-|---|---|---|
-| A line has both a given rate and a given base. | The rate wins, the base is dropped silently (prototype, spec FX-001). | The user's real record should win; a silent drop hides a conflicting input. Option: refuse with a stable code when both are given, or accept both only if they agree. |
-| How large may a rounding difference be? | One base unit per converted line (prototype). | A bound of half that is the tightest a half-away rounding can produce; the looser rule can hide a real one-cent typo in the Rounding account. |
-| The rate derived from a given base keeps 12 decimals. | A rate below 1e-12 is refused (`rate_invalid`), the base value stays exact. | Tokens with 18 decimals and tiny prices need more digits. Option: keep 19 significant digits, or store no rate when it cannot be derived. |
-| Scale as a type (`Scale`) and a bounded amount type (`Units`). | Raw `i64` plus `u8` scale. | Two scales in a row can be swapped. Better added with the real `Line` struct in core-rebuild-4. |
+| Question | Decision |
+|---|---|
+| A line has both a given rate and a given base. | They must agree: the base has to be what the rate yields, otherwise the line is refused with `rate_base_conflict` and the user chooses. This differs from the prototype (spec FX-001), where the rate won silently. Implemented. |
+| How large may a rounding difference be? | One base unit per converted line, as in the prototype. Accepted. |
+| The rate derived from a given base keeps 12 decimals. | Accepted as is; the base value stays exact. Revisit for tokens with tiny prices (keep 19 significant digits). |
+| Scale as a type (`Scale`) and a bounded amount type (`Units`). | Deferred to core-rebuild-4, together with the real `Line` struct. |

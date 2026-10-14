@@ -26,6 +26,7 @@ pub enum RuleCode {
     RateInvalid,
     RateMissing,
     LineBaseSign,
+    RateBaseConflict,
 }
 
 impl RuleCode {
@@ -52,6 +53,7 @@ impl RuleCode {
             RuleCode::RateInvalid => "rate_invalid",
             RuleCode::RateMissing => "rate_missing",
             RuleCode::LineBaseSign => "line_base_sign",
+            RuleCode::RateBaseConflict => "rate_base_conflict",
         }
     }
 
@@ -165,6 +167,7 @@ mod tests {
             RuleCode::RateInvalid,
             RuleCode::RateMissing,
             RuleCode::LineBaseSign,
+            RuleCode::RateBaseConflict,
         ];
         // Act / Assert
         for code in all {

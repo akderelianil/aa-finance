@@ -156,8 +156,7 @@ pub fn implied_rate(quantity: i64, quantity_scale: u8, base: i64, base_scale: u8
 
 /// A line in a commodity other than the book currency, as the user gave it.
 ///
-/// `given_rate` and `given_base` may both be set: the given rate wins and the base is ignored, as in
-/// the prototype (spec FX-001). Whether the API should refuse both is an open product decision.
+/// `given_rate` and `given_base` may both be set only when they agree (see `resolve_line`).
 #[derive(Debug, Clone, Copy)]
 pub struct ForeignLine<'a> {
     pub quantity: i64,
@@ -177,18 +176,26 @@ pub struct ResolvedLine {
     pub converted: bool,
 }
 
-/// A given rate wins, then a given base amount, then the stored rate; with none of them the line
-/// cannot be valued (`rate_missing`). A base of zero or of the other sign is refused.
+/// A given rate or base is the user's own word and beats the stored rate. Given both, they must
+/// agree: the base has to be what the rate yields, otherwise the line is refused
+/// (`rate_base_conflict`) and the user chooses. Given neither, the stored rate is used; with none of
+/// them the line cannot be valued (`rate_missing`). A base of zero or of the other sign is refused.
 pub fn resolve_line(line: &ForeignLine<'_>, base_scale: u8) -> Result<ResolvedLine> {
     in_stored_bounds(i128::from(line.quantity))?;
     if line.quantity == 0 {
         return Err(Error::Rule(RuleCode::AmountInvalid));
     }
     let convert = |rate: &Rate| to_base(line.quantity, line.quantity_scale, rate, base_scale);
-    let (base_value, rate, converted) = if let Some(rate) = line.given_rate {
-        (convert(rate)?, *rate, true)
-    } else if let Some(base) = line.given_base {
+    if let Some(base) = line.given_base {
         in_stored_bounds(i128::from(base))?;
+    }
+    let (base_value, rate, converted) = if let Some(rate) = line.given_rate {
+        let from_rate = convert(rate)?;
+        if line.given_base.is_some_and(|base| base != from_rate) {
+            return Err(Error::Rule(RuleCode::RateBaseConflict));
+        }
+        (from_rate, *rate, true)
+    } else if let Some(base) = line.given_base {
         (
             base,
             implied_rate(line.quantity, line.quantity_scale, base, base_scale)?,
@@ -233,7 +240,7 @@ mod tests {
     use crate::amount::MAX_STORED;
     use proptest::prelude::*;
 
-    type Expected = Option<(i64, &'static str, bool)>;
+    type Expected = std::result::Result<(i64, &'static str, bool), RuleCode>;
 
     fn rate(text: &str) -> Rate {
         Rate::parse(text).unwrap()
@@ -415,20 +422,52 @@ mod tests {
     }
 
     #[test]
-    fn a_given_rate_beats_everything() {
+    fn a_given_rate_beats_the_stored_rate() {
         let given = rate("35");
         let stored = rate("30");
         let line = ForeignLine {
             quantity: 100,
             quantity_scale: 2,
             given_rate: Some(&given),
-            given_base: Some(999),
+            given_base: None,
             stored_rate: Some(&stored),
         };
         let got = resolve_line(&line, 2).unwrap();
         assert_eq!(
             (got.base_value, got.rate.to_text(), got.converted),
             (3500, "35".to_string(), true)
+        );
+    }
+
+    #[test]
+    fn a_given_rate_and_a_given_base_must_agree() {
+        let given = rate("35");
+        let line = |base| ForeignLine {
+            quantity: 100,
+            quantity_scale: 2,
+            given_rate: Some(&given),
+            given_base: Some(base),
+            stored_rate: None,
+        };
+        // 1.00 at 35 is 35.00: the same base agrees.
+        let got = resolve_line(&line(3500), 2).unwrap();
+        assert_eq!(
+            (got.base_value, got.rate.to_text()),
+            (3500, "35".to_string())
+        );
+        // One unit off is a conflict, not rounding: the user must choose.
+        assert_eq!(
+            code(resolve_line(&line(3499), 2)),
+            Some(RuleCode::RateBaseConflict)
+        );
+        assert_eq!(
+            code(resolve_line(&line(999), 2)),
+            Some(RuleCode::RateBaseConflict)
+        );
+        // A conflict is reported before the stored rate is looked at, and bounds still come first.
+        assert_eq!(
+            code(resolve_line(&line(MAX_STORED + 1), 2)),
+            Some(RuleCode::AmountOutOfRange)
         );
     }
 
@@ -655,16 +694,16 @@ mod tests {
     fn the_resolution_order_holds_for_every_combination() {
         let given = rate("35");
         let stored = rate("30");
-        // (given rate, given base, stored rate) -> (base_value, rate, converted)
+        // (given rate, given base 34.00, stored rate) -> (base_value, rate, converted) or the refusal.
         let table: [(bool, bool, bool, Expected); 8] = [
-            (true, true, true, Some((3500, "35", true))),
-            (true, true, false, Some((3500, "35", true))),
-            (true, false, true, Some((3500, "35", true))),
-            (true, false, false, Some((3500, "35", true))),
-            (false, true, true, Some((3400, "34", false))),
-            (false, true, false, Some((3400, "34", false))),
-            (false, false, true, Some((3000, "30", true))),
-            (false, false, false, None),
+            (true, true, true, Err(RuleCode::RateBaseConflict)),
+            (true, true, false, Err(RuleCode::RateBaseConflict)),
+            (true, false, true, Ok((3500, "35", true))),
+            (true, false, false, Ok((3500, "35", true))),
+            (false, true, true, Ok((3400, "34", false))),
+            (false, true, false, Ok((3400, "34", false))),
+            (false, false, true, Ok((3000, "30", true))),
+            (false, false, false, Err(RuleCode::RateMissing)),
         ];
         for (has_rate, has_base, has_stored, want) in table {
             let line = ForeignLine {
@@ -676,7 +715,7 @@ mod tests {
             };
             let got = resolve_line(&line, 2);
             match want {
-                Some((base, text, converted)) => {
+                Ok((base, text, converted)) => {
                     let got = got.unwrap();
                     assert_eq!(
                         (got.base_value, got.rate.to_text(), got.converted),
@@ -684,7 +723,11 @@ mod tests {
                         "{has_rate} {has_base} {has_stored}"
                     );
                 }
-                None => assert_eq!(code(got), Some(RuleCode::RateMissing)),
+                Err(refusal) => assert_eq!(
+                    code(got),
+                    Some(refusal),
+                    "{has_rate} {has_base} {has_stored}"
+                ),
             }
         }
     }
