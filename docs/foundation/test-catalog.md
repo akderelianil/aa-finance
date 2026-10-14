@@ -96,8 +96,8 @@ verify_projection: only the projector writes the projection tables, and every ki
 
 ## core: unit tests (crates/core/src)
 
-### amount.rs (15)
-Exact amounts (ADR-0010): a quantity or base value is a signed integer scaled per commodity. This module reads and writes the decimal text of an amount. Amounts cross the API as strings (ADR-0009), always in the canonical form (`.` decimal, no grouping); the separator styles of the book country exist for what the user types and reads.
+### amount/tests.rs (15)
+Reading and writing amounts: the canonical form and both separator styles, every scale, the stored bounds, and refused text (ADR-0010).
 
 - The rule helper reports only rule errors
 - Parses the canonical form at every scale
@@ -115,32 +115,32 @@ Exact amounts (ADR-0010): a quantity or base value is a signed integer scaled pe
 - Canonical text parses to the exact scaled integer
 - Formatting never panics for any value
 
-### error.rs (2)
-Errors of the core. Rule violations carry a stable code that the UI turns into a message.
+### error/tests.rs (2)
+The mapping of database messages to stable rule codes, and of other errors to their variants.
 
 - Every trigger code maps back from its own message
 - A json error becomes an invalid body and other sqlite errors stay opaque
 
-### ids.rs (2)
-Global ids (ADR-0011): UUIDv7 stored as 16-byte blobs.
+### ids/tests.rs (2)
+Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).
 
 - Ids are version seven and increase over time
 - The short id is twelve hex digits from the random tail
 
-### migrate.rs (3)
-Migrations: numbered SQL files applied in order, tracked by `PRAGMA user_version` (ADR-0008). An applied migration is never edited once the first release exists; a new file is added.
+### migrate/tests.rs (3)
+The migration framework: every file applied once, the schema version recorded, newer and foreign databases refused.
 
 - Migrate applies every file once and sets user version
 - Migrate refuses a database newer than the app
 - Migrate refuses a foreign database without a schema version
 
-### projection.rs (1)
-The projection: the current state rebuilt from revisions, and its verification (ADR-0012). Only this module opens `projection_session`; triggers refuse any other writer. The gate stops faulty writers, not hostile ones: anyone holding the raw connection can open it.
+### projection/tests.rs (1)
+Guards of the projector that the public API cannot reach, tested from inside the crate.
 
 - Rebuilding a document without revisions is an internal error
 
-### rate.rs (32)
-Rates and base values (ADR-0010): a rate is exact decimal text, the core computes `base_value` from a quantity and a rate with one rounding rule (half away from zero), and a rate or base amount given by the user always wins over a stored one. Rounding differences between converted lines go to an explicit line on the Rounding account.
+### rate/tests.rs (32)
+Rates and base values: the rounding rule checked against an independent calculation, derived rates, the resolution order, the Rounding line and its limits (ADR-0010).
 
 - The code helper reports only rule errors
 - A rate is normalised decimal text
