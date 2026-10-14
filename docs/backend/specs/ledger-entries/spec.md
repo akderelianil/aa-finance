@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/entries.ts, src/core/api/accounts.ts (register), src/core/api/index.ts, src/core/migrations/0007_audit_columns.sql, 0009_line_contacts.sql, 0011_line_member.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: posting, editing and deleting journal entries (Yevmiye), line rules, balance on `base_amount`, FX rounding, per-year numbering, `lock_date`, the General Journal list and the Account Register. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -174,7 +174,7 @@ A new entry row SHALL be inserted as a live draft without a number.
 
 Once assigned, an entry's `year` and `number` SHALL never change, including through edits.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -186,7 +186,7 @@ Once assigned, an entry's `year` and `number` SHALL never change, including thro
 
 A soft-deleted entry SHALL keep its number, and later entries SHALL continue after it.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -198,7 +198,7 @@ A soft-deleted entry SHALL keep its number, and later entries SHALL continue aft
 
 Lines SHALL be inserted or updated only while their entry is a live draft, and a posted entry's date SHALL change only through draft.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -253,7 +253,7 @@ When only the date changes, existing lines SHALL keep their `base_amount` and `r
 
 Every live line's `entry_date` SHALL equal its entry's `entry_date`; a date change on the entry is copied to its live lines.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -279,7 +279,7 @@ Every live line's `entry_date` SHALL equal its entry's `entry_date`; a date chan
 
 A soft-deleted entry or line SHALL NOT be updated again, including restoring it.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -323,7 +323,7 @@ Entries dated on or before `lock_date` SHALL NOT be inserted, changed, reposted 
 
 The `lock_date` setting SHALL be NULL or a valid `YYYY-MM-DD` date.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -433,7 +433,7 @@ With `owner`, `entries.list` SHALL return entries with at least one live line wh
 
 Write operations SHALL run one after another, so concurrent posts get consecutive numbers.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -460,7 +460,7 @@ When a foreign line sends both `rate` and `baseAmount`, the API SHALL convert wi
 
 An entry whose date moves to another year SHALL keep the `year` and `number` from its first post, so `year` can differ from the year of `entry_date`.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 <!-- uncertainty: LEDGER-017 and LEDGER-033 come from reading the code; no test shows whether they are intended. -->
 <!-- deferred: src/core/test/node-db.ts, src-tauri adapters (safe-integer refusal) -->

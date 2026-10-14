@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/quick.ts, src/core/money.ts, src/core/quick.test.ts
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: the pure Quick Entry builders (Gider, Gelir, Transfer, Borç) that turn a form into an `entries.post` input. They throw `QuickError` with a `quick_*` code; the posted result is checked again by the API and the database. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -192,6 +192,6 @@ The Rehber `contact` SHALL be set on the debt account line only.
 
 When currencies differ, the builders SHALL send exact base amounts whose sum is zero, so `entries.post` adds no FX Gains and Losses line.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 <!-- uncertainty: quick_amount (non-positive amounts) and quick_money_account have no direct test. -->

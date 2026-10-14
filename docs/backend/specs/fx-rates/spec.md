@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/fx.ts, src/core/api/entries.ts (resolve), src/core/money.ts, src/core/api/settings.ts (currencies), src/core/migrations/0002_currencies.sql, 0007_audit_columns.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: currencies, the fixed base currency, manual exchange rates (set, list, get, delete), rate lookup for a foreign line (given rate > given base > stored rate on or before the date > `rate_missing`) and the integer conversion math. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -90,7 +90,7 @@ When only `baseAmount` is given, the stored line rate SHALL be the rate implied 
 
 A rate SHALL be text of digits with an optional single decimal point and a value above zero; a comma or other text is rejected.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -102,7 +102,7 @@ A rate SHALL be text of digits with an optional single decimal point and a value
 
 There SHALL be at most one live rate for each currency and date.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -170,7 +170,7 @@ There SHALL be at most one live rate for each currency and date.
 
 The base currency SHALL be a known currency set once at setup and never changed.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -210,7 +210,7 @@ Setup SHALL fail with `currency_unknown` when the base currency code is not in t
 
 Currency rows SHALL never be updated or deleted.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -222,6 +222,6 @@ Currency rows SHALL never be updated or deleted.
 
 Setting or deleting a stored rate SHALL NOT change the rate or base amount of lines already posted.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 <!-- uncertainty: the database itself does not forbid an fx_rates row for the base currency; only fx.set checks it. -->

@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/members.ts, src/core/api/index.ts, src/core/api/settings.ts, src/core/api/entries.ts, src/core/pin.ts, src/core/setup.ts, src/core/migrations/0007_audit_columns.sql, 0012_member_pins.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: family members and roles (admin, member), the own-entry rule, admin-only book settings, the last-admin rule, the PIN gate (open ops, sign in, lock), the wrong-PIN wait counter, PIN set, change and reset, and PIN storage. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -30,7 +30,7 @@ Setup SHALL create the first user as `admin` and each other name as `member`, gi
 
 A user actor SHALL have role `admin` or `member`, a non-user actor SHALL have none, and an actor's kind SHALL never change.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -70,7 +70,7 @@ Anyone SHALL be able to change their own name and color; changing another member
 
 A role change or soft delete SHALL NOT leave the file without a live admin.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -110,7 +110,7 @@ Language, lock date, activity log days, group name and country SHALL be changed 
 
 Every signed-in member SHALL be able to call every read op on all data, including entries written by others.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -150,7 +150,7 @@ With no live member in the file, a non-open op SHALL fail with `not_setup` inste
 
 The open write ops SHALL be exactly `members.setPin`, `members.signIn` and `setup.run`.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -246,7 +246,7 @@ A reset SHALL drop the wait counter together with the PIN row.
 
 A PIN SHALL be stored only as a salted PBKDF2 hash in `member_pins`, and neither the PIN nor the hash SHALL appear in `audit_log` or `activity_log`.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -272,7 +272,7 @@ When `pin` is given, `setup.run` SHALL store the admin's PIN hash in the same tr
 
 A live user SHALL have at most one live PIN row; PIN rows are never hard deleted and a reset row is final.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -284,7 +284,7 @@ A live user SHALL have at most one live PIN row; PIN rows are never hard deleted
 
 `verifyPin` SHALL compare the whole derived hash without an early exit.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 

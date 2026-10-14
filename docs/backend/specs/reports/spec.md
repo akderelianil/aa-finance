@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/reports.ts, src/core/api/ctx.ts (ownerSql)
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: trial balance (Mizan), balance sheet (Bilanço) with unclosed earnings, income statement (Gelir tablosu), and the Aile / Kişi / Ortak owner filter. All amounts are in the base currency, signed like lines (plus = debit). Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -58,7 +58,7 @@ Scope: trial balance (Mizan), balance sheet (Bilanço) with unclosed earnings, i
 
 Every report amount SHALL be a sum of live lines' `base_amount`, signed plus for debit.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -112,4 +112,4 @@ The balance sheet and income statement SHALL omit accounts whose balance in the 
 
 The per-account balance query SHALL be answered from the `lines_account` covering index.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)

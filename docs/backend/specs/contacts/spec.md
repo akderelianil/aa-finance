@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/contacts.ts, src/core/migrations/0008_contacts.sql, 0009_line_contacts.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: the Rehber (directory): individuals, brands and businesses, brand-business links, suggested income and expense accounts, soft delete, and open debt balances per contact. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -30,7 +30,7 @@ Scope: the Rehber (directory): individuals, brands and businesses, brand-busines
 
 Two live contacts SHALL NOT share a name, ignoring case and kind.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -42,7 +42,7 @@ Two live contacts SHALL NOT share a name, ignoring case and kind.
 
 A link SHALL join one live brand and one live business; an individual has no links.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -68,7 +68,7 @@ When `partners` is given, `contacts.update` SHALL make it the whole set of links
 
 A brand and a business SHALL have at most one live link.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -80,7 +80,7 @@ A brand and a business SHALL have at most one live link.
 
 A link's brand and business SHALL never change, and a removed link is final.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -92,7 +92,7 @@ A link's brand and business SHALL never change, and a removed link is final.
 
 A contact's kind SHALL never change.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -104,7 +104,7 @@ A contact's kind SHALL never change.
 
 A suggested income account SHALL be a live, non-archived, non-placeholder income account, and a suggested expense account the same for expense.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -144,7 +144,7 @@ A contact named on a live line SHALL NOT be removed; once those entries are dele
 
 A soft-deleted contact SHALL NOT be updated again.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 

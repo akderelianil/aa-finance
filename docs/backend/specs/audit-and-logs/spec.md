@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/api/index.ts, src/core/api/logs.ts, src/core/api/errors.ts, src/core/migrate.ts, src/core/db.ts, src/core/migrations/0001_schema.sql, 0005_drop_uid.sql, 0007_audit_columns.sql, 0008_contacts.sql, 0010_account_owner.sql, 0011_line_member.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: soft delete only, the `audit_log` triggers (who changed a row), the `activity_log` written by the API (who did what), pruning, audit columns, the API call envelope (input check, error codes, clock) and migrations. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -16,7 +16,7 @@ Scope: soft delete only, the `audit_log` triggers (who changed a row), the `acti
 
 A DELETE SHALL fail on every table; rows leave only by soft delete, except `activity_log` rows past their retention.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -42,7 +42,7 @@ Every insert, update and soft delete on actors, settings, fx_rates, accounts, en
 
 `audit_log` rows SHALL never be updated or deleted.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -82,7 +82,7 @@ A failed write op by a signed-in member SHALL add an `activity_log` row with `ok
 
 `activity_log` rows SHALL never be updated, and SHALL be deleted only when older than `activity_log_days`.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -108,7 +108,7 @@ A failed write op by a signed-in member SHALL add an `activity_log` row with `ok
 
 `activity_log_days` SHALL start at 365 and stay a whole number of days of at least 1 through the API.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -148,7 +148,7 @@ A failed write op by a signed-in member SHALL add an `activity_log` row with `ok
 
 Every table but the two logs SHALL have created_at, updated_at, created_by, updated_by, deleted_at and deleted_by, with deleted_by set exactly when deleted_at is set.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -160,7 +160,7 @@ Every table but the two logs SHALL have created_at, updated_at, created_by, upda
 
 A setting's key SHALL never change and a setting SHALL never be soft deleted.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -242,7 +242,7 @@ A trigger error SHALL reach the caller as its code, a known UNIQUE failure as it
 
 All statements of one batch SHALL commit together or not at all.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -254,7 +254,7 @@ All statements of one batch SHALL commit together or not at all.
 
 Integer values SHALL round-trip up to Number.MAX_SAFE_INTEGER and fail above it rather than lose precision.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -266,7 +266,7 @@ Integer values SHALL round-trip up to Number.MAX_SAFE_INTEGER and fail above it 
 
 Migrations that rebuild tables SHALL keep every row, id and foreign key.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 <!-- uncertainty: failed open write ops while locked (setup.run) are not logged; signIn and setPin log their own failures. -->
 <!-- uncertainty: currencies and member_pins have no audit trigger (member_pins on purpose, per 0012 header). -->

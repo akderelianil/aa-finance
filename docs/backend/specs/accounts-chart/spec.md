@@ -2,7 +2,7 @@
 
 > Auto-extracted by spec-miner. Last mined: 2026-10-13.
 > Source: src/core/chart.ts, src/core/setup.ts, src/core/api/accounts.ts, src/core/api/settings.ts (setup), src/core/migrations/0007_audit_columns.sql, 0010_account_owner.sql
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Scope: the Chart of Accounts (Hesap Planı): setup template, five locked roots, locked system groups, free accounts, tree rules, currency per account, placeholder, archive, soft delete, account owner, account list balances and usage. Each block lists `id`, `entities`, `enforced` (file:line) and the exact title of the covering test (`NONE` when no test covers it).
 
@@ -48,7 +48,7 @@ A second `setup.run` SHALL fail with `already_setup` and change nothing.
 
 Every account except the five locked roots (system_key = type) SHALL have a parent.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -60,7 +60,7 @@ Every account except the five locked roots (system_key = type) SHALL have a pare
 
 A locked account (roots and system groups) SHALL NOT be renamed, moved, archived, deleted or otherwise updated.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -72,7 +72,7 @@ A locked account (roots and system groups) SHALL NOT be renamed, moved, archived
 
 An account's `locked`, `system_key` and `type` SHALL never change after insert.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -98,7 +98,7 @@ An account's `locked`, `system_key` and `type` SHALL never change after insert.
 
 An account's parent SHALL be a live account of the same type.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -110,7 +110,7 @@ An account's parent SHALL be a live account of the same type.
 
 Moving an account SHALL NOT make it its own ancestor.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -122,7 +122,7 @@ Moving an account SHALL NOT make it its own ancestor.
 
 Two live accounts under the same parent SHALL NOT share a name.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -148,7 +148,7 @@ Two live accounts under the same parent SHALL NOT share a name.
 
 Every account SHALL have a known currency, and its currency SHALL NOT change while it has live lines.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -160,7 +160,7 @@ Every account SHALL have a known currency, and its currency SHALL NOT change whi
 
 A placeholder (group) account SHALL take no lines, and an account with live lines SHALL NOT become a placeholder.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 
@@ -200,7 +200,7 @@ A placeholder (group) account SHALL take no lines, and an account with live line
 
 A soft-deleted account SHALL NOT be updated again.
 
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 ---
 

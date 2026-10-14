@@ -3,7 +3,7 @@
 > Code paths in these specs (`src/core/...`, `src-tauri/...`) now live under `legacy/` (prototype, frozen). See [legacy/README](../../../legacy/README.md).
 
 > Index of the mined behavior specs.
-> Last verified: 2026-10-13 (commit 9bc514c)
+> Last verified: 2026-10-13 (commit 32d9165)
 
 Behavior specs for `src/core/`, one folder per capability. Each spec is a flat list of `### Requirement:` (triggered, with a `#### Scenario:`) and `### Invariant:` (always true) blocks. Every block carries a stable `id`, the `entities` it touches, where it is `enforced` (trigger error codes in `src/core/migrations/` and API code, with file:line) and the exact title of the test that covers it, or `NONE`. `status: unverified` marks behavior read from code that no test confirms and that may be unintended. `docs/RULES-TRACE.md` maps the CLAUDE.md product rules; these specs go one level deeper, per behavior.
 
