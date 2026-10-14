@@ -21,6 +21,11 @@ pub enum RuleCode {
     LineCommodityMismatch,
     AccountCommodityLocked,
     RevisionKindMismatch,
+    AmountInvalid,
+    AmountTooPrecise,
+    RateInvalid,
+    RateMissing,
+    LineBaseSign,
 }
 
 impl RuleCode {
@@ -42,6 +47,11 @@ impl RuleCode {
             RuleCode::LineCommodityMismatch => "line_commodity_mismatch",
             RuleCode::AccountCommodityLocked => "account_commodity_locked",
             RuleCode::RevisionKindMismatch => "revision_kind_mismatch",
+            RuleCode::AmountInvalid => "amount_invalid",
+            RuleCode::AmountTooPrecise => "amount_too_precise",
+            RuleCode::RateInvalid => "rate_invalid",
+            RuleCode::RateMissing => "rate_missing",
+            RuleCode::LineBaseSign => "line_base_sign",
         }
     }
 
@@ -150,6 +160,11 @@ mod tests {
             RuleCode::LineCommodityMismatch,
             RuleCode::AccountCommodityLocked,
             RuleCode::RevisionKindMismatch,
+            RuleCode::AmountInvalid,
+            RuleCode::AmountTooPrecise,
+            RuleCode::RateInvalid,
+            RuleCode::RateMissing,
+            RuleCode::LineBaseSign,
         ];
         // Act / Assert
         for code in all {
