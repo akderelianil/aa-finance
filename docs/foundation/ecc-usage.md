@@ -1,6 +1,6 @@
 # Using ECC in aa-finance
 
-Status: proposed 2026-10-14, effective once the owner confirms. Replaces the long agent list in `CLAUDE.md` as the place to look up "which tool, when".
+Status: in effect since 2026-10-14 (owner said to proceed). Replaces the long agent list in `CLAUDE.md` as the place to look up "which tool, when".
 
 ECC 2.2.3 ships 71 agents, 311 skills, 97 commands and 29 hooks. `.claude/settings.json` allows 38 agents and 154 skills; the rest is denied because it targets other stacks. Most of the allowed set is still unused on any given day. The rule of thumb is: **one tool per step of the work, and the cheapest tool that protects the quality order** (data integrity, then security and privacy, then compatibility, resources, performance).
 
@@ -8,7 +8,7 @@ ECC 2.2.3 ships 71 agents, 311 skills, 97 commands and 29 hooks. `.claude/settin
 
 | Step | Use | Why here |
 |---|---|---|
-| Start of session | `node <ledger.js> status`, then read the story file | The ledger is the single source of what is next. |
+| Start of session | `npm run story -- status`, then read the story file | The ledger is the single source of what is next. |
 | Unclear or risky requirement | skill `ecc:intent-driven-development` | Turns a vague story into acceptance criteria before code. Skip for stories whose criteria are already written. |
 | Design question with a real trade-off | `ecc:architect` or skill `ecc:council`, then `ecc:architecture-decision-records` | Only when a decision would be hard to reverse (schema, API, crypto). Record it as an ADR; supersede, never rewrite. |
 | Contract between core and UI | skill `ecc:contract-first`, `ecc:api-design` | Named operations are the public API (ADR-0008). Fix the shape before the code. |
@@ -17,9 +17,9 @@ ECC 2.2.3 ships 71 agents, 311 skills, 97 commands and 29 hooks. `.claude/settin
 | Build breaks | `ecc:rust-build-resolver` (Rust), `ecc:build-error-resolver` (TS) | Minimal diffs only; never for design changes. |
 | Review | see section 2 | Review depth follows risk. |
 | Before commit | `npm run verify`, `cargo test --workspace` (the pre-commit hook runs both) | Never skip. `ecc:commit-reviewer` is optional for the message. |
-| End of story | `ledger.js` transition, update `docs/ROADMAP.md` and the memory file | One place for status: the ledger plus `rebuild-status.md`. |
+| End of story | `npm run story -- <command>` transition, update `docs/ROADMAP.md` and the memory file | One place for status: the ledger plus `rebuild-status.md`. |
 
-## 2. Review tiers (proposed)
+## 2. Review tiers
 
 | Change touches | Reviewers |
 |---|---|
@@ -76,8 +76,7 @@ Observations accumulate automatically. The analysis that turns them into instinc
 - Reviewer agents on trivial or doc-only changes. They cost time and tokens and add noise.
 - `orch-*` wrappers for work the ledger already scopes. They add a second process on top of the first.
 
-## 7. Gaps to close
+## 7. Closed gaps and what is left
 
-- `.claude/rules/` has `common`, `react` and `typescript` but no `rust`, although the core is Rust. ECC ships `rules/rust/` (coding-style, hooks, patterns, security, testing). Copy and trim it when `core-rebuild-3` starts.
-- `npm run story` does not exist; the ledger path is pinned to ECC 2.2.3 in memory. Add a script so an ECC update does not break session start.
-- `CLAUDE.md` should link to this file instead of repeating the agent list.
+- Done 2026-10-14: `.claude/rules/rust/` (coding-style, patterns, security, testing from ECC) and `npm run story` (finds the ledger in the newest installed ECC version).
+- Left: shorten `CLAUDE.md` (move the long product-rule list to `docs/foundation/vision.md` references) and decide whether to disable `stop:format-typecheck` and `stop:check-console-log` while only Rust changes.

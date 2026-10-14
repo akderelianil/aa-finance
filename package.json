@@ -8,6 +8,7 @@
     "verify:legacy": "npm --prefix legacy run verify:web",
     "verify:rust-legacy": "cargo test --manifest-path legacy/src-tauri/Cargo.toml",
     "verify": "npm run test && npm run verify:legacy",
+    "story": "node --disable-warning=ExperimentalWarning scripts/story.ts",
     "changelog": "node --disable-warning=ExperimentalWarning scripts/gen-changelog.ts",
     "hooks:install": "sh scripts/hooks/install.sh"
   }
