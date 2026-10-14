@@ -3,7 +3,7 @@
 **ID:** core-rebuild-2
 **Epic:** core-rebuild
 **Sprint:** 6
-**Status:** review
+**Status:** done
 **Points:** 5
 
 ## Context
@@ -23,5 +23,5 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 ## Definition of Done
 
 - [x] Tests written first cover the acceptance criteria
-- [ ] Code review and verification loop passed
+- [x] Code review and verification loop passed
 - [x] Code merged to main

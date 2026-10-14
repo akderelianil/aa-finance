@@ -16,6 +16,14 @@ pub enum DocKind {
 }
 
 impl DocKind {
+    /// Every kind, in the order a full rebuild replays them.
+    pub const ALL: [DocKind; 3] = [DocKind::Commodity, DocKind::Account, DocKind::Entry];
+
+    /// The kind with this stored name, or `None` for a name this build does not know.
+    pub fn from_name(name: &str) -> Option<DocKind> {
+        DocKind::ALL.into_iter().find(|kind| kind.as_str() == name)
+    }
+
     /// The name stored in the `revision` table.
     pub fn as_str(self) -> &'static str {
         match self {
@@ -164,11 +172,9 @@ impl Store {
             "UPDATE revision SET server_seq = ?2 WHERE id = ?1",
             params![revision_id, server_seq],
         )?;
-        let kind = match kind.as_str() {
-            "commodity" => DocKind::Commodity,
-            "account" => DocKind::Account,
-            _ => DocKind::Entry,
-        };
+        let kind = DocKind::from_name(&kind).ok_or(Error::Internal(
+            "a revision has a document kind this build does not know",
+        ))?;
         projection::rebuild(&tx, kind, doc_id, false)?;
         tx.commit()?;
         Ok(())

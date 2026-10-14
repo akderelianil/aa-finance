@@ -27,6 +27,7 @@ pub enum RuleCode {
     RateMissing,
     LineBaseSign,
     RateBaseConflict,
+    LineEmpty,
 }
 
 impl RuleCode {
@@ -54,6 +55,7 @@ impl RuleCode {
             RuleCode::RateMissing => "rate_missing",
             RuleCode::LineBaseSign => "line_base_sign",
             RuleCode::RateBaseConflict => "rate_base_conflict",
+            RuleCode::LineEmpty => "line_empty",
         }
     }
 
@@ -111,6 +113,8 @@ impl From<rusqlite::Error> for Error {
                     ("base_value BETWEEN", RuleCode::AmountOutOfRange),
                     ("date(date) IS date", RuleCode::DateInvalid),
                     ("scale BETWEEN", RuleCode::CommodityScaleInvalid),
+                    ("line_base_sign", RuleCode::LineBaseSign),
+                    ("line_not_empty", RuleCode::LineEmpty),
                     (
                         "UNIQUE constraint failed: commodity.code",
                         RuleCode::CommodityCodeTaken,

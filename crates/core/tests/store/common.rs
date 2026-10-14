@@ -1,6 +1,6 @@
 //! Shared setup of the store tests: a small world (two commodities, two accounts) and builders.
 pub use aa_core::{
-    ids::new_id, DocKind, Error, Id, ImportedRevision, NewRevision, RuleCode, Store,
+    ids::new_id, DocKind, DriftReason, Error, Id, ImportedRevision, NewRevision, RuleCode, Store,
 };
 pub use serde_json::json;
 
@@ -105,4 +105,50 @@ pub fn post(w: &mut World, amounts: &[(Id, i64)]) -> (Id, Id) {
 
 pub fn hex(id: Id) -> String {
     id.as_bytes().iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// An entry body from `(account, commodity, quantity, base_value)` tuples, for lines in other commodities.
+pub fn lines_body(status: &str, lines: &[(Id, Id, i64, i64)]) -> serde_json::Value {
+    let lines: Vec<_> = lines
+        .iter()
+        .map(|(account, commodity, quantity, base)| {
+            json!({"account": account.to_string(), "commodity": commodity.to_string(), "quantity": quantity, "base_value": base})
+        })
+        .collect();
+    json!({"date": "2026-10-13", "memo": "fx", "no": null, "status": status, "lines": lines})
+}
+
+/// Adds an account in `commodity` to the world and returns its id.
+pub fn add_account(w: &mut World, name: &str, commodity: Id) -> Id {
+    let id = new_id();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            id,
+            None,
+            account_body(name, commodity, None, false),
+        ))
+        .unwrap();
+    id
+}
+
+/// A temporary directory removed when dropped, also when the test fails.
+pub struct TempDir(std::path::PathBuf);
+
+impl TempDir {
+    pub fn new() -> TempDir {
+        let dir = std::env::temp_dir().join(format!("aa-core-{}", new_id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        TempDir(dir)
+    }
+
+    pub fn path(&self) -> &std::path::Path {
+        &self.0
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
 }

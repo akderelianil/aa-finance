@@ -14,3 +14,23 @@ fn rebuilding_a_document_without_revisions_is_an_internal_error() {
     // Assert
     assert!(matches!(result, Err(Error::Internal(m)) if m.contains("without revisions")));
 }
+
+#[test]
+fn every_drift_reason_has_its_own_stable_code() {
+    // Arrange
+    let reasons = [
+        DriftReason::NotAtHead,
+        DriftReason::OrphanRow,
+        DriftReason::DiffersFromRevision,
+        DriftReason::PostedInvariantBroken,
+    ];
+    // Act
+    let mut names: Vec<_> = reasons.iter().map(|reason| reason.as_str()).collect();
+    names.sort_unstable();
+    names.dedup();
+    // Assert
+    assert_eq!(names.len(), reasons.len());
+    assert!(names
+        .iter()
+        .all(|name| !name.is_empty() && !name.contains(' ')));
+}

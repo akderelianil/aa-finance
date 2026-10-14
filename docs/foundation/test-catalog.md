@@ -3,11 +3,11 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 106 tests.
+Total: 137 tests.
 
 ## core: integration tests (crates/core/tests)
 
-### store/accounts.rs (9)
+### store/accounts.rs (11)
 Accounts and commodities: archived accounts, the commodity and scale of an account in use, the account tree (cycles and depth) and account kinds (ADR-0010, ADR-0012).
 
 - An archived account takes no new lines
@@ -19,8 +19,10 @@ Accounts and commodities: archived accounts, the commodity and scale of an accou
 - An account cannot become its own ancestor
 - Every account kind is accepted and an unknown one is refused
 - An account tree deeper than the limit is refused like a cycle
+- A duplicate of a carried line is a new use of an archived account
+- An account cannot be its own parent
 
-### store/conflicts.rs (6)
+### store/conflicts.rs (9)
 Server order and conflicts: the earliest server sequence is the head, a sibling is kept as a branch, and a stale parent is a conflict (ADR-0012).
 
 - The server sequence is set once
@@ -29,8 +31,11 @@ Server order and conflicts: the earliest server sequence is the head, a sibling 
 - Recording a server sequence can change the head and the projection follows
 - A server sequence can be recorded for any kind of document
 - A server sequence for an unknown revision is a missing reference
+- Siblings without a server order follow creation time then arrival
+- A sequenced branch beats an unsequenced one whatever their times
+- A revision of a kind this build does not know is an internal error
 
-### store/entries.rs (7)
+### store/entries.rs (15)
 Posting entries: an entry balances to exactly zero, a revision replaces its lines and keeps history, and a faulty writer cannot unbalance a posted entry (ADR-0004, ADR-0010, ADR-0012).
 
 - A balanced posted entry projects its lines
@@ -40,6 +45,14 @@ Posting entries: an entry balances to exactly zero, a revision replaces its line
 - A new revision replaces the lines and keeps the history
 - A posted entry can go back to draft and be posted again
 - A faulty writer cannot unbalance a posted entry
+- A posted entry balances on base value not on quantity
+- An entry that is one unit off is unbalanced
+- A line whose base value has the other sign is refused with a code
+- A line with neither quantity nor base value is refused with a code
+- A posted entry goes back to draft and is posted again with its history
+- Lines of a posted entry cannot be added or removed directly
+- A draft cannot be posted directly when it does not balance
+- An entry cannot be inserted as posted without its lines
 
 ### store/failures.rs (3)
 A database that breaks in the middle of an operation: each case damages the schema, then the operation must return an error and change nothing.
@@ -48,7 +61,7 @@ A database that breaks in the middle of an operation: each case damages the sche
 - A broken database is an error when rebuilding the projection
 - A broken database is an error when writing an entry and nothing is stored
 
-### store/rebuild.rs (5)
+### store/rebuild.rs (6)
 Rebuilding the projection from the revisions: it repairs drift, replays parents before children and archived accounts, and stops with a clear error on damaged input.
 
 - Rebuilding the projection repairs drift
@@ -56,14 +69,18 @@ Rebuilding the projection from the revisions: it repairs drift, replays parents 
 - Rebuilding retries an account whose new parent was created later
 - A revision body that cannot be read stops a rebuild and leaves the projection alone
 - A rebuild that cannot find a parent account reports the missing reference
+- A rebuild reproduces the incremental projection exactly
 
-### store/revisions.rs (4)
+### store/revisions.rs (7)
 Revisions are immutable and chain correctly: no edit or delete, a parent belongs to the same document, a document never changes kind, and a failed batch changes nothing (ADR-0012).
 
 - A revision cannot be changed or deleted
 - A parent must belong to the same document
 - A document never changes kind
 - A failed batch leaves revisions and projection unchanged
+- A conflict in the middle of a batch rolls the whole batch back
+- Every column of a revision is immutable
+- A replace cannot rewrite a revision
 
 ### store/storage.rs (5)
 The ledger file: WAL and foreign keys, two connections writing one file, a file that is not ours, and a drive without WAL support.
@@ -83,7 +100,7 @@ Input checks and stable error codes: duplicate codes, scale and amount bounds, m
 - A missing commodity reference is reported
 - Malformed unknown or misspelled bodies are refused
 
-### store/verify.rs (7)
+### store/verify.rs (15)
 verify_projection: only the projector writes the projection tables, and every kind of drift (a tampered line, a wrong pointer, an orphan, a broken posted invariant) is found; the generated fixture verifies clean (ADR-0012).
 
 - Only the projector writes projection tables
@@ -93,6 +110,14 @@ verify_projection: only the projector writes the projection tables, and every ki
 - Verify projection finds a posted entry that broke its invariants
 - Verify projection reports a posted entry whose invariants were never enforced
 - The generated fixture verifies clean and balances to zero
+- The projection session cannot be removed or replaced to open the gates
+- A missing session row keeps the projection closed
+- Verify projection finds a pointer to an older revision with the same content
+- Verify projection finds a document whose projection row is missing
+- Verify projection finds an orphan row that looks like a real document
+- Verify projection finds every kind of changed field
+- Verify projection reports a posted entry with one line even when it sums to zero
+- Every posted entry of the fixture sums to zero and a rebuild keeps it clean
 
 ## core: unit tests (crates/core/src)
 
@@ -115,11 +140,14 @@ Reading and writing amounts: the canonical form and both separator styles, every
 - Canonical text parses to the exact scaled integer
 - Formatting never panics for any value
 
-### error/tests.rs (2)
+### error/tests.rs (5)
 The mapping of database messages to stable rule codes, and of other errors to their variants.
 
+- The list of all codes covers every variant
 - Every trigger code maps back from its own message
 - A json error becomes an invalid body and other sqlite errors stay opaque
+- Rule code names are unique
+- Every error a trigger raises in the schema is a trigger code and the other way round
 
 ### ids/tests.rs (2)
 Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).
@@ -127,17 +155,20 @@ Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).
 - Ids are version seven and increase over time
 - The short id is twelve hex digits from the random tail
 
-### migrate/tests.rs (3)
+### migrate/tests.rs (5)
 The migration framework: every file applied once, the schema version recorded, newer and foreign databases refused.
 
 - Migrate applies every file once and sets user version
 - Migrate refuses a database newer than the app
 - Migrate refuses a foreign database without a schema version
+- Migrate refuses a file of another application even with a schema version
+- Migrate marks the file as a ledger
 
-### projection/tests.rs (1)
+### projection/tests.rs (2)
 Guards of the projector that the public API cannot reach, tested from inside the crate.
 
 - Rebuilding a document without revisions is an internal error
+- Every drift reason has its own stable code
 
 ### rate/tests.rs (32)
 Rates and base values: the rounding rule checked against an independent calculation, derived rates, the resolution order, the Rounding line and its limits (ADR-0010).
@@ -169,7 +200,7 @@ Rates and base values: the rounding rule checked against an independent calculat
 - The result is the nearest integer with ties away from zero
 - Conversion is monotonic
 - Conversion is symmetric around zero
-- A value that fits is never refused
+- A refusal is always the out of range code and a result is always in bounds
 - The text of a rate parses back to the same rate
 - Parsing a rate never panics
 - The rounding line always balances the entry

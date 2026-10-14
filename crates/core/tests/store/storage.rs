@@ -5,9 +5,8 @@ use super::common::*;
 #[test]
 fn a_file_database_uses_wal_and_foreign_keys() {
     // Arrange
-    let dir = std::env::temp_dir().join(format!("aa-core-{}", new_id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("ledger.db");
+    let dir = TempDir::new();
+    let path = dir.path().join("ledger.db");
     // Act
     let store = Store::open(&path).unwrap();
     // Assert
@@ -22,15 +21,13 @@ fn a_file_database_uses_wal_and_foreign_keys() {
     assert_eq!(mode, "wal");
     assert_eq!(fk, 1);
     drop(store);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn two_connections_write_the_same_file_without_losing_a_revision() {
     // Arrange
-    let dir = std::env::temp_dir().join(format!("aa-core-{}", new_id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("ledger.db");
+    let dir = TempDir::new();
+    let path = dir.path().join("ledger.db");
     drop(Store::open(&path).unwrap());
     let writer = |path: std::path::PathBuf| {
         std::thread::spawn(move || {
@@ -57,15 +54,13 @@ fn two_connections_write_the_same_file_without_losing_a_revision() {
     assert_eq!(count(&store, "SELECT count(*) FROM revision"), 50);
     assert!(store.verify_projection().unwrap().is_empty());
     drop(store);
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 #[test]
 fn a_ledger_file_that_is_not_ours_is_refused_and_errors_read_in_plain_words() {
     // Arrange
-    let dir = std::env::temp_dir().join(format!("aa-core-{}", new_id()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("other.db");
+    let dir = TempDir::new();
+    let path = dir.path().join("other.db");
     write_foreign_file(&path);
     // Act
     let result = Store::open(&path);
@@ -92,7 +87,6 @@ fn a_ledger_file_that_is_not_ours_is_refused_and_errors_read_in_plain_words() {
     assert!(Error::Conflict { doc_id: new_id() }
         .to_string()
         .contains("conflict"));
-    std::fs::remove_dir_all(dir).unwrap();
 }
 
 /// Writes a small SQLite file that is not a ledger, as a foreign application would leave it.

@@ -12,7 +12,7 @@ Quality gates from ADR-0018 on Windows, macOS and Ubuntu runners.
 
 ## Acceptance Criteria
 
-- [ ] fmt, clippy, tests and coverage floors (80 overall, 100 on money, rules, crypto) run on all three platforms
+- [ ] fmt, clippy, tests and coverage floors (80 overall, 95 on money, rules, crypto; ADR-0020) run on all three platforms
 - [ ] cargo-mutants and cargo-fuzz jobs exist for the money and parser crates
 - [ ] verify command and pre-commit hook updated for the new layout
 

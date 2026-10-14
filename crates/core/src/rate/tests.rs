@@ -627,7 +627,7 @@ proptest! {
     }
 
     #[test]
-    fn a_value_that_fits_is_never_refused(
+    fn a_refusal_is_always_the_out_of_range_code_and_a_result_is_always_in_bounds(
         q in -MAX_STORED..=MAX_STORED,
         mantissa in 1u64..10_000_000_000_000_000_000,
         qs in 0u8..=18,

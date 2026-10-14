@@ -49,3 +49,28 @@ fn migrate_refuses_a_foreign_database_without_a_schema_version() {
     // Assert
     assert!(matches!(result, Err(Error::ForeignDatabase)));
 }
+
+#[test]
+fn migrate_refuses_a_file_of_another_application_even_with_a_schema_version() {
+    // Arrange: a SQLite file with user_version 1 that never was a ledger.
+    let mut conn = Connection::open_in_memory().unwrap();
+    conn.execute_batch("CREATE TABLE notes (id INTEGER); PRAGMA user_version = 1;")
+        .unwrap();
+    // Act
+    let result = migrate(&mut conn);
+    // Assert
+    assert!(matches!(result, Err(Error::ForeignDatabase)));
+}
+
+#[test]
+fn migrate_marks_the_file_as_a_ledger() {
+    // Arrange
+    let mut conn = Connection::open_in_memory().unwrap();
+    // Act
+    migrate(&mut conn).unwrap();
+    // Assert
+    let application: i64 = conn
+        .query_row("PRAGMA application_id", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(application, APPLICATION_ID);
+}

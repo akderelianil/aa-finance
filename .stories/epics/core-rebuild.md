@@ -25,8 +25,8 @@ Build the Rust core for v1: schema with revisions, exact amounts, ledger operati
 | ID | Title | Status |
 | --- | --- | --- |
 | core-rebuild-1 | CR-0 Repository move and workspace skeleton | done |
-| core-rebuild-2 | CR-1 Schema v1, revisions, projection and verify_projection | review |
-| core-rebuild-3 | CR-2 Amounts, rounding and rates | review |
+| core-rebuild-2 | CR-1 Schema v1, revisions, projection and verify_projection | done |
+| core-rebuild-3 | CR-2 Amounts, rounding and rates | done |
 | core-rebuild-4 | CR-3 Accounts, entries and the named-operation API | todo |
 | core-rebuild-5 | CR-4 Scenario engine and the four v1 scenarios | todo |
 | core-rebuild-6 | CR-5 Reports: Balance Sheet, Income Statement, simple Cash Flow | todo |
@@ -34,3 +34,4 @@ Build the Rust core for v1: schema with revisions, exact amounts, ledger operati
 | core-rebuild-8 | CR-7 Backup, restore, CSV export and erase | todo |
 | core-rebuild-9 | CR-8 Spec parity and retire the legacy tree | todo |
 | core-rebuild-10 | CR-9 Command line quick entry | todo |
+| core-rebuild-11 | CR-10 Sync-ready store: needs-attention state, idempotent import, provenance | todo |

@@ -37,6 +37,12 @@ WHEN NEW.seq IS NOT OLD.seq OR NEW.id IS NOT OLD.id OR NEW.doc_kind IS NOT OLD.d
   OR NEW.body IS NOT OLD.body OR OLD.server_seq IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'revision_immutable'); END;
 
+-- INSERT OR REPLACE removes the old row without firing delete triggers, so a repeated id or seq is refused here.
+CREATE TRIGGER revision_no_overwrite BEFORE INSERT ON revision
+WHEN EXISTS (SELECT 1 FROM revision WHERE id = NEW.id)
+  OR (NEW.seq IS NOT NULL AND EXISTS (SELECT 1 FROM revision WHERE seq = NEW.seq))
+BEGIN SELECT RAISE(ABORT, 'revision_immutable'); END;
+
 CREATE TRIGGER revision_no_delete BEFORE DELETE ON revision
 BEGIN SELECT RAISE(ABORT, 'revision_immutable'); END;
 
@@ -47,6 +53,12 @@ CREATE TABLE projection_session (
   carry INTEGER NOT NULL CHECK (carry IN (0, 1))
 ) STRICT;
 INSERT INTO projection_session (id, open, carry) VALUES (1, 0, 0);
+
+CREATE TRIGGER projection_session_no_delete BEFORE DELETE ON projection_session
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER projection_session_no_insert BEFORE INSERT ON projection_session
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TABLE commodity (
   id INTEGER PRIMARY KEY,
@@ -87,58 +99,59 @@ CREATE TABLE line (
   commodity_id INTEGER NOT NULL REFERENCES commodity (id),
   quantity INTEGER NOT NULL CHECK (quantity BETWEEN -4611686018427387904 AND 4611686018427387904),
   base_value INTEGER NOT NULL CHECK (base_value BETWEEN -4611686018427387904 AND 4611686018427387904),
-  CHECK (quantity <> 0 OR base_value <> 0),
+  CONSTRAINT line_not_empty CHECK (quantity <> 0 OR base_value <> 0),
+  CONSTRAINT line_base_sign CHECK ((quantity >= 0 AND base_value >= 0) OR (quantity <= 0 AND base_value <= 0)),
   UNIQUE (entry_id, line_no)
 ) STRICT;
 
 CREATE INDEX line_account ON line (account_id, commodity_id, quantity, base_value);
 
 CREATE TRIGGER commodity_insert_gate BEFORE INSERT ON commodity
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER commodity_update_gate BEFORE UPDATE ON commodity
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER commodity_delete_gate BEFORE DELETE ON commodity
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER account_insert_gate BEFORE INSERT ON account
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER account_update_gate BEFORE UPDATE ON account
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER account_delete_gate BEFORE DELETE ON account
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER entry_insert_gate BEFORE INSERT ON entry
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER entry_update_gate BEFORE UPDATE ON entry
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER entry_delete_gate BEFORE DELETE ON entry
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER line_insert_gate BEFORE INSERT ON line
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER line_update_gate BEFORE UPDATE ON line
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 CREATE TRIGGER line_delete_gate BEFORE DELETE ON line
-WHEN (SELECT open FROM projection_session) = 0
+WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 
 -- Invariants. A posted entry has at least two lines and sums to exactly zero on base_value (no tolerance).
@@ -149,9 +162,13 @@ BEGIN
   SELECT RAISE(ABORT, 'entry_unbalanced') WHERE (SELECT sum(base_value) FROM line WHERE entry_id = NEW.id) <> 0;
 END;
 
+CREATE TRIGGER entry_starts_as_draft BEFORE INSERT ON entry
+WHEN NEW.status <> 'draft'
+BEGIN SELECT RAISE(ABORT, 'entry_unbalanced'); END;
+
 -- An archived account takes no new use; a line carried over unchanged from the previous head of its entry is allowed.
 CREATE TRIGGER line_account_not_archived BEFORE INSERT ON line
-WHEN (SELECT archived FROM account WHERE id = NEW.account_id) = 1 AND (SELECT carry FROM projection_session) = 0
+WHEN (SELECT archived FROM account WHERE id = NEW.account_id) = 1 AND (SELECT carry FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'account_archived'); END;
 
 CREATE TRIGGER line_commodity_matches_account BEFORE INSERT ON line

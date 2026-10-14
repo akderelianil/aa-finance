@@ -28,6 +28,8 @@ ECC 2.2.3 ships 71 agents, 311 skills, 97 commands and 29 hooks. `.claude/settin
 | React or TypeScript UI | `react-reviewer` / `typescript-reviewer`; `frontend-a11y` skill on every screen |
 | Docs, config, ADRs | hooks only (no reviewer agent) |
 
+On money and rules code the `pr-test-analyzer` also runs mutation experiments: it breaks one check at a time (a comparison, a trigger, a guard) in a scratch copy and reports which changes no test notices. The coverage floor is 95 percent (ADR-0020); a surviving mutation matters more than the missing last percent. Findings that belong to a later story go into a story through `npm run story`, not into a chat summary.
+
 `database-reviewer` is Postgres-focused: use it for SQL safety questions only. `code-reviewer` overlaps the language reviewers; use it only where no language reviewer exists.
 
 ## 3. Hooks

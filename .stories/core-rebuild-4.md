@@ -14,11 +14,14 @@ Ledger operations as revisions (ADR-0012, ADR-0008): chart with locked roots, ar
 
 - [ ] Accounts and entries as revisions with undo and a lock date; conflict branch and needs-attention states in the model
 - [ ] API reference generated from code; every error code has Turkish and English text
+- [ ] Amounts and rates cross the API as canonical strings (parse_amount, format_amount, Rate::parse; ADR-0009), with a test through the API layer
 - [ ] Spec requirements for accounts and ledger entries mapped to new tests
 
 ## Technical Notes
 
-Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.md.
+Decisions: docs/adr/0008 to 0020. Dependencies: docs/foundation/migration-plan.md.
+
+Hand-offs from the core-rebuild-2 and -3 reviews (2026-10-14): typed ids (document, revision) and a typed revision body before the operations are written; a public mapping from Error to a stable code and a safe message (no SQLite text over the API); the operation layer stamps author and time; a guard that the test-support feature is absent from shipped crates. The store-side items are in core-rebuild-11.
 
 ## Definition of Done
 

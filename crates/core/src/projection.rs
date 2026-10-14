@@ -7,11 +7,37 @@ use crate::ids::Id;
 use crate::store::DocKind;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Deserialize;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 /// Leaves of a document ordered so that the head comes first: server order, then local time, then arrival.
 const HEAD_ORDER: &str = "r.server_seq IS NULL, r.server_seq, r.created_at_ms, r.seq";
 const MAX_PARENT_DEPTH: usize = 10_000;
+
+/// Why a document counts as drifted. A stable code, so the UI can translate it and a repair can match on it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[non_exhaustive]
+pub enum DriftReason {
+    /// The projection has no row for the document, or its row points at a revision that is not the head.
+    NotAtHead,
+    /// The projection has a row for which no revision of that kind exists.
+    OrphanRow,
+    /// The row (or its lines) differs from what the head revision says.
+    DiffersFromRevision,
+    /// A posted entry has fewer than two lines or does not sum to zero on base value.
+    PostedInvariantBroken,
+}
+
+impl DriftReason {
+    /// The code as a string, for logs and for the UI to translate.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DriftReason::NotAtHead => "not_at_head",
+            DriftReason::OrphanRow => "orphan_row",
+            DriftReason::DiffersFromRevision => "differs_from_revision",
+            DriftReason::PostedInvariantBroken => "posted_invariant_broken",
+        }
+    }
+}
 
 /// A document whose projection disagrees with what its revisions say.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,8 +45,10 @@ const MAX_PARENT_DEPTH: usize = 10_000;
 pub struct Drift {
     pub doc_kind: DocKind,
     pub doc_id: Id,
-    pub reason: String,
+    pub reason: DriftReason,
 }
+
+type Found = BTreeMap<(DocKind, Id), DriftReason>;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -249,8 +277,8 @@ fn assert_no_parent_cycle(conn: &Connection, doc_id: Id, parent: Option<Id>) -> 
 fn write_account(conn: &Connection, doc_id: Id, revision_id: Id, body: &str) -> Result<()> {
     let b: AccountBody = serde_json::from_str(body)?;
     let commodity = commodity_id(conn, b.commodity)?;
-    let parent = b.parent.map(|p| account_id(conn, p)).transpose()?;
     assert_no_parent_cycle(conn, doc_id, b.parent)?;
+    let parent = b.parent.map(|p| account_id(conn, p)).transpose()?;
     conn.execute(
         "INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
          ON CONFLICT (uuid) DO UPDATE SET current_revision_id = excluded.current_revision_id, name = excluded.name,
@@ -261,6 +289,17 @@ fn write_account(conn: &Connection, doc_id: Id, revision_id: Id, body: &str) -> 
 }
 
 type StoredLine = (i64, i64, i64, i64);
+
+/// Uses up one carried-over copy of `line`, if the previous head had one left.
+fn take_carried(previous: &mut HashMap<StoredLine, usize>, line: StoredLine) -> bool {
+    match previous.get_mut(&line) {
+        Some(left) if *left > 0 => {
+            *left -= 1;
+            true
+        }
+        _ => false,
+    }
+}
 
 fn write_entry(
     conn: &Connection,
@@ -281,15 +320,19 @@ fn write_entry(
         params![doc_id],
         |row| row.get(0),
     )?;
-    let previous: HashSet<StoredLine> = {
+    // A multiset: a line carried over counts once, so a duplicate of it is a new use.
+    let mut previous: HashMap<StoredLine, usize> = HashMap::new();
+    {
         let mut stmt = conn.prepare_cached(
             "SELECT account_id, commodity_id, quantity, base_value FROM line WHERE entry_id = ?1",
         )?;
         let rows = stmt.query_map(params![entry_id], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
         })?;
-        rows.collect::<std::result::Result<_, _>>()?
-    };
+        for line in rows {
+            *previous.entry(line?).or_insert(0) += 1;
+        }
+    }
     conn.execute("DELETE FROM line WHERE entry_id = ?1", params![entry_id])?;
     let mut insert = conn.prepare_cached(
         "INSERT INTO line (entry_id, line_no, account_id, commodity_id, quantity, base_value) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -298,8 +341,11 @@ fn write_entry(
     for (line_no, line) in b.lines.iter().enumerate() {
         let account = account_id(conn, line.account)?;
         let commodity = commodity_id(conn, line.commodity)?;
-        let carried =
-            carry_all || previous.contains(&(account, commodity, line.quantity, line.base_value));
+        let carried = carry_all
+            || take_carried(
+                &mut previous,
+                (account, commodity, line.quantity, line.base_value),
+            );
         if carried != carrying {
             conn.execute("UPDATE projection_session SET carry = ?1", params![carried])?;
             carrying = carried;
@@ -324,7 +370,10 @@ fn write_entry(
 
 /// Compares the projection with what the head revisions say. Returns one drift per damaged document.
 pub(crate) fn verify(conn: &Connection) -> Result<Vec<Drift>> {
-    let mut found: BTreeMap<(DocKind, Id), String> = BTreeMap::new();
+    // One read transaction, so a writer that commits in between cannot show drift that is not there.
+    let tx = conn.unchecked_transaction()?;
+    let conn = &*tx;
+    let mut found: Found = BTreeMap::new();
     for (kind, table) in [
         (DocKind::Commodity, "commodity"),
         (DocKind::Account, "account"),
@@ -345,18 +394,11 @@ pub(crate) fn verify(conn: &Connection) -> Result<Vec<Drift>> {
         .collect())
 }
 
-fn note(found: &mut BTreeMap<(DocKind, Id), String>, kind: DocKind, doc: Id, reason: &str) {
-    found
-        .entry((kind, doc))
-        .or_insert_with(|| reason.to_string());
+fn note(found: &mut Found, kind: DocKind, doc: Id, reason: DriftReason) {
+    found.entry((kind, doc)).or_insert(reason);
 }
 
-fn check_pointers(
-    conn: &Connection,
-    kind: DocKind,
-    table: &str,
-    found: &mut BTreeMap<(DocKind, Id), String>,
-) -> Result<()> {
+fn check_pointers(conn: &Connection, kind: DocKind, table: &str, found: &mut Found) -> Result<()> {
     let missing = format!(
         "WITH leaf AS (
            SELECT r.doc_id, r.id, ROW_NUMBER() OVER (PARTITION BY r.doc_id ORDER BY {HEAD_ORDER}) AS rn
@@ -365,21 +407,11 @@ fn check_pointers(
          WHERE l.rn = 1 AND (p.uuid IS NULL OR p.current_revision_id IS NOT l.id)"
     );
     for doc in query_ids(conn, &missing, kind.as_str())? {
-        note(
-            found,
-            kind,
-            doc,
-            "the projection does not point at the head revision",
-        );
+        note(found, kind, doc, DriftReason::NotAtHead);
     }
     let orphans = format!("SELECT p.uuid FROM {table} p WHERE NOT EXISTS (SELECT 1 FROM revision r WHERE r.doc_id = p.uuid AND r.doc_kind = ?1)");
     for doc in query_ids(conn, &orphans, kind.as_str())? {
-        note(
-            found,
-            kind,
-            doc,
-            "the projection has a row without a revision of its kind",
-        );
+        note(found, kind, doc, DriftReason::OrphanRow);
     }
     Ok(())
 }
@@ -390,7 +422,7 @@ fn query_ids(conn: &Connection, sql: &str, kind: &str) -> Result<Vec<Id>> {
     Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
-fn check_commodities(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>) -> Result<()> {
+fn check_commodities(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut stmt = conn.prepare("SELECT c.uuid, c.code, c.scale, r.body FROM commodity c JOIN revision r ON r.id = c.current_revision_id")?;
     let rows = stmt.query_map([], |row| {
         Ok((
@@ -408,14 +440,14 @@ fn check_commodities(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), Stri
                 found,
                 DocKind::Commodity,
                 uuid,
-                "the commodity differs from its revision",
+                DriftReason::DiffersFromRevision,
             ),
         }
     }
     Ok(())
 }
 
-fn check_accounts(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>) -> Result<()> {
+fn check_accounts(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut stmt = conn.prepare(
         "SELECT a.uuid, a.name, a.kind, a.archived, c.uuid, p.uuid, r.body
          FROM account a JOIN commodity c ON c.id = a.commodity_id LEFT JOIN account p ON p.id = a.parent_id
@@ -445,14 +477,14 @@ fn check_accounts(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>
                 found,
                 DocKind::Account,
                 uuid,
-                "the account differs from its revision",
+                DriftReason::DiffersFromRevision,
             ),
         }
     }
     Ok(())
 }
 
-fn check_entries(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>) -> Result<()> {
+fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut entries = conn.prepare(
         "SELECT e.id, e.uuid, e.date, e.memo, e.no, e.status, r.body FROM entry e JOIN revision r ON r.id = e.current_revision_id",
     )?;
@@ -506,7 +538,7 @@ fn check_entries(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>)
                         found,
                         DocKind::Entry,
                         uuid,
-                        "a posted entry breaks its invariants",
+                        DriftReason::PostedInvariantBroken,
                     );
                 }
             }
@@ -514,7 +546,7 @@ fn check_entries(conn: &Connection, found: &mut BTreeMap<(DocKind, Id), String>)
                 found,
                 DocKind::Entry,
                 uuid,
-                "the entry or its lines differ from its revision",
+                DriftReason::DiffersFromRevision,
             ),
         }
     }

@@ -169,3 +169,95 @@ fn a_rebuild_that_cannot_find_a_parent_account_reports_the_missing_reference() {
         })
     ));
 }
+
+/// The whole projection as text, with documents named by their uuid (surrogate ids may differ after a rebuild).
+fn dump(store: &Store) -> Vec<String> {
+    let conn = store.raw_connection();
+    let queries = [
+        "SELECT 'c', hex(uuid), hex(current_revision_id), code, scale FROM commodity ORDER BY uuid",
+        "SELECT 'a', hex(a.uuid), hex(a.current_revision_id), a.name, coalesce(hex(p.uuid), ''), a.kind,
+                hex(c.uuid), a.archived
+         FROM account a LEFT JOIN account p ON p.id = a.parent_id JOIN commodity c ON c.id = a.commodity_id
+         ORDER BY a.uuid",
+        "SELECT 'e', hex(uuid), hex(current_revision_id), date, coalesce(memo, ''), coalesce(no, ''), status
+         FROM entry ORDER BY uuid",
+        "SELECT 'l', hex(e.uuid), l.line_no, hex(a.uuid), hex(c.uuid), l.quantity, l.base_value
+         FROM line l JOIN entry e ON e.id = l.entry_id JOIN account a ON a.id = l.account_id
+         JOIN commodity c ON c.id = l.commodity_id ORDER BY e.uuid, l.line_no",
+    ];
+    let mut out = Vec::new();
+    for sql in queries {
+        let mut stmt = conn.prepare(sql).unwrap();
+        let columns = stmt.column_count();
+        let rows = stmt
+            .query_map([], |row| {
+                let mut parts = Vec::new();
+                for i in 0..columns {
+                    parts.push(format!("{:?}", row.get::<_, rusqlite::types::Value>(i)?));
+                }
+                Ok(parts.join("|"))
+            })
+            .unwrap();
+        out.extend(rows.map(|r| r.unwrap()));
+    }
+    out
+}
+
+#[test]
+fn a_rebuild_reproduces_the_incremental_projection_exactly() {
+    // Arrange: a history with edits, a draft, an archived account, a rename and a conflict branch.
+    let mut w = world();
+    let (food, cash, try_id) = (w.food, w.cash, w.try_id);
+    let spare = add_account(&mut w, "Spare", try_id);
+    let (entry, first) = post(&mut w, &[(food, 5000), (cash, -5000)]);
+    let draft = w
+        .store
+        .write_revision(rev(
+            DocKind::Entry,
+            entry,
+            Some(first),
+            entry_body(&w, "draft", &[(food, 5000), (cash, -4000)]),
+        ))
+        .unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Entry,
+            entry,
+            Some(draft),
+            entry_body(&w, "posted", &[(food, 4000), (cash, -4000)]),
+        ))
+        .unwrap();
+    let spare_head = w.store.current_revision(spare).unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            spare,
+            spare_head,
+            account_body("Spare", try_id, Some(cash), true),
+        ))
+        .unwrap();
+    let other = post(&mut w, &[(food, 700), (cash, -700)]);
+    w.store
+        .import_revisions(vec![ImportedRevision {
+            id: new_id(),
+            server_seq: Some(3),
+            revision: rev(
+                DocKind::Entry,
+                other.0,
+                Some(other.1),
+                entry_body(&w, "draft", &[(food, 1)]),
+            ),
+        }])
+        .unwrap();
+    let before = dump(&w.store);
+    // Act
+    w.store.rebuild_projection().unwrap();
+    let once = dump(&w.store);
+    w.store.rebuild_projection().unwrap();
+    let twice = dump(&w.store);
+    // Assert
+    assert!(before.len() > 8, "the history is not trivial");
+    assert_eq!(once, before);
+    assert_eq!(twice, before);
+    assert!(w.store.verify_projection().unwrap().is_empty());
+}

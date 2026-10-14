@@ -137,3 +137,95 @@ fn a_server_sequence_for_an_unknown_revision_is_a_missing_reference() {
         })
     ));
 }
+
+fn sibling(
+    w: &World,
+    entry: Id,
+    root: Id,
+    id: Id,
+    server_seq: Option<i64>,
+    created_at_ms: i64,
+    amount: i64,
+) -> ImportedRevision {
+    ImportedRevision {
+        id,
+        server_seq,
+        revision: NewRevision {
+            created_at_ms,
+            ..rev(
+                DocKind::Entry,
+                entry,
+                Some(root),
+                entry_body(w, "draft", &[(w.food, amount)]),
+            )
+        },
+    }
+}
+
+#[test]
+fn siblings_without_a_server_order_follow_creation_time_then_arrival() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
+    let (late, early, same_time) = (new_id(), new_id(), new_id());
+    // Act: the later-created sibling arrives first.
+    w.store
+        .import_revisions(vec![
+            sibling(&w, entry, root, late, None, 3_000, 200),
+            sibling(&w, entry, root, early, None, 2_000, 300),
+        ])
+        .unwrap();
+    // Assert: the earlier creation time is the head.
+    assert_eq!(w.store.current_revision(entry).unwrap(), Some(early));
+    // Act: a third sibling with the same time as the head arrives later.
+    w.store
+        .import_revisions(vec![sibling(&w, entry, root, same_time, None, 2_000, 400)])
+        .unwrap();
+    // Assert: equal times keep the one that arrived first.
+    assert_eq!(w.store.current_revision(entry).unwrap(), Some(early));
+    // Three siblings: one head, two branches kept.
+    assert_eq!(w.store.conflicts(entry).unwrap().len(), 2);
+}
+
+#[test]
+fn a_sequenced_branch_beats_an_unsequenced_one_whatever_their_times() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
+    let (local, server) = (new_id(), new_id());
+    // Act: the local branch is much older, the server branch has an order.
+    w.store
+        .import_revisions(vec![
+            sibling(&w, entry, root, local, None, 500, 200),
+            sibling(&w, entry, root, server, Some(7), 9_000, 300),
+        ])
+        .unwrap();
+    // Assert
+    assert_eq!(w.store.current_revision(entry).unwrap(), Some(server));
+    // Two siblings: one head, one branch kept.
+    assert_eq!(w.store.conflicts(entry).unwrap().len(), 1);
+}
+
+#[test]
+fn a_revision_of_a_kind_this_build_does_not_know_is_an_internal_error() {
+    // Arrange: a damaged file with a kind the CHECK would normally refuse.
+    let mut w = world();
+    let id = new_id();
+    w.store
+        .raw_connection()
+        .execute_batch(&format!(
+            "PRAGMA ignore_check_constraints = ON;
+             INSERT INTO revision (id, doc_kind, doc_id, parent_id, author_id, created_at_ms, rules_version,
+                                   schema_version, core_version, body)
+             VALUES (X'{}', 'zzz', randomblob(16), NULL, randomblob(16), 1, 1, 1, 'x', '{{}}');
+             PRAGMA ignore_check_constraints = OFF;",
+            hex(id)
+        ))
+        .unwrap();
+    // Act
+    let result = w.store.set_server_seq(id, 5);
+    // Assert
+    assert!(matches!(result, Err(Error::Internal(m)) if m.contains("kind")));
+}

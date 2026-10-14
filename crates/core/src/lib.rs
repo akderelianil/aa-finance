@@ -14,7 +14,7 @@ mod store;
 
 pub use error::{Error, Result, RuleCode};
 pub use ids::Id;
-pub use projection::Drift;
+pub use projection::{Drift, DriftReason};
 pub use store::{DocKind, ImportedRevision, NewRevision, Store};
 
 /// The version of the named-operation API this build speaks.

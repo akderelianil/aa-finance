@@ -238,3 +238,59 @@ fn an_account_tree_deeper_than_the_limit_is_refused_like_a_cycle() {
         Err(Error::Rule(RuleCode::AccountParentCycle))
     ));
 }
+
+#[test]
+fn a_duplicate_of_a_carried_line_is_a_new_use_of_an_archived_account() {
+    // Arrange: an entry uses Food; Food is archived; the entry is then revised with Food twice.
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    let (entry, first) = post(&mut w, &[(food, 100), (cash, -100)]);
+    let food_head = w.store.current_revision(food).unwrap();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            food,
+            food_head,
+            account_body("Food", w.try_id, None, true),
+        ))
+        .unwrap();
+    let still_one = w.store.write_revision(rev(
+        DocKind::Entry,
+        entry,
+        Some(first),
+        entry_body(&w, "posted", &[(food, 100), (cash, -100)]),
+    ));
+    let head = w.store.current_revision(entry).unwrap();
+    // Act
+    let duplicated = w.store.write_revision(rev(
+        DocKind::Entry,
+        entry,
+        head,
+        entry_body(&w, "posted", &[(food, 100), (food, 100), (cash, -200)]),
+    ));
+    // Assert
+    assert!(still_one.is_ok(), "the carried line is still allowed");
+    assert!(matches!(
+        duplicated,
+        Err(Error::Rule(RuleCode::AccountArchived))
+    ));
+}
+
+#[test]
+fn an_account_cannot_be_its_own_parent() {
+    // Arrange
+    let mut w = world();
+    let id = new_id();
+    // Act
+    let result = w.store.write_revision(rev(
+        DocKind::Account,
+        id,
+        None,
+        account_body("Self", w.try_id, Some(id), false),
+    ));
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::Rule(RuleCode::AccountParentCycle))
+    ));
+}
