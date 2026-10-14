@@ -149,6 +149,14 @@ cargo test --test api_test       # Specific integration test (tests/api_test.rs)
 cargo test --doc                 # Doc tests only
 ```
 
+## Project layout (aa-finance)
+
+- Unit tests stay in a `#[cfg(test)] mod tests` of the file they test: they reach private items and are not compiled into the release (Rust Book, ch. 11-3). Integration tests use only the public API.
+- Integration tests of a crate live in one binary: `tests/<name>/main.rs` declares one module per topic, `common.rs` holds the shared setup. Do not add loose `tests/*.rs` files that repeat helpers.
+- Every test file starts with a `//!` comment that says which topic and rule it covers. Test names are full sentences (`an_account_cannot_become_its_own_ancestor`).
+- After adding, renaming or moving a test, run `npm run test:catalog`. It regenerates `docs/foundation/test-catalog.md`; `npm run verify` fails when that file is out of date.
+- A topic file above about 300 lines is split by topic, not by test kind.
+
 ## References
 
 See skill: `rust-testing` for comprehensive testing patterns including property-based testing, fixtures, and benchmarking with Criterion.

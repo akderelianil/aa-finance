@@ -12,3 +12,4 @@ metadata:
 - Claude Docs review page: https://claude.ai/artifact/CTjTAriknKR322K7LhArzC (private; edits go through the Claude Docs connector, not file publishes; whole-block replace needs ifHash and ifRev).
 - Cloudflare work uses the cf CLI unless a Wrangler config exists (owner global rule). WebSearch and WebFetch are deferred tools: load them with ToolSearch first.
 - Subagents that review code run read-only; ask them for prioritized findings, then fix and re-run tests.
+- Test layout: integration tests in `crates/core/tests/store/` (one module per topic, `common.rs` shared); unit tests in `#[cfg(test)]` modules next to the code (idiomatic Rust, reach private items). After touching tests run `npm run test:catalog`; `npm run verify` fails when `docs/foundation/test-catalog.md` is stale. Rules in `.claude/rules/rust/testing.md`.
