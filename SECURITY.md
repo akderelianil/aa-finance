@@ -11,4 +11,4 @@ aa-finance is a local, single-device app: one SQLite file, no server, no network
 Open a private security advisory on this repository (Security tab) or contact the owner directly. Do not file public issues for vulnerabilities.
 
 ## Dependencies
-Dependabot watches npm, cargo and GitHub Actions weekly.
+Dependabot watches npm, cargo and GitHub Actions monthly; security updates arrive as soon as an advisory is published.

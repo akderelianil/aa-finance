@@ -1,0 +1,74 @@
+name: Prototype (legacy)
+
+# The prototype in legacy/ is frozen (tag prototype-final). Its checks run only when something under legacy/
+# changes, or when started by hand: Actions -> Prototype (legacy) -> Run workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'legacy/**'
+      - '.github/workflows/legacy.yml'
+  pull_request:
+    paths:
+      - 'legacy/**'
+      - '.github/workflows/legacy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: legacy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Prototype web checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: legacy/package-lock.json
+      - run: npm ci
+        working-directory: legacy
+      - run: npm run verify:legacy
+
+  rust:
+    name: Prototype Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Tauri system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libssl-dev patchelf
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: legacy/src-tauri
+      - run: npm run verify:rust-legacy
+
+  e2e:
+    name: Prototype browser smoke path (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: legacy/package-lock.json
+      - run: npm ci
+        working-directory: legacy
+      - run: npx playwright install --with-deps chromium
+        working-directory: legacy
+      - run: npm run e2e
+        working-directory: legacy
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: legacy/test-results/
