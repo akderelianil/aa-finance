@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 141 tests.
+Total: 147 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -139,6 +139,16 @@ Reading and writing amounts: the canonical form and both separator styles, every
 - Parsing text built from the tricky characters never panics and reparses
 - Canonical text parses to the exact scaled integer
 - Formatting never panics for any value
+
+### body/tests.rs (6)
+The typed revision bodies: what is written is what is read back, and nothing unknown gets in.
+
+- Every body reads back exactly as written
+- The json of a body is deterministic
+- A body with an unknown field is refused
+- A body of the wrong kind is refused
+- An unknown account kind is refused
+- A body knows its document kind
 
 ### error/tests.rs (9)
 The mapping of database messages to stable rule codes, and of other errors to their variants.

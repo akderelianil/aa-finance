@@ -2,11 +2,11 @@
 //! Only this module opens `projection_session`; triggers refuse any other writer. The gate stops faulty
 //! writers, not hostile ones: anyone holding the raw connection can open it.
 
+use crate::body::{AccountBody, CommodityBody, EntryBody, EntryStatus, LineBody};
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::Id;
 use crate::store::DocKind;
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap};
 
 /// Leaves of a document ordered so that the head comes first: server order, then local time, then arrival.
@@ -49,80 +49,6 @@ pub struct Drift {
 }
 
 type Found = BTreeMap<(DocKind, Id), DriftReason>;
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct CommodityBody {
-    code: String,
-    scale: i64,
-}
-
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-#[serde(rename_all = "lowercase")]
-enum AccountKind {
-    Asset,
-    Liability,
-    Equity,
-    Income,
-    Expense,
-}
-
-impl AccountKind {
-    fn as_str(self) -> &'static str {
-        match self {
-            AccountKind::Asset => "asset",
-            AccountKind::Liability => "liability",
-            AccountKind::Equity => "equity",
-            AccountKind::Income => "income",
-            AccountKind::Expense => "expense",
-        }
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AccountBody {
-    name: String,
-    parent: Option<Id>,
-    kind: AccountKind,
-    commodity: Id,
-    archived: bool,
-}
-
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-#[serde(rename_all = "lowercase")]
-enum EntryStatus {
-    Draft,
-    Posted,
-}
-
-impl EntryStatus {
-    fn as_str(self) -> &'static str {
-        match self {
-            EntryStatus::Draft => "draft",
-            EntryStatus::Posted => "posted",
-        }
-    }
-}
-
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-#[serde(deny_unknown_fields)]
-struct LineBody {
-    account: Id,
-    commodity: Id,
-    quantity: i64,
-    base_value: i64,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct EntryBody {
-    date: String,
-    memo: Option<String>,
-    no: Option<String>,
-    status: EntryStatus,
-    lines: Vec<LineBody>,
-}
 
 pub(crate) fn head(conn: &Connection, doc_id: Id) -> Result<Option<(Id, String)>> {
     let sql = format!(

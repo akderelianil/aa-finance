@@ -4,6 +4,7 @@
 //! hold the exact money arithmetic (ADR-0010). Scenarios and the named-operation API follow.
 
 pub mod amount;
+pub mod body;
 pub mod error;
 pub mod fixture;
 pub mod ids;
