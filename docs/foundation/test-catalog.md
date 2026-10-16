@@ -3,9 +3,44 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 147 tests.
+Total: 170 tests.
 
 ## core: integration tests (crates/core/tests)
+
+### ops/accounts.rs (7)
+Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
+
+- An operation stamps the author and the time
+- Renaming an account adds a revision and keeps the old one
+- Renaming an unknown account is a missing reference
+- An account with an unknown commodity is a missing reference
+- An archived account takes no new entry and can come back
+- A commodity code can be used once
+- A child account can be created under a parent
+
+### ops/entries.rs (11)
+Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
+
+- A balanced entry is posted from canonical strings
+- An unbalanced entry is refused with a rule code
+- An amount with too many decimals is refused
+- An amount that is not a number is refused
+- An entry on an unknown account is a missing reference
+- A foreign line takes its base value from the given rate
+- A foreign line without rate or base cannot be valued
+- A foreign line takes the base value the user gives
+- Editing an entry replaces its lines and keeps the history
+- Editing something that is not an entry is refused
+- A ledger without a base commodity cannot post
+
+### ops/undo.rs (5)
+Undo is a new revision that restores the previous body; nothing is removed and the history keeps both.
+
+- Undo restores the previous version as a new revision
+- Undoing twice brings the edit back
+- A document with one revision has nothing to undo
+- Undoing an unknown document is a missing reference
+- Undo of a rename restores the old name
 
 ### store/accounts.rs (11)
 Accounts and commodities: archived accounts, the commodity and scale of an account in use, the account tree (cycles and depth) and account kinds (ADR-0010, ADR-0012).

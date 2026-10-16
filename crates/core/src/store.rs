@@ -54,6 +54,18 @@ pub struct ImportedRevision {
     pub revision: NewRevision,
 }
 
+/// A stored revision, as read back.
+#[derive(Debug, Clone)]
+pub struct RevisionRecord {
+    pub id: Id,
+    pub doc_kind: DocKind,
+    pub doc_id: Id,
+    pub parent_id: Option<Id>,
+    pub author_id: Id,
+    pub created_at_ms: i64,
+    pub body: String,
+}
+
 /// One ledger file: revisions, the projection and its verification.
 pub struct Store {
     conn: Connection,
@@ -183,6 +195,51 @@ impl Store {
     /// The head revision of a document: among the leaves, the earliest by server order, then local time.
     pub fn current_revision(&self, doc_id: Id) -> Result<Option<Id>> {
         Ok(projection::head(&self.conn, doc_id)?.map(|(id, _)| id))
+    }
+
+    /// One revision by id.
+    pub fn revision(&self, revision_id: Id) -> Result<Option<RevisionRecord>> {
+        self.query_revisions("WHERE id = ?1", revision_id)
+            .map(|mut found| found.pop())
+    }
+
+    /// Every revision of a document in the order it was stored, branches included.
+    pub fn history(&self, doc_id: Id) -> Result<Vec<RevisionRecord>> {
+        self.query_revisions("WHERE doc_id = ?1 ORDER BY seq", doc_id)
+    }
+
+    fn query_revisions(&self, filter: &str, key: Id) -> Result<Vec<RevisionRecord>> {
+        let sql = format!(
+            "SELECT id, doc_kind, doc_id, parent_id, author_id, created_at_ms, body FROM revision {filter}"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![key], |row| {
+            Ok((
+                row.get::<_, Id>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Id>(2)?,
+                row.get::<_, Option<Id>>(3)?,
+                row.get::<_, Id>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, String>(6)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (id, kind, doc_id, parent_id, author_id, created_at_ms, body) = row?;
+            let doc_kind = DocKind::from_name(&kind).ok_or(Error::Internal(
+                "a revision has a document kind this build does not know",
+            ))?;
+            Ok(RevisionRecord {
+                id,
+                doc_kind,
+                doc_id,
+                parent_id,
+                author_id,
+                created_at_ms,
+                body,
+            })
+        })
+        .collect()
     }
 
     /// The conflict branches of a document: leaves that are not its head.

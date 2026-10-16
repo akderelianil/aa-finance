@@ -92,6 +92,10 @@ impl RuleCode {
                 "Both a rate and a main-currency value were given and they do not agree.",
             ),
             RuleCode::LineEmpty => ("Satırın tutarı sıfır olamaz.", "A line cannot be zero."),
+            RuleCode::NothingToUndo => (
+                "Geri alınacak önceki bir sürüm yok.",
+                "There is no earlier version to go back to.",
+            ),
         };
         match lang {
             Lang::Tr => tr,

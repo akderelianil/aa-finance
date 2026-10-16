@@ -37,6 +37,7 @@ pub enum RuleCode {
     LineBaseSign,
     RateBaseConflict,
     LineEmpty,
+    NothingToUndo,
 }
 
 impl RuleCode {
@@ -65,6 +66,7 @@ impl RuleCode {
             RuleCode::LineBaseSign => "line_base_sign",
             RuleCode::RateBaseConflict => "rate_base_conflict",
             RuleCode::LineEmpty => "line_empty",
+            RuleCode::NothingToUndo => "nothing_to_undo",
         }
     }
 
