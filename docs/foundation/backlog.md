@@ -39,3 +39,14 @@ Found by the reviewers on `amount.rs` and `rate.rs`.
 | How large may a rounding difference be? | One base unit per converted line, as in the prototype. Accepted. |
 | The rate derived from a given base keeps 12 decimals. | Accepted as is; the base value stays exact. Revisit for tokens with tiny prices (keep 19 significant digits). |
 | Scale as a type (`Scale`) and a bounded amount type (`Units`). | Deferred to core-rebuild-4, together with the real `Line` struct. |
+
+## Test suite hygiene (owner idea, 2026-10-16)
+Goal: keep the suite small, ordered and fast as it grows; remove tests that guard nothing; no documentation that must be kept by hand.
+
+| Question | Direction (to confirm in a later session) |
+|---|---|
+| Hierarchy and order of test files. | Group by rule or behavior, not by code file; the module `//!` comment names the rule it guards (ADR or spec id). Already generated into `docs/foundation/test-catalog.md`. |
+| Documentation of tests. | Only generated documentation (the catalog) plus a link from each topic to its rule. No hand-written test docs: they drift and become a burden. |
+| Which tests are useless. | Evidence, not taste: a mutation run (`cargo mutants`) shows tests that catch nothing; coverage shows code no test reaches; a duplicate check finds tests that assert the same rule. A test that guards a money, rule or crypto invariant (ADR-0020) is never removed without a replacement. |
+| Time and resources. | Record the run time per test binary in `npm run verify`; flag the slowest; keep the pre-commit hook fast and move the long runs to CI. |
+| When. | After core-rebuild-4, before the test count passes about 400, as a short story in `release-and-quality`. |
