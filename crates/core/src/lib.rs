@@ -12,7 +12,7 @@ mod projection;
 pub mod rate;
 mod store;
 
-pub use error::{Error, Result, RuleCode};
+pub use error::{Error, Lang, Result, RuleCode};
 pub use ids::Id;
 pub use projection::{Drift, DriftReason};
 pub use store::{DocKind, ImportedRevision, NewRevision, Store};

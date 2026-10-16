@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 137 tests.
+Total: 141 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -140,7 +140,7 @@ Reading and writing amounts: the canonical form and both separator styles, every
 - Canonical text parses to the exact scaled integer
 - Formatting never panics for any value
 
-### error/tests.rs (5)
+### error/tests.rs (9)
 The mapping of database messages to stable rule codes, and of other errors to their variants.
 
 - The list of all codes covers every variant
@@ -148,6 +148,10 @@ The mapping of database messages to stable rule codes, and of other errors to th
 - A json error becomes an invalid body and other sqlite errors stay opaque
 - Rule code names are unique
 - Every error a trigger raises in the schema is a trigger code and the other way round
+- Every rule code has a distinct text in both languages
+- A rule error exposes the rule code as its api code
+- Other errors have fixed codes
+- Api messages never carry database or internal text
 
 ### ids/tests.rs (2)
 Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).

@@ -2,6 +2,15 @@
 
 use crate::ids::Id;
 
+mod messages;
+
+/// The languages the core has texts for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lang {
+    Tr,
+    En,
+}
+
 /// Stable codes of broken rules. The names are the codes raised by triggers in the schema.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
@@ -96,6 +105,62 @@ pub enum Error {
         "the database is newer (version {found}) than this app supports (version {supported})"
     )]
     NewerDatabase { found: u32, supported: u32 },
+}
+
+impl Error {
+    /// The stable code that crosses the API. Rule violations use their rule code.
+    pub fn code(&self) -> &'static str {
+        match self {
+            Error::Rule(code) => code.as_str(),
+            Error::Conflict { .. } => "conflict",
+            Error::Sqlite(_) => "database",
+            Error::InvalidBody(_) => "invalid_body",
+            Error::MissingReference { .. } => "missing_reference",
+            Error::ForeignDatabase => "foreign_database",
+            Error::Internal(_) => "internal",
+            Error::NewerDatabase { .. } => "newer_database",
+        }
+    }
+
+    /// A message that is safe to show or send over the API: fixed text only, never the text of the
+    /// database or of an internal error (those stay in `Display` for logs).
+    pub fn message(&self, lang: Lang) -> &'static str {
+        let (tr, en) = match self {
+            Error::Rule(code) => return code.message(lang),
+            Error::Conflict { .. } => (
+                "Bu kayıt sen bakarken başka yerde değişti. Yenile ve tekrar dene.",
+                "This record changed elsewhere while you were looking. Refresh and try again.",
+            ),
+            Error::Sqlite(_) => (
+                "Veri dosyasında bir sorun oluştu. Bir şey kaydedilmedi.",
+                "There was a problem with the data file. Nothing was saved.",
+            ),
+            Error::InvalidBody(_) => (
+                "Kaydın içeriği geçerli değil.",
+                "The content of the record is not valid.",
+            ),
+            Error::MissingReference { .. } => (
+                "Kayıt, var olmayan bir hesaba veya para birimine bağlı.",
+                "The record points to an account or currency that does not exist.",
+            ),
+            Error::ForeignDatabase => (
+                "Bu dosya bir aa-finance defteri değil.",
+                "This file is not an aa-finance ledger.",
+            ),
+            Error::Internal(_) => (
+                "Beklenmeyen bir iç hata oluştu.",
+                "An unexpected internal error occurred.",
+            ),
+            Error::NewerDatabase { .. } => (
+                "Bu defter, uygulamanın daha yeni bir sürümüyle yazılmış. Uygulamayı güncelleyin.",
+                "This ledger was written by a newer version of the app. Update the app.",
+            ),
+        };
+        match lang {
+            Lang::Tr => tr,
+            Lang::En => en,
+        }
+    }
 }
 
 impl From<rusqlite::Error> for Error {
