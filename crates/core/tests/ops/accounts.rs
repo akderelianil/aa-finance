@@ -94,3 +94,13 @@ fn a_child_account_can_be_created_under_a_parent() {
     // Assert
     assert!(result.is_ok());
 }
+
+#[test]
+fn naming_a_wrong_kind_of_document_as_an_account_is_a_missing_reference() {
+    // Arrange
+    let mut b = book();
+    // Act
+    let result = b.ledger.rename_account(b.try_id, "Not an account");
+    // Assert
+    assert!(matches!(result, Err(Error::MissingReference { .. })));
+}

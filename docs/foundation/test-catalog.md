@@ -3,11 +3,11 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 170 tests.
+Total: 175 tests.
 
 ## core: integration tests (crates/core/tests)
 
-### ops/accounts.rs (7)
+### ops/accounts.rs (8)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -17,8 +17,9 @@ Commodities and accounts through the operations: the author and the time are sta
 - An archived account takes no new entry and can come back
 - A commodity code can be used once
 - A child account can be created under a parent
+- Naming a wrong kind of document as an account is a missing reference
 
-### ops/entries.rs (11)
+### ops/entries.rs (15)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
 
 - A balanced entry is posted from canonical strings
@@ -32,6 +33,10 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - Editing an entry replaces its lines and keeps the history
 - Editing something that is not an entry is refused
 - A ledger without a base commodity cannot post
+- A rate other than one on a base currency line is refused
+- A zero line and a bad date are refused with codes
+- A failed edit leaves the entry as it was
+- The base currency cannot be swapped for another
 
 ### ops/undo.rs (5)
 Undo is a new revision that restores the previous body; nothing is removed and the history keeps both.

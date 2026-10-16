@@ -28,3 +28,13 @@ Hand-offs from the core-rebuild-2 and -3 reviews (2026-10-14): typed ids (docume
 - [ ] Tests written first cover the acceptance criteria
 - [ ] Code review and verification loop passed
 - [ ] Code merged to main
+
+## Progress (2026-10-16)
+
+Slice 1 done: `ops::Ledger` with commodity, account and entry operations, undo, history (commits d718b49 and the review fixes). Open from the independent review, to do in this story:
+- Undo is a one-step toggle; decide the semantics for repeated undo (a `restored_from` link or a walk back) before the UI relies on it.
+- Base currency is per session; store it as a settings revision and let `entry()` read the scale the entry was written with.
+- Rounding line for foreign conversions; the rate is not stored on a line (decide if it must be).
+- Input rules: empty names and codes, archived or mismatched parent, draft status on edit.
+- `history()` should mark the head and conflict branches; views need docs.
+- Also still open: entry delete (tombstone), lock date, root accounts, API reference, typed ids.

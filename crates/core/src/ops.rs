@@ -93,6 +93,11 @@ impl Ledger {
     /// revisions; until then the caller names it.
     pub fn set_base_commodity(&mut self, commodity: Id) -> Result<()> {
         self.commodity(commodity)?;
+        if self.base.is_some_and(|current| current != commodity) {
+            return Err(Error::Internal(
+                "the base currency cannot change in a session",
+            ));
+        }
         self.base = Some(commodity);
         Ok(())
     }
@@ -166,12 +171,12 @@ impl Ledger {
 
     pub fn entry(&self, entry: Id) -> Result<EntryView> {
         let body = self.entry_body_of(entry)?;
+        let base_scale = self.scale(self.base_commodity()?)?;
         let lines = body
             .lines
             .iter()
             .map(|line| {
                 let scale = self.scale(line.commodity)?;
-                let base_scale = self.scale(self.base_commodity()?)?;
                 Ok(LineView {
                     account: line.account,
                     commodity: line.commodity,
@@ -225,7 +230,13 @@ impl Ledger {
             .map(|text| parse_amount(text, base_scale, Separators::CANONICAL))
             .transpose()?;
         let base_value = if account.commodity == base {
-            if given_base.is_some_and(|given| given != quantity) {
+            let rate_is_not_one = line
+                .rate
+                .as_deref()
+                .map(Rate::parse)
+                .transpose()?
+                .is_some_and(|rate| rate.to_text() != "1");
+            if rate_is_not_one || given_base.is_some_and(|given| given != quantity) {
                 return Err(Error::Rule(RuleCode::RateBaseConflict));
             }
             quantity
@@ -285,7 +296,10 @@ impl Ledger {
     }
 
     fn current_body(&self, id: Id, kind: &'static str) -> Result<Body> {
-        let head = self.head_record(id).map_err(|_| missing(kind, id))?;
+        let head = match self.store.current_revision(id)? {
+            Some(_) => self.head_record(id)?,
+            None => return Err(missing(kind, id)),
+        };
         Body::from_json(head.doc_kind, &head.body)
     }
 
@@ -302,7 +316,7 @@ impl Ledger {
     fn write_next(&mut self, doc: Id, body: Body) -> Result<DocRef> {
         let parent = self.head_record(doc)?;
         if parent.doc_kind != body.kind() {
-            return Err(missing("document", doc));
+            return Err(Error::Rule(RuleCode::RevisionKindMismatch));
         }
         self.write(doc, Some(parent.id), body)
     }

@@ -174,3 +174,70 @@ fn a_ledger_without_a_base_commodity_cannot_post() {
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }
+
+#[test]
+fn a_rate_other_than_one_on_a_base_currency_line_is_refused() {
+    // Arrange
+    let mut b = book();
+    let mut base_line = line(b.food, "10.00");
+    base_line.rate = Some("40".to_string());
+    // Act
+    let result = b
+        .ledger
+        .post_entry(entry(vec![base_line, line(b.cash, "-10.00")]));
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::Rule(RuleCode::RateBaseConflict))
+    ));
+}
+
+#[test]
+fn a_zero_line_and_a_bad_date_are_refused_with_codes() {
+    // Arrange
+    let mut b = book();
+    let zero = entry(vec![line(b.food, "0.00"), line(b.cash, "0.00")]);
+    let mut bad_date = entry(vec![line(b.food, "1"), line(b.cash, "-1")]);
+    bad_date.date = "2026-13-45".to_string();
+    // Act
+    let zero_result = b.ledger.post_entry(zero);
+    let date_result = b.ledger.post_entry(bad_date);
+    // Assert
+    assert!(matches!(zero_result, Err(Error::Rule(RuleCode::LineEmpty))));
+    assert!(matches!(
+        date_result,
+        Err(Error::Rule(RuleCode::DateInvalid))
+    ));
+}
+
+#[test]
+fn a_failed_edit_leaves_the_entry_as_it_was() {
+    // Arrange
+    let mut b = book();
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![line(b.food, "12.50"), line(b.cash, "-12.50")]))
+        .unwrap();
+    // Act
+    let result = b.ledger.edit_entry(
+        posted.doc_id,
+        entry(vec![line(b.food, "9"), line(b.cash, "-8")]),
+    );
+    // Assert
+    assert!(result.is_err());
+    assert_eq!(b.ledger.history(posted.doc_id).unwrap().len(), 1);
+    assert_eq!(
+        b.ledger.entry(posted.doc_id).unwrap().lines[0].amount,
+        "12.50"
+    );
+}
+
+#[test]
+fn the_base_currency_cannot_be_swapped_for_another() {
+    // Arrange
+    let mut b = book();
+    // Act
+    let result = b.ledger.set_base_commodity(b.usd_id);
+    // Assert
+    assert!(result.is_err());
+}
