@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 199 tests.
+Total: 204 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -19,7 +19,7 @@ Commodities and accounts through the operations: the author and the time are sta
 - A child account can be created under a parent
 - Naming a wrong kind of document as an account is a missing reference
 
-### ops/entries.rs (14)
+### ops/entries.rs (18)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
 
 - A balanced entry is posted from canonical strings
@@ -36,6 +36,10 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - A rate other than one on a base currency line is refused
 - A zero line and a bad date are refused with codes
 - A failed edit leaves the entry as it was
+- A foreign line keeps the rate the user gave
+- A foreign line given only a base keeps the rate it implies
+- A base currency line stores no rate even when the user gave one
+- An edit that drops the rate and gives a base replaces the stored rate
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).
@@ -166,7 +170,7 @@ Input checks and stable error codes: duplicate codes, scale and amount bounds, m
 - A missing commodity reference is reported
 - Malformed unknown or misspelled bodies are refused
 
-### store/verify.rs (15)
+### store/verify.rs (16)
 verify_projection: only the projector writes the projection tables, and every kind of drift (a tampered line, a wrong pointer, an orphan, a broken posted invariant) is found; the generated fixture verifies clean (ADR-0012).
 
 - Only the projector writes projection tables
@@ -184,6 +188,7 @@ verify_projection: only the projector writes the projection tables, and every ki
 - Verify projection finds every kind of changed field
 - Verify projection reports a posted entry with one line even when it sums to zero
 - Every posted entry of the fixture sums to zero and a rebuild keeps it clean
+- A rate kept in the body of a line is not drift and survives a rebuild
 
 ## core: unit tests (crates/core/src)
 

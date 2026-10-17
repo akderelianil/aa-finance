@@ -231,3 +231,83 @@ fn a_failed_edit_leaves_the_entry_as_it_was() {
         "12.50"
     );
 }
+
+fn dollar_account(b: &mut Book) -> DocId {
+    let usd = b.usd_id;
+    b.ledger
+        .create_account(account("Dollars", usd))
+        .unwrap()
+        .doc_id
+}
+
+#[test]
+fn a_foreign_line_keeps_the_rate_the_user_gave() {
+    // Arrange
+    let mut b = book();
+    let dollars = dollar_account(&mut b);
+    let mut usd_line = line(dollars, "10.00");
+    usd_line.rate = Some("40.250".to_string());
+    // Act
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![usd_line, line(b.cash, "-402.50")]))
+        .unwrap();
+    // Assert
+    let detail = b.ledger.entry(posted.doc_id).unwrap();
+    assert_eq!(detail.lines[0].rate.as_deref(), Some("40.25"));
+    assert_eq!(detail.lines[1].rate, None);
+}
+
+#[test]
+fn a_foreign_line_given_only_a_base_keeps_the_rate_it_implies() {
+    // Arrange
+    let mut b = book();
+    let dollars = dollar_account(&mut b);
+    let mut usd_line = line(dollars, "10.00");
+    usd_line.base = Some("395.50".to_string());
+    // Act
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![usd_line, line(b.cash, "-395.50")]))
+        .unwrap();
+    // Assert
+    let detail = b.ledger.entry(posted.doc_id).unwrap();
+    assert_eq!(detail.lines[0].rate.as_deref(), Some("39.55"));
+}
+
+#[test]
+fn a_base_currency_line_stores_no_rate_even_when_the_user_gave_one() {
+    // Arrange
+    let mut b = book();
+    let mut food = line(b.food, "10.00");
+    food.rate = Some("1.0".to_string());
+    // Act
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![food, line(b.cash, "-10.00")]))
+        .unwrap();
+    // Assert
+    assert_eq!(b.ledger.entry(posted.doc_id).unwrap().lines[0].rate, None);
+}
+
+#[test]
+fn an_edit_that_drops_the_rate_and_gives_a_base_replaces_the_stored_rate() {
+    // Arrange
+    let mut b = book();
+    let dollars = dollar_account(&mut b);
+    let mut first = line(dollars, "10.00");
+    first.rate = Some("40".to_string());
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![first, line(b.cash, "-400.00")]))
+        .unwrap();
+    let mut second = line(dollars, "10.00");
+    second.base = Some("390.00".to_string());
+    // Act
+    b.ledger
+        .edit_entry(posted.doc_id, entry(vec![second, line(b.cash, "-390.00")]))
+        .unwrap();
+    // Assert
+    let detail = b.ledger.entry(posted.doc_id).unwrap();
+    assert_eq!(detail.lines[0].rate.as_deref(), Some("39"));
+}

@@ -221,6 +221,7 @@ impl Ledger {
                     commodity: line.commodity,
                     amount: format_amount(line.quantity, scale, Separators::CANONICAL),
                     base: format_amount(line.base_value, base_scale, Separators::CANONICAL),
+                    rate: line.rate.clone(),
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -268,7 +269,7 @@ impl Ledger {
             .as_deref()
             .map(|text| parse_amount(text, base_scale, Separators::CANONICAL))
             .transpose()?;
-        let base_value = if account.commodity == base {
+        let (base_value, rate) = if account.commodity == base {
             let rate_is_not_one = line
                 .rate
                 .as_deref()
@@ -278,10 +279,10 @@ impl Ledger {
             if rate_is_not_one || given_base.is_some_and(|given| given != quantity) {
                 return Err(Error::Rule(RuleCode::RateBaseConflict));
             }
-            quantity
+            (quantity, None)
         } else {
             let given_rate = line.rate.as_deref().map(Rate::parse).transpose()?;
-            resolve_line(
+            let resolved = resolve_line(
                 &ForeignLine {
                     quantity,
                     quantity_scale: scale,
@@ -290,14 +291,15 @@ impl Ledger {
                     stored_rate: None,
                 },
                 base_scale,
-            )?
-            .base_value
+            )?;
+            (resolved.base_value, Some(resolved.rate.to_text()))
         };
         Ok(LineBody {
             account: line.account,
             commodity: account.commodity,
             quantity,
             base_value,
+            rate,
         })
     }
 

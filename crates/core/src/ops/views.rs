@@ -51,6 +51,8 @@ pub struct LineView {
     pub commodity: DocId,
     pub amount: String,
     pub base: String,
+    /// The rate the base value came from; none for a line in the base currency.
+    pub rate: Option<String>,
 }
 
 /// The settings of the book, with the base currency spelled out.

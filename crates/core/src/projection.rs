@@ -506,6 +506,7 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
                         commodity: r.get(2)?,
                         quantity: r.get(3)?,
                         base_value: r.get(4)?,
+                        rate: None,
                     },
                 ))
             })?
@@ -522,7 +523,7 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
                     && b.memo == memo
                     && b.no == no
                     && b.status.as_str() == status
-                    && b.lines == actual
+                    && without_rates(&b.lines) == actual
                     && numbered =>
             {
                 if status == "posted" && (actual.len() < 2 || sum != 0) {
@@ -543,6 +544,17 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// The lines as the database holds them: the rate is kept in the body only.
+fn without_rates(lines: &[LineBody]) -> Vec<LineBody> {
+    lines
+        .iter()
+        .map(|line| LineBody {
+            rate: None,
+            ..line.clone()
+        })
+        .collect()
 }
 
 #[cfg(test)]

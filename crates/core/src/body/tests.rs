@@ -16,12 +16,14 @@ fn entry() -> EntryBody {
                 commodity: DocId::new(),
                 quantity: -1250,
                 base_value: -1250,
+                rate: None,
             },
             LineBody {
                 account: DocId::new(),
                 commodity: DocId::new(),
                 quantity: 1250,
                 base_value: 1250,
+                rate: None,
             },
         ],
     }

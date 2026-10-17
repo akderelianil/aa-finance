@@ -355,3 +355,30 @@ fn every_posted_entry_of_the_fixture_sums_to_zero_and_a_rebuild_keeps_it_clean()
     assert_eq!(count(&store, "SELECT count(*) FROM entry"), 500);
     assert!(store.verify_projection().unwrap().is_empty());
 }
+
+#[test]
+fn a_rate_kept_in_the_body_of_a_line_is_not_drift_and_survives_a_rebuild() {
+    // Arrange
+    let mut w = world();
+    let eur = w.eur_id;
+    let dollars = add_account(&mut w, "Dollars", eur);
+    let mut body = lines_body(
+        "posted",
+        &[
+            (dollars, w.eur_id, 1000, 40_000),
+            (w.cash, w.try_id, -40_000, -40_000),
+        ],
+    );
+    body["lines"][0]["rate"] = serde_json::json!("40");
+    let entry = DocId::new();
+    w.store
+        .write_revision(rev(DocKind::Entry, entry, None, body))
+        .unwrap();
+    // Act
+    let before = w.store.verify_projection().unwrap();
+    w.store.rebuild_projection().unwrap();
+    let after = w.store.verify_projection().unwrap();
+    // Assert
+    assert!(before.is_empty());
+    assert!(after.is_empty());
+}

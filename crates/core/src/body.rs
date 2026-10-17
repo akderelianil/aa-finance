@@ -79,6 +79,8 @@ impl EntryStatus {
 }
 
 /// One line of an entry. `quantity` is in the commodity's scale, `base_value` in the base currency's.
+/// `rate` is the canonical text of the rate the base value came from; a line in the base currency has
+/// none. Nothing in the database reads it (the base value is what balances), so it stays in the body.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LineBody {
@@ -86,6 +88,8 @@ pub struct LineBody {
     pub commodity: DocId,
     pub quantity: i64,
     pub base_value: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rate: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
