@@ -167,7 +167,7 @@ fn a_rule_error_exposes_the_rule_code_as_its_api_code() {
 
 #[test]
 fn other_errors_have_fixed_codes() {
-    let id = crate::ids::new_id();
+    let id = crate::ids::DocId::new();
     assert_eq!(Error::Conflict { doc_id: id }.code(), "conflict");
     assert_eq!(Error::InvalidBody("x".into()).code(), "invalid_body");
     assert_eq!(

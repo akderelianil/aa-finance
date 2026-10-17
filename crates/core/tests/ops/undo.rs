@@ -61,7 +61,7 @@ fn undoing_an_unknown_document_is_a_missing_reference() {
     // Arrange
     let mut b = book();
     // Act
-    let result = b.ledger.undo(new_id());
+    let result = b.ledger.undo(DocId::new());
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }

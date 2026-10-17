@@ -37,7 +37,7 @@ fn two_connections_write_the_same_file_without_losing_a_revision() {
                 store
                     .write_revision(rev(
                         DocKind::Commodity,
-                        new_id(),
+                        DocId::new(),
                         None,
                         json!({"code": code, "scale": 2}),
                     ))
@@ -84,9 +84,11 @@ fn a_ledger_file_that_is_not_ours_is_refused_and_errors_read_in_plain_words() {
     }
     .to_string()
     .contains("does not exist"));
-    assert!(Error::Conflict { doc_id: new_id() }
-        .to_string()
-        .contains("conflict"));
+    assert!(Error::Conflict {
+        doc_id: DocId::new()
+    }
+    .to_string()
+    .contains("conflict"));
 }
 
 /// Writes a small SQLite file that is not a ledger, as a foreign application would leave it.

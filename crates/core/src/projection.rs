@@ -4,7 +4,7 @@
 
 use crate::body::{AccountBody, CommodityBody, EntryBody, EntryStatus, LineBody};
 use crate::error::{Error, Result, RuleCode};
-use crate::ids::Id;
+use crate::ids::{DocId, RevisionId};
 use crate::store::DocKind;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::collections::{BTreeMap, HashMap};
@@ -44,13 +44,13 @@ impl DriftReason {
 #[non_exhaustive]
 pub struct Drift {
     pub doc_kind: DocKind,
-    pub doc_id: Id,
+    pub doc_id: DocId,
     pub reason: DriftReason,
 }
 
-type Found = BTreeMap<(DocKind, Id), DriftReason>;
+type Found = BTreeMap<(DocKind, DocId), DriftReason>;
 
-pub(crate) fn head(conn: &Connection, doc_id: Id) -> Result<Option<(Id, String)>> {
+pub(crate) fn head(conn: &Connection, doc_id: DocId) -> Result<Option<(RevisionId, String)>> {
     let sql = format!(
         "SELECT r.id, r.body FROM revision r WHERE r.doc_id = ?1
          AND NOT EXISTS (SELECT 1 FROM revision c WHERE c.parent_id = r.id)
@@ -62,18 +62,18 @@ pub(crate) fn head(conn: &Connection, doc_id: Id) -> Result<Option<(Id, String)>
 }
 
 /// The leaves of a document that are not its head: revisions kept as conflict branches.
-pub(crate) fn conflicts(conn: &Connection, doc_id: Id) -> Result<Vec<Id>> {
+pub(crate) fn conflicts(conn: &Connection, doc_id: DocId) -> Result<Vec<RevisionId>> {
     let sql = format!(
         "SELECT r.id FROM revision r WHERE r.doc_id = ?1
          AND NOT EXISTS (SELECT 1 FROM revision c WHERE c.parent_id = r.id)
          ORDER BY {HEAD_ORDER} LIMIT -1 OFFSET 1"
     );
     let mut stmt = conn.prepare(&sql)?;
-    let rows = stmt.query_map(params![doc_id], |row| row.get::<_, Id>(0))?;
+    let rows = stmt.query_map(params![doc_id], |row| row.get::<_, RevisionId>(0))?;
     Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
-fn commodity_id(conn: &Connection, uuid: Id) -> Result<i64> {
+fn commodity_id(conn: &Connection, uuid: DocId) -> Result<i64> {
     conn.query_row(
         "SELECT id FROM commodity WHERE uuid = ?1",
         params![uuid],
@@ -86,7 +86,7 @@ fn commodity_id(conn: &Connection, uuid: Id) -> Result<i64> {
     })
 }
 
-fn account_id(conn: &Connection, uuid: Id) -> Result<i64> {
+fn account_id(conn: &Connection, uuid: DocId) -> Result<i64> {
     conn.query_row(
         "SELECT id FROM account WHERE uuid = ?1",
         params![uuid],
@@ -119,7 +119,12 @@ fn with_session<T>(conn: &Connection, carry: bool, work: impl FnOnce() -> Result
 
 /// Rebuilds the projection of one document from its head revision, inside the caller's transaction.
 /// `carry_all` allows lines on archived accounts (a full rebuild replays history).
-pub(crate) fn rebuild(conn: &Connection, kind: DocKind, doc_id: Id, carry_all: bool) -> Result<()> {
+pub(crate) fn rebuild(
+    conn: &Connection,
+    kind: DocKind,
+    doc_id: DocId,
+    carry_all: bool,
+) -> Result<()> {
     let Some((revision_id, body)) = head(conn, doc_id)? else {
         return Err(Error::Internal("rebuild of a document without revisions"));
     };
@@ -163,15 +168,20 @@ pub(crate) fn rebuild_all(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn docs_of(conn: &Connection, kind: DocKind) -> Result<Vec<Id>> {
+fn docs_of(conn: &Connection, kind: DocKind) -> Result<Vec<DocId>> {
     let mut stmt = conn.prepare(
         "SELECT doc_id FROM revision WHERE doc_kind = ?1 GROUP BY doc_id ORDER BY min(seq)",
     )?;
-    let rows = stmt.query_map(params![kind.as_str()], |row| row.get::<_, Id>(0))?;
+    let rows = stmt.query_map(params![kind.as_str()], |row| row.get::<_, DocId>(0))?;
     Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
-fn write_commodity(conn: &Connection, doc_id: Id, revision_id: Id, body: &str) -> Result<()> {
+fn write_commodity(
+    conn: &Connection,
+    doc_id: DocId,
+    revision_id: RevisionId,
+    body: &str,
+) -> Result<()> {
     let b: CommodityBody = serde_json::from_str(body)?;
     conn.execute(
         "INSERT INTO commodity (uuid, current_revision_id, code, scale) VALUES (?1, ?2, ?3, ?4)
@@ -181,7 +191,7 @@ fn write_commodity(conn: &Connection, doc_id: Id, revision_id: Id, body: &str) -
     Ok(())
 }
 
-fn assert_no_parent_cycle(conn: &Connection, doc_id: Id, parent: Option<Id>) -> Result<()> {
+fn assert_no_parent_cycle(conn: &Connection, doc_id: DocId, parent: Option<DocId>) -> Result<()> {
     let mut current = parent;
     for _ in 0..MAX_PARENT_DEPTH {
         let Some(id) = current else { return Ok(()) };
@@ -192,7 +202,7 @@ fn assert_no_parent_cycle(conn: &Connection, doc_id: Id, parent: Option<Id>) -> 
             .query_row(
                 "SELECT p.uuid FROM account a LEFT JOIN account p ON p.id = a.parent_id WHERE a.uuid = ?1",
                 params![id],
-                |row| row.get::<_, Option<Id>>(0),
+                |row| row.get::<_, Option<DocId>>(0),
             )
             .optional()?
             .flatten();
@@ -200,7 +210,12 @@ fn assert_no_parent_cycle(conn: &Connection, doc_id: Id, parent: Option<Id>) -> 
     Err(Error::Rule(RuleCode::AccountParentCycle))
 }
 
-fn write_account(conn: &Connection, doc_id: Id, revision_id: Id, body: &str) -> Result<()> {
+fn write_account(
+    conn: &Connection,
+    doc_id: DocId,
+    revision_id: RevisionId,
+    body: &str,
+) -> Result<()> {
     let b: AccountBody = serde_json::from_str(body)?;
     let commodity = commodity_id(conn, b.commodity)?;
     assert_no_parent_cycle(conn, doc_id, b.parent)?;
@@ -229,8 +244,8 @@ fn take_carried(previous: &mut HashMap<StoredLine, usize>, line: StoredLine) -> 
 
 fn write_entry(
     conn: &Connection,
-    doc_id: Id,
-    revision_id: Id,
+    doc_id: DocId,
+    revision_id: RevisionId,
     body: &str,
     carry_all: bool,
 ) -> Result<()> {
@@ -320,7 +335,7 @@ pub(crate) fn verify(conn: &Connection) -> Result<Vec<Drift>> {
         .collect())
 }
 
-fn note(found: &mut Found, kind: DocKind, doc: Id, reason: DriftReason) {
+fn note(found: &mut Found, kind: DocKind, doc: DocId, reason: DriftReason) {
     found.entry((kind, doc)).or_insert(reason);
 }
 
@@ -342,9 +357,9 @@ fn check_pointers(conn: &Connection, kind: DocKind, table: &str, found: &mut Fou
     Ok(())
 }
 
-fn query_ids(conn: &Connection, sql: &str, kind: &str) -> Result<Vec<Id>> {
+fn query_ids(conn: &Connection, sql: &str, kind: &str) -> Result<Vec<DocId>> {
     let mut stmt = conn.prepare(sql)?;
-    let rows = stmt.query_map(params![kind], |row| row.get::<_, Id>(0))?;
+    let rows = stmt.query_map(params![kind], |row| row.get::<_, DocId>(0))?;
     Ok(rows.collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
@@ -352,7 +367,7 @@ fn check_commodities(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut stmt = conn.prepare("SELECT c.uuid, c.code, c.scale, r.body FROM commodity c JOIN revision r ON r.id = c.current_revision_id")?;
     let rows = stmt.query_map([], |row| {
         Ok((
-            row.get::<_, Id>(0)?,
+            row.get::<_, DocId>(0)?,
             row.get::<_, String>(1)?,
             row.get::<_, i64>(2)?,
             row.get::<_, String>(3)?,
@@ -381,12 +396,12 @@ fn check_accounts(conn: &Connection, found: &mut Found) -> Result<()> {
     )?;
     let rows = stmt.query_map([], |row| {
         Ok((
-            row.get::<_, Id>(0)?,
+            row.get::<_, DocId>(0)?,
             row.get::<_, String>(1)?,
             row.get::<_, String>(2)?,
             row.get::<_, bool>(3)?,
-            row.get::<_, Id>(4)?,
-            row.get::<_, Option<Id>>(5)?,
+            row.get::<_, DocId>(4)?,
+            row.get::<_, Option<DocId>>(5)?,
             row.get::<_, String>(6)?,
         ))
     })?;
@@ -421,7 +436,7 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
     let rows = entries.query_map([], |row| {
         Ok((
             row.get::<_, i64>(0)?,
-            row.get::<_, Id>(1)?,
+            row.get::<_, DocId>(1)?,
             row.get::<_, String>(2)?,
             row.get::<_, Option<String>>(3)?,
             row.get::<_, Option<String>>(4)?,

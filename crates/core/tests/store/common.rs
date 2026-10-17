@@ -1,10 +1,16 @@
 //! Shared setup of the store tests: a small world (two commodities, two accounts) and builders.
 pub use aa_core::{
-    ids::new_id, DocKind, DriftReason, Error, Id, ImportedRevision, NewRevision, RuleCode, Store,
+    ids::new_id, DocId, DocKind, DriftReason, Error, Id, ImportedRevision, NewRevision, RevisionId,
+    RuleCode, Store,
 };
 pub use serde_json::json;
 
-pub fn rev(kind: DocKind, doc: Id, parent: Option<Id>, body: serde_json::Value) -> NewRevision {
+pub fn rev(
+    kind: DocKind,
+    doc: DocId,
+    parent: Option<RevisionId>,
+    body: serde_json::Value,
+) -> NewRevision {
     NewRevision {
         doc_kind: kind,
         doc_id: doc,
@@ -17,8 +23,8 @@ pub fn rev(kind: DocKind, doc: Id, parent: Option<Id>, body: serde_json::Value) 
 
 pub fn account_body(
     name: &str,
-    commodity: Id,
-    parent: Option<Id>,
+    commodity: DocId,
+    parent: Option<DocId>,
     archived: bool,
 ) -> serde_json::Value {
     json!({"name": name, "parent": parent.map(|p| p.to_string()), "kind": "asset", "commodity": commodity.to_string(), "archived": archived})
@@ -26,15 +32,15 @@ pub fn account_body(
 
 pub struct World {
     pub store: Store,
-    pub try_id: Id,
-    pub eur_id: Id,
-    pub cash: Id,
-    pub food: Id,
+    pub try_id: DocId,
+    pub eur_id: DocId,
+    pub cash: DocId,
+    pub food: DocId,
 }
 
 pub fn world() -> World {
     let mut store = Store::open_in_memory().unwrap();
-    let (try_id, eur_id, cash, food) = (new_id(), new_id(), new_id(), new_id());
+    let (try_id, eur_id, cash, food) = (DocId::new(), DocId::new(), DocId::new(), DocId::new());
     store
         .write_revision(rev(
             DocKind::Commodity,
@@ -76,7 +82,7 @@ pub fn world() -> World {
     }
 }
 
-pub fn entry_body(w: &World, status: &str, amounts: &[(Id, i64)]) -> serde_json::Value {
+pub fn entry_body(w: &World, status: &str, amounts: &[(DocId, i64)]) -> serde_json::Value {
     let lines: Vec<_> =
         amounts.iter().map(|(a, v)| json!({"account": a.to_string(), "commodity": w.try_id.to_string(), "quantity": v, "base_value": v})).collect();
     json!({"date": "2026-10-13", "memo": "lunch", "no": null, "status": status, "lines": lines})
@@ -89,8 +95,8 @@ pub fn count(store: &Store, sql: &str) -> i64 {
         .unwrap()
 }
 
-pub fn post(w: &mut World, amounts: &[(Id, i64)]) -> (Id, Id) {
-    let entry = new_id();
+pub fn post(w: &mut World, amounts: &[(DocId, i64)]) -> (DocId, RevisionId) {
+    let entry = DocId::new();
     let revision = w
         .store
         .write_revision(rev(
@@ -103,12 +109,16 @@ pub fn post(w: &mut World, amounts: &[(Id, i64)]) -> (Id, Id) {
     (entry, revision)
 }
 
-pub fn hex(id: Id) -> String {
-    id.as_bytes().iter().map(|b| format!("{b:02x}")).collect()
+pub fn hex(id: impl Into<Id>) -> String {
+    id.into()
+        .as_bytes()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// An entry body from `(account, commodity, quantity, base_value)` tuples, for lines in other commodities.
-pub fn lines_body(status: &str, lines: &[(Id, Id, i64, i64)]) -> serde_json::Value {
+pub fn lines_body(status: &str, lines: &[(DocId, DocId, i64, i64)]) -> serde_json::Value {
     let lines: Vec<_> = lines
         .iter()
         .map(|(account, commodity, quantity, base)| {
@@ -119,8 +129,8 @@ pub fn lines_body(status: &str, lines: &[(Id, Id, i64, i64)]) -> serde_json::Val
 }
 
 /// Adds an account in `commodity` to the world and returns its id.
-pub fn add_account(w: &mut World, name: &str, commodity: Id) -> Id {
-    let id = new_id();
+pub fn add_account(w: &mut World, name: &str, commodity: DocId) -> DocId {
+    let id = DocId::new();
     w.store
         .write_revision(rev(
             DocKind::Account,

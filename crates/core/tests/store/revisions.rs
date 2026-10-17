@@ -31,10 +31,10 @@ fn a_parent_must_belong_to_the_same_document() {
     let mut w = world();
     let (food, cash) = (w.food, w.cash);
     let (_, parent) = post(&mut w, &[(food, 1), (cash, -1)]);
-    let other = new_id();
+    let other = DocId::new();
     // Act
     let result = w.store.import_revisions(vec![ImportedRevision {
-        id: new_id(),
+        id: RevisionId::new(),
         server_seq: None,
         revision: rev(
             DocKind::Entry,
@@ -77,13 +77,13 @@ fn a_failed_batch_leaves_revisions_and_projection_unchanged() {
     let before = count(&w.store, "SELECT count(*) FROM revision");
     let good = rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         entry_body(&w, "posted", &[(w.food, 100), (w.cash, -100)]),
     );
     let bad = rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         entry_body(&w, "posted", &[(w.food, 100), (w.cash, -99)]),
     );
@@ -105,7 +105,12 @@ fn a_conflict_in_the_middle_of_a_batch_rolls_the_whole_batch_back() {
     let (food, cash) = (w.food, w.cash);
     let (entry, first) = post(&mut w, &[(food, 100), (cash, -100)]);
     let before = count(&w.store, "SELECT count(*) FROM revision");
-    let fresh = rev(DocKind::Entry, new_id(), None, entry_body(&w, "draft", &[]));
+    let fresh = rev(
+        DocKind::Entry,
+        DocId::new(),
+        None,
+        entry_body(&w, "draft", &[]),
+    );
     let stale = rev(
         DocKind::Entry,
         entry,

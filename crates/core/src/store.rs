@@ -1,7 +1,7 @@
 //! The store: one SQLite file, revisions as truth, the projection rebuilt in the same transaction.
 
 use crate::error::{Error, Result};
-use crate::ids::{new_id, Id};
+use crate::ids::{DocId, Id, RevisionId};
 use crate::migrate::{migrate, SCHEMA_VERSION};
 use crate::{projection, RULES_VERSION};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
@@ -39,8 +39,8 @@ impl DocKind {
 #[derive(Debug, Clone)]
 pub struct NewRevision {
     pub doc_kind: DocKind,
-    pub doc_id: Id,
-    pub parent_id: Option<Id>,
+    pub doc_id: DocId,
+    pub parent_id: Option<RevisionId>,
     pub author_id: Id,
     pub created_at_ms: i64,
     pub body: String,
@@ -49,7 +49,7 @@ pub struct NewRevision {
 /// A revision that arrives from elsewhere (sync): it keeps its id and may fork a document.
 #[derive(Debug, Clone)]
 pub struct ImportedRevision {
-    pub id: Id,
+    pub id: RevisionId,
     pub server_seq: Option<i64>,
     pub revision: NewRevision,
 }
@@ -57,10 +57,10 @@ pub struct ImportedRevision {
 /// A stored revision, as read back.
 #[derive(Debug, Clone)]
 pub struct RevisionRecord {
-    pub id: Id,
+    pub id: RevisionId,
     pub doc_kind: DocKind,
-    pub doc_id: Id,
-    pub parent_id: Option<Id>,
+    pub doc_id: DocId,
+    pub parent_id: Option<RevisionId>,
     pub author_id: Id,
     pub created_at_ms: i64,
     pub body: String,
@@ -103,22 +103,22 @@ impl Store {
     }
 
     /// Writes one local revision and rebuilds the projection of its document, in one transaction.
-    pub fn write_revision(&mut self, rev: NewRevision) -> Result<Id> {
+    pub fn write_revision(&mut self, rev: NewRevision) -> Result<RevisionId> {
         let mut ids = self.write_revisions(vec![rev])?;
         ids.pop().ok_or(Error::Internal("no revision was written"))
     }
 
     /// Writes local revisions in one transaction: all or nothing. Each must continue the current head of its document.
-    pub fn write_revisions(&mut self, revs: Vec<NewRevision>) -> Result<Vec<Id>> {
+    pub fn write_revisions(&mut self, revs: Vec<NewRevision>) -> Result<Vec<RevisionId>> {
         let batch = revs
             .into_iter()
-            .map(|revision| (new_id(), None, revision, true))
+            .map(|revision| (RevisionId::new(), None, revision, true))
             .collect();
         self.insert_all(batch)
     }
 
     /// Stores revisions that arrive from elsewhere, keeping their ids. A document may fork; the head follows server order.
-    pub fn import_revisions(&mut self, revs: Vec<ImportedRevision>) -> Result<Vec<Id>> {
+    pub fn import_revisions(&mut self, revs: Vec<ImportedRevision>) -> Result<Vec<RevisionId>> {
         let batch = revs
             .into_iter()
             .map(|r| (r.id, r.server_seq, r.revision, false))
@@ -126,7 +126,10 @@ impl Store {
         self.insert_all(batch)
     }
 
-    fn insert_all(&mut self, batch: Vec<(Id, Option<i64>, NewRevision, bool)>) -> Result<Vec<Id>> {
+    fn insert_all(
+        &mut self,
+        batch: Vec<(RevisionId, Option<i64>, NewRevision, bool)>,
+    ) -> Result<Vec<RevisionId>> {
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -165,11 +168,11 @@ impl Store {
     }
 
     /// Records the order the server gave a revision (allowed once) and re-projects its document, because the head may change.
-    pub fn set_server_seq(&mut self, revision_id: Id, server_seq: i64) -> Result<()> {
+    pub fn set_server_seq(&mut self, revision_id: RevisionId, server_seq: i64) -> Result<()> {
         let tx = self
             .conn
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let (kind, doc_id): (String, Id) = tx
+        let (kind, doc_id): (String, DocId) = tx
             .query_row(
                 "SELECT doc_kind, doc_id FROM revision WHERE id = ?1",
                 params![revision_id],
@@ -193,32 +196,36 @@ impl Store {
     }
 
     /// The head revision of a document: among the leaves, the earliest by server order, then local time.
-    pub fn current_revision(&self, doc_id: Id) -> Result<Option<Id>> {
+    pub fn current_revision(&self, doc_id: DocId) -> Result<Option<RevisionId>> {
         Ok(projection::head(&self.conn, doc_id)?.map(|(id, _)| id))
     }
 
     /// One revision by id.
-    pub fn revision(&self, revision_id: Id) -> Result<Option<RevisionRecord>> {
+    pub fn revision(&self, revision_id: RevisionId) -> Result<Option<RevisionRecord>> {
         self.query_revisions("WHERE id = ?1", revision_id)
             .map(|mut found| found.pop())
     }
 
     /// Every revision of a document in the order it was stored, branches included.
-    pub fn history(&self, doc_id: Id) -> Result<Vec<RevisionRecord>> {
+    pub fn history(&self, doc_id: DocId) -> Result<Vec<RevisionRecord>> {
         self.query_revisions("WHERE doc_id = ?1 ORDER BY seq", doc_id)
     }
 
-    fn query_revisions(&self, filter: &str, key: Id) -> Result<Vec<RevisionRecord>> {
+    fn query_revisions(
+        &self,
+        filter: &str,
+        key: impl rusqlite::ToSql,
+    ) -> Result<Vec<RevisionRecord>> {
         let sql = format!(
             "SELECT id, doc_kind, doc_id, parent_id, author_id, created_at_ms, body FROM revision {filter}"
         );
         let mut stmt = self.conn.prepare(&sql)?;
         let rows = stmt.query_map(params![key], |row| {
             Ok((
-                row.get::<_, Id>(0)?,
+                row.get::<_, RevisionId>(0)?,
                 row.get::<_, String>(1)?,
-                row.get::<_, Id>(2)?,
-                row.get::<_, Option<Id>>(3)?,
+                row.get::<_, DocId>(2)?,
+                row.get::<_, Option<RevisionId>>(3)?,
                 row.get::<_, Id>(4)?,
                 row.get::<_, i64>(5)?,
                 row.get::<_, String>(6)?,
@@ -243,7 +250,7 @@ impl Store {
     }
 
     /// The conflict branches of a document: leaves that are not its head.
-    pub fn conflicts(&self, doc_id: Id) -> Result<Vec<Id>> {
+    pub fn conflicts(&self, doc_id: DocId) -> Result<Vec<RevisionId>> {
         projection::conflicts(&self.conn, doc_id)
     }
 

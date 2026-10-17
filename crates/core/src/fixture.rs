@@ -2,13 +2,13 @@
 //! The 1,000,000-entry file of the plan comes from `examples/gen_fixture.rs`.
 
 use crate::error::Result;
-use crate::ids::{new_id, Id};
+use crate::ids::{new_id, DocId, Id};
 use crate::store::{DocKind, NewRevision, Store};
 
 const CHUNK: usize = 5_000;
 const ACCOUNTS: usize = 40;
 
-fn revision(kind: DocKind, doc_id: Id, author: Id, body: String) -> NewRevision {
+fn revision(kind: DocKind, doc_id: DocId, author: Id, body: String) -> NewRevision {
     NewRevision {
         doc_kind: kind,
         doc_id,
@@ -22,14 +22,14 @@ fn revision(kind: DocKind, doc_id: Id, author: Id, body: String) -> NewRevision 
 /// Fills an empty store with `entries` balanced posted entries over 40 accounts (TRY, scale 2).
 pub fn generate(store: &mut Store, entries: usize) -> Result<()> {
     let author = new_id();
-    let try_id = new_id();
+    let try_id = DocId::new();
     let mut setup = vec![revision(
         DocKind::Commodity,
         try_id,
         author,
         r#"{"code":"TRY","scale":2}"#.to_string(),
     )];
-    let accounts: Vec<Id> = (0..ACCOUNTS).map(|_| new_id()).collect();
+    let accounts: Vec<DocId> = (0..ACCOUNTS).map(|_| DocId::new()).collect();
     for (i, id) in accounts.iter().enumerate() {
         let kind = if i % 2 == 0 { "asset" } else { "expense" };
         setup.push(revision(
@@ -82,7 +82,7 @@ pub fn generate(store: &mut Store, entries: usize) -> Result<()> {
                 r#"{{"date":"{date}","memo":null,"no":null,"status":"posted","lines":[{}]}}"#,
                 lines.join(",")
             );
-            batch.push(revision(DocKind::Entry, new_id(), author, body));
+            batch.push(revision(DocKind::Entry, DocId::new(), author, body));
         }
         store.write_revisions(batch)?;
         done += take;

@@ -15,7 +15,7 @@ pub mod rate;
 mod store;
 
 pub use error::{Error, Lang, Result, RuleCode};
-pub use ids::Id;
+pub use ids::{DocId, Id, RevisionId};
 pub use projection::{Drift, DriftReason};
 pub use store::{DocKind, ImportedRevision, NewRevision, RevisionRecord, Store};
 

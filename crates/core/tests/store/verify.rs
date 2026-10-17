@@ -125,7 +125,7 @@ fn verify_projection_reports_a_posted_entry_whose_invariants_were_never_enforced
         .unwrap();
     let body = entry_body(&w, "posted", &[(w.food, 5000), (w.cash, -4000)]);
     w.store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
         .unwrap();
     // Act
     let drift = w.store.verify_projection().unwrap();
@@ -238,7 +238,7 @@ fn verify_projection_finds_a_document_whose_projection_row_is_missing() {
         let mut w = world();
         let body = entry_body(&w, "draft", &[]);
         w.store
-            .write_revision(rev(DocKind::Entry, new_id(), None, body))
+            .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
             .unwrap();
         w.store.tamper(sql).unwrap();
         // Act
@@ -259,7 +259,7 @@ fn verify_projection_finds_an_orphan_row_that_looks_like_a_real_document() {
     let mut w = world();
     let body = entry_body(&w, "draft", &[]);
     w.store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
         .unwrap();
     w.store
         .tamper(
@@ -324,7 +324,7 @@ fn verify_projection_reports_a_posted_entry_with_one_line_even_when_it_sums_to_z
     w.store
         .write_revision(rev(
             DocKind::Entry,
-            new_id(),
+            DocId::new(),
             None,
             lines_body("posted", &[(food, try_id, 5, 0)]),
         ))

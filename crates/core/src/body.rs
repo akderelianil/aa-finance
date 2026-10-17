@@ -2,7 +2,7 @@
 //! frozen (release-and-quality-5); everything above the store writes and reads these types instead.
 
 use crate::error::Result;
-use crate::ids::Id;
+use crate::ids::DocId;
 use crate::store::DocKind;
 use serde::{Deserialize, Serialize};
 
@@ -40,9 +40,9 @@ impl AccountKind {
 #[serde(deny_unknown_fields)]
 pub struct AccountBody {
     pub name: String,
-    pub parent: Option<Id>,
+    pub parent: Option<DocId>,
     pub kind: AccountKind,
-    pub commodity: Id,
+    pub commodity: DocId,
     pub archived: bool,
 }
 
@@ -66,8 +66,8 @@ impl EntryStatus {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LineBody {
-    pub account: Id,
-    pub commodity: Id,
+    pub account: DocId,
+    pub commodity: DocId,
     pub quantity: i64,
     pub base_value: i64,
 }

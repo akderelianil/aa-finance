@@ -68,7 +68,7 @@ fn an_entry_on_an_unknown_account_is_a_missing_reference() {
     // Act
     let result = b
         .ledger
-        .post_entry(entry(vec![line(new_id(), "5"), line(b.cash, "-5")]));
+        .post_entry(entry(vec![line(DocId::new(), "5"), line(b.cash, "-5")]));
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }

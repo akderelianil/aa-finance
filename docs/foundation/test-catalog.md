@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 175 tests.
+Total: 179 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -203,10 +203,14 @@ The mapping of database messages to stable rule codes, and of other errors to th
 - Other errors have fixed codes
 - Api messages never carry database or internal text
 
-### ids/tests.rs (2)
+### ids/tests.rs (6)
 Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).
 
 - Ids are version seven and increase over time
+- Typed ids are version seven and increase over time
+- A typed id keeps its uuid and prints as the uuid text
+- A typed id is stored as a sixteen byte blob and read back
+- A typed id is plain uuid text in json
 - The short id is twelve hex digits from the random tail
 
 ### migrate/tests.rs (5)

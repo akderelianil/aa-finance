@@ -8,10 +8,10 @@ fn sabotaged(sql: &str) -> World {
     w
 }
 
-fn post_lunch(w: &mut World) -> aa_core::Result<Id> {
+fn post_lunch(w: &mut World) -> aa_core::Result<RevisionId> {
     let body = entry_body(w, "posted", &[(w.food, 100), (w.cash, -100)]);
     w.store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
 }
 
 #[test]

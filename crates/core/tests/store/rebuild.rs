@@ -22,7 +22,7 @@ fn rebuilding_the_projection_repairs_drift() {
 fn rebuilding_replays_parents_before_children_and_archived_accounts() {
     // Arrange
     let mut w = world();
-    let (parent, child) = (new_id(), new_id());
+    let (parent, child) = (DocId::new(), DocId::new());
     w.store
         .write_revision(rev(
             DocKind::Account,
@@ -67,7 +67,7 @@ fn rebuilding_replays_parents_before_children_and_archived_accounts() {
 fn rebuilding_retries_an_account_whose_new_parent_was_created_later() {
     // Arrange
     let mut w = world();
-    let (a, b, c) = (new_id(), new_id(), new_id());
+    let (a, b, c) = (DocId::new(), DocId::new(), DocId::new());
     w.store
         .write_revision(rev(
             DocKind::Account,
@@ -136,7 +136,7 @@ fn a_revision_body_that_cannot_be_read_stops_a_rebuild_and_leaves_the_projection
 fn a_rebuild_that_cannot_find_a_parent_account_reports_the_missing_reference() {
     // Arrange: a parent account whose revisions were lost behind the core's back.
     let mut w = world();
-    let (parent, child) = (new_id(), new_id());
+    let (parent, child) = (DocId::new(), DocId::new());
     w.store
         .write_revision(rev(
             DocKind::Account,
@@ -239,7 +239,7 @@ fn a_rebuild_reproduces_the_incremental_projection_exactly() {
     let other = post(&mut w, &[(food, 700), (cash, -700)]);
     w.store
         .import_revisions(vec![ImportedRevision {
-            id: new_id(),
+            id: RevisionId::new(),
             server_seq: Some(3),
             revision: rev(
                 DocKind::Entry,

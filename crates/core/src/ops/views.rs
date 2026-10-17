@@ -1,14 +1,14 @@
 //! What the operations hand back: plain data with amounts as canonical strings (ADR-0009).
 
 use crate::body::{AccountBody, AccountKind};
-use crate::ids::Id;
+use crate::ids::{DocId, Id, RevisionId};
 use crate::RevisionRecord;
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct HistoryItem {
-    pub revision_id: Id,
-    pub parent_id: Option<Id>,
+    pub revision_id: RevisionId,
+    pub parent_id: Option<RevisionId>,
     pub author_id: Id,
     pub created_at_ms: i64,
 }
@@ -27,9 +27,9 @@ impl From<RevisionRecord> for HistoryItem {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AccountView {
     pub name: String,
-    pub parent: Option<Id>,
+    pub parent: Option<DocId>,
     pub kind: AccountKind,
-    pub commodity: Id,
+    pub commodity: DocId,
     pub archived: bool,
 }
 
@@ -47,8 +47,8 @@ impl From<AccountBody> for AccountView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LineView {
-    pub account: Id,
-    pub commodity: Id,
+    pub account: DocId,
+    pub commodity: DocId,
     pub amount: String,
     pub base: String,
 }

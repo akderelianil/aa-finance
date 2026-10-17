@@ -19,7 +19,7 @@ fn an_archived_account_takes_no_new_lines() {
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -71,7 +71,7 @@ fn a_line_must_use_the_commodity_of_its_account() {
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -146,7 +146,7 @@ fn a_commodity_can_be_renamed_without_breaking_old_entries() {
 fn an_account_cannot_become_its_own_ancestor() {
     // Arrange
     let mut w = world();
-    let (a, b) = (new_id(), new_id());
+    let (a, b) = (DocId::new(), DocId::new());
     w.store
         .write_revision(rev(
             DocKind::Account,
@@ -185,7 +185,7 @@ fn every_account_kind_is_accepted_and_an_unknown_one_is_refused() {
     let body = |kind: &str| {
         let mut b = account_body("X", w.try_id, None, false);
         b["kind"] = json!(kind);
-        rev(DocKind::Account, new_id(), None, b)
+        rev(DocKind::Account, DocId::new(), None, b)
     };
     let valid: Vec<_> = ["asset", "liability", "equity", "income", "expense"]
         .iter()
@@ -216,7 +216,7 @@ fn an_account_tree_deeper_than_the_limit_is_refused_like_a_cycle() {
              FROM n ORDER BY i",
         )
         .unwrap();
-    let deepest: Id = w
+    let deepest: DocId = w
         .store
         .raw_connection()
         .query_row(
@@ -228,7 +228,7 @@ fn an_account_tree_deeper_than_the_limit_is_refused_like_a_cycle() {
     // Act
     let result = w.store.write_revision(rev(
         DocKind::Account,
-        new_id(),
+        DocId::new(),
         None,
         account_body("Too deep", w.try_id, Some(deepest), false),
     ));
@@ -280,7 +280,7 @@ fn a_duplicate_of_a_carried_line_is_a_new_use_of_an_archived_account() {
 fn an_account_cannot_be_its_own_parent() {
     // Arrange
     let mut w = world();
-    let id = new_id();
+    let id = DocId::new();
     // Act
     let result = w.store.write_revision(rev(
         DocKind::Account,

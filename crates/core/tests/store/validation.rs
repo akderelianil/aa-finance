@@ -11,22 +11,22 @@ fn a_duplicate_commodity_code_scale_range_and_amount_bound_have_codes() {
     // Act
     let dup = w.store.write_revision(rev(
         DocKind::Commodity,
-        new_id(),
+        DocId::new(),
         None,
         json!({"code": "TRY", "scale": 2}),
     ));
     let scale = w.store.write_revision(rev(
         DocKind::Commodity,
-        new_id(),
+        DocId::new(),
         None,
         json!({"code": "ABC", "scale": 19}),
     ));
     let big = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, amount));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, amount));
     let date = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         json!({"date": "2026-99-99", "status": "draft", "lines": []}),
     ));
@@ -56,7 +56,7 @@ fn a_summed_overflow_is_an_amount_error_not_an_opaque_one() {
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -68,11 +68,11 @@ fn a_summed_overflow_is_an_amount_error_not_an_opaque_one() {
 fn a_missing_account_reference_is_reported() {
     // Arrange
     let mut w = world();
-    let body = entry_body(&w, "draft", &[(new_id(), 5000)]);
+    let body = entry_body(&w, "draft", &[(DocId::new(), 5000)]);
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -87,11 +87,11 @@ fn a_missing_account_reference_is_reported() {
 fn a_missing_commodity_reference_is_reported() {
     // Arrange
     let mut w = world();
-    let body = account_body("Orphan", new_id(), None, false);
+    let body = account_body("Orphan", DocId::new(), None, false);
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Account, new_id(), None, body));
+        .write_revision(rev(DocKind::Account, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -115,16 +115,16 @@ fn malformed_unknown_or_misspelled_bodies_are_refused() {
     // Act
     let nonsense = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         json!({"nonsense": true}),
     ));
     let field = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, typo_field));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, typo_field));
     let status = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, typo_status));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, typo_status));
     // Assert
     assert!(matches!(nonsense, Err(Error::InvalidBody(_))));
     assert!(matches!(field, Err(Error::InvalidBody(_))));

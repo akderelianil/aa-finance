@@ -1,6 +1,6 @@
 //! Errors of the core. Rule violations carry a stable code that the UI turns into a message.
 
-use crate::ids::Id;
+use crate::ids::DocId;
 
 mod messages;
 
@@ -95,7 +95,7 @@ pub enum Error {
     Rule(RuleCode),
     /// The caller wrote from a stale view: the parent is not the current head of the document.
     #[error("conflict: revision of {doc_id} does not continue the current head")]
-    Conflict { doc_id: Id },
+    Conflict { doc_id: DocId },
     #[error("database error: {0}")]
     Sqlite(rusqlite::Error),
     #[error("invalid revision body: {0}")]

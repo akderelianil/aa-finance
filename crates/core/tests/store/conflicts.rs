@@ -59,7 +59,7 @@ fn the_earliest_server_sequence_is_the_head_and_the_sibling_is_kept() {
     let mut w = world();
     let (food, cash) = (w.food, w.cash);
     let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
-    let (id_a, id_b) = (new_id(), new_id());
+    let (id_a, id_b) = (RevisionId::new(), RevisionId::new());
     let branch = |id, seq, amount| ImportedRevision {
         id,
         server_seq: Some(seq),
@@ -87,7 +87,7 @@ fn recording_a_server_sequence_can_change_the_head_and_the_projection_follows() 
     let mut w = world();
     let (food, cash) = (w.food, w.cash);
     let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
-    let (local, remote) = (new_id(), new_id());
+    let (local, remote) = (RevisionId::new(), RevisionId::new());
     let branch = |id, amount| ImportedRevision {
         id,
         server_seq: None,
@@ -127,7 +127,7 @@ fn a_server_sequence_for_an_unknown_revision_is_a_missing_reference() {
     // Arrange
     let mut w = world();
     // Act
-    let result = w.store.set_server_seq(new_id(), 1);
+    let result = w.store.set_server_seq(RevisionId::new(), 1);
     // Assert
     assert!(matches!(
         result,
@@ -140,9 +140,9 @@ fn a_server_sequence_for_an_unknown_revision_is_a_missing_reference() {
 
 fn sibling(
     w: &World,
-    entry: Id,
-    root: Id,
-    id: Id,
+    entry: DocId,
+    root: RevisionId,
+    id: RevisionId,
     server_seq: Option<i64>,
     created_at_ms: i64,
     amount: i64,
@@ -168,7 +168,7 @@ fn siblings_without_a_server_order_follow_creation_time_then_arrival() {
     let mut w = world();
     let (food, cash) = (w.food, w.cash);
     let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
-    let (late, early, same_time) = (new_id(), new_id(), new_id());
+    let (late, early, same_time) = (RevisionId::new(), RevisionId::new(), RevisionId::new());
     // Act: the later-created sibling arrives first.
     w.store
         .import_revisions(vec![
@@ -194,7 +194,7 @@ fn a_sequenced_branch_beats_an_unsequenced_one_whatever_their_times() {
     let mut w = world();
     let (food, cash) = (w.food, w.cash);
     let (entry, root) = post(&mut w, &[(food, 100), (cash, -100)]);
-    let (local, server) = (new_id(), new_id());
+    let (local, server) = (RevisionId::new(), RevisionId::new());
     // Act: the local branch is much older, the server branch has an order.
     w.store
         .import_revisions(vec![
@@ -212,7 +212,7 @@ fn a_sequenced_branch_beats_an_unsequenced_one_whatever_their_times() {
 fn a_revision_of_a_kind_this_build_does_not_know_is_an_internal_error() {
     // Arrange: a damaged file with a kind the CHECK would normally refuse.
     let mut w = world();
-    let id = new_id();
+    let id = RevisionId::new();
     w.store
         .raw_connection()
         .execute_batch(&format!(

@@ -8,7 +8,7 @@ use crate::body::{
     AccountBody, AccountKind, Body, CommodityBody, EntryBody, EntryStatus, LineBody,
 };
 use crate::error::{Error, Result, RuleCode};
-use crate::ids::{new_id, Id};
+use crate::ids::{DocId, Id, RevisionId};
 use crate::rate::{resolve_line, ForeignLine, Rate};
 use crate::store::{NewRevision, Store};
 use serde::{Deserialize, Serialize};
@@ -38,17 +38,17 @@ impl Clock for SystemClock {
 /// What a write returns: the document and the revision that was just written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct DocRef {
-    pub doc_id: Id,
-    pub revision_id: Id,
+    pub doc_id: DocId,
+    pub revision_id: RevisionId,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AccountInput {
     pub name: String,
-    pub parent: Option<Id>,
+    pub parent: Option<DocId>,
     pub kind: AccountKind,
-    pub commodity: Id,
+    pub commodity: DocId,
 }
 
 /// One line as the user gave it. `amount` is a canonical string in the scale of the account's
@@ -56,7 +56,7 @@ pub struct AccountInput {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LineInput {
-    pub account: Id,
+    pub account: DocId,
     pub amount: String,
     pub rate: Option<String>,
     pub base: Option<String>,
@@ -76,7 +76,7 @@ pub struct Ledger {
     store: Store,
     author: Id,
     clock: Box<dyn Clock>,
-    base: Option<Id>,
+    base: Option<DocId>,
 }
 
 impl Ledger {
@@ -91,7 +91,7 @@ impl Ledger {
 
     /// Sets the base currency of this session. It becomes a stored book setting with the settings
     /// revisions; until then the caller names it.
-    pub fn set_base_commodity(&mut self, commodity: Id) -> Result<()> {
+    pub fn set_base_commodity(&mut self, commodity: DocId) -> Result<()> {
         self.commodity(commodity)?;
         if self.base.is_some_and(|current| current != commodity) {
             return Err(Error::Internal(
@@ -108,7 +108,7 @@ impl Ledger {
             code: code.trim().to_string(),
             scale: i64::from(scale),
         });
-        self.write(new_id(), None, body)
+        self.write(DocId::new(), None, body)
     }
 
     pub fn create_account(&mut self, input: AccountInput) -> Result<DocRef> {
@@ -123,23 +123,23 @@ impl Ledger {
             commodity: input.commodity,
             archived: false,
         });
-        self.write(new_id(), None, body)
+        self.write(DocId::new(), None, body)
     }
 
-    pub fn rename_account(&mut self, account: Id, name: &str) -> Result<DocRef> {
+    pub fn rename_account(&mut self, account: DocId, name: &str) -> Result<DocRef> {
         self.change_account(account, |body| body.name = name.trim().to_string())
     }
 
-    pub fn set_account_archived(&mut self, account: Id, archived: bool) -> Result<DocRef> {
+    pub fn set_account_archived(&mut self, account: DocId, archived: bool) -> Result<DocRef> {
         self.change_account(account, |body| body.archived = archived)
     }
 
     pub fn post_entry(&mut self, input: EntryInput) -> Result<DocRef> {
         let body = self.entry_body(input)?;
-        self.write(new_id(), None, Body::Entry(body))
+        self.write(DocId::new(), None, Body::Entry(body))
     }
 
-    pub fn edit_entry(&mut self, entry: Id, input: EntryInput) -> Result<DocRef> {
+    pub fn edit_entry(&mut self, entry: DocId, input: EntryInput) -> Result<DocRef> {
         self.entry_body_of(entry)?;
         let body = self.entry_body(input)?;
         self.write_next(entry, Body::Entry(body))
@@ -147,7 +147,7 @@ impl Ledger {
 
     /// Writes the body of the previous version as a new revision. Doing it again brings the undone
     /// version back, so nothing is ever removed.
-    pub fn undo(&mut self, doc: Id) -> Result<DocRef> {
+    pub fn undo(&mut self, doc: DocId) -> Result<DocRef> {
         let head = self.head_record(doc)?;
         let parent = head.parent_id.ok_or(Error::Rule(RuleCode::NothingToUndo))?;
         let previous = self.store.revision(parent)?.ok_or(Error::Internal(
@@ -157,7 +157,7 @@ impl Ledger {
         self.write_next(doc, body)
     }
 
-    pub fn history(&self, doc: Id) -> Result<Vec<HistoryItem>> {
+    pub fn history(&self, doc: DocId) -> Result<Vec<HistoryItem>> {
         let revisions = self.store.history(doc)?;
         if revisions.is_empty() {
             return Err(missing("document", doc));
@@ -165,11 +165,11 @@ impl Ledger {
         Ok(revisions.into_iter().map(HistoryItem::from).collect())
     }
 
-    pub fn account(&self, account: Id) -> Result<AccountView> {
+    pub fn account(&self, account: DocId) -> Result<AccountView> {
         Ok(AccountView::from(self.account_body(account)?))
     }
 
-    pub fn entry(&self, entry: Id) -> Result<EntryView> {
+    pub fn entry(&self, entry: DocId) -> Result<EntryView> {
         let body = self.entry_body_of(entry)?;
         let base_scale = self.scale(self.base_commodity()?)?;
         let lines = body
@@ -195,7 +195,7 @@ impl Ledger {
 
     fn change_account(
         &mut self,
-        account: Id,
+        account: DocId,
         change: impl FnOnce(&mut AccountBody),
     ) -> Result<DocRef> {
         let mut body = self.account_body(account)?;
@@ -220,7 +220,7 @@ impl Ledger {
         })
     }
 
-    fn line_body(&self, line: &LineInput, base: Id, base_scale: u8) -> Result<LineBody> {
+    fn line_body(&self, line: &LineInput, base: DocId, base_scale: u8) -> Result<LineBody> {
         let account = self.account_body(line.account)?;
         let scale = self.scale(account.commodity)?;
         let quantity = parse_amount(&line.amount, scale, Separators::CANONICAL)?;
@@ -262,40 +262,40 @@ impl Ledger {
         })
     }
 
-    fn base_commodity(&self) -> Result<Id> {
+    fn base_commodity(&self) -> Result<DocId> {
         self.base.ok_or(Error::MissingReference {
             kind: "base currency",
             what: "none is set".to_string(),
         })
     }
 
-    fn scale(&self, commodity: Id) -> Result<u8> {
+    fn scale(&self, commodity: DocId) -> Result<u8> {
         u8::try_from(self.commodity(commodity)?.scale)
             .map_err(|_| Error::Internal("a stored scale is out of range"))
     }
 
-    fn commodity(&self, id: Id) -> Result<CommodityBody> {
+    fn commodity(&self, id: DocId) -> Result<CommodityBody> {
         match self.current_body(id, "commodity")? {
             Body::Commodity(body) => Ok(body),
             _ => Err(missing("commodity", id)),
         }
     }
 
-    fn account_body(&self, id: Id) -> Result<AccountBody> {
+    fn account_body(&self, id: DocId) -> Result<AccountBody> {
         match self.current_body(id, "account")? {
             Body::Account(body) => Ok(body),
             _ => Err(missing("account", id)),
         }
     }
 
-    fn entry_body_of(&self, id: Id) -> Result<EntryBody> {
+    fn entry_body_of(&self, id: DocId) -> Result<EntryBody> {
         match self.current_body(id, "entry")? {
             Body::Entry(body) => Ok(body),
             _ => Err(missing("entry", id)),
         }
     }
 
-    fn current_body(&self, id: Id, kind: &'static str) -> Result<Body> {
+    fn current_body(&self, id: DocId, kind: &'static str) -> Result<Body> {
         let head = match self.store.current_revision(id)? {
             Some(_) => self.head_record(id)?,
             None => return Err(missing(kind, id)),
@@ -303,7 +303,7 @@ impl Ledger {
         Body::from_json(head.doc_kind, &head.body)
     }
 
-    fn head_record(&self, doc: Id) -> Result<crate::RevisionRecord> {
+    fn head_record(&self, doc: DocId) -> Result<crate::RevisionRecord> {
         let head = self
             .store
             .current_revision(doc)?
@@ -313,7 +313,7 @@ impl Ledger {
             .ok_or(Error::Internal("the head revision is not stored"))
     }
 
-    fn write_next(&mut self, doc: Id, body: Body) -> Result<DocRef> {
+    fn write_next(&mut self, doc: DocId, body: Body) -> Result<DocRef> {
         let parent = self.head_record(doc)?;
         if parent.doc_kind != body.kind() {
             return Err(Error::Rule(RuleCode::RevisionKindMismatch));
@@ -321,7 +321,12 @@ impl Ledger {
         self.write(doc, Some(parent.id), body)
     }
 
-    fn write(&mut self, doc_id: Id, parent_id: Option<Id>, body: Body) -> Result<DocRef> {
+    fn write(
+        &mut self,
+        doc_id: DocId,
+        parent_id: Option<RevisionId>,
+        body: Body,
+    ) -> Result<DocRef> {
         let revision_id = self.store.write_revision(NewRevision {
             doc_kind: body.kind(),
             doc_id,
@@ -337,7 +342,7 @@ impl Ledger {
     }
 }
 
-fn missing(kind: &'static str, id: Id) -> Error {
+fn missing(kind: &'static str, id: DocId) -> Error {
     Error::MissingReference {
         kind,
         what: id.to_string(),

@@ -37,7 +37,7 @@ fn renaming_an_unknown_account_is_a_missing_reference() {
     // Arrange
     let mut b = book();
     // Act
-    let result = b.ledger.rename_account(new_id(), "Ghost");
+    let result = b.ledger.rename_account(DocId::new(), "Ghost");
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }
@@ -47,7 +47,7 @@ fn an_account_with_an_unknown_commodity_is_a_missing_reference() {
     // Arrange
     let mut b = book();
     // Act
-    let result = b.ledger.create_account(account("Bank", new_id()));
+    let result = b.ledger.create_account(account("Bank", DocId::new()));
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }

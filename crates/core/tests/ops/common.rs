@@ -1,7 +1,7 @@
 //! Shared setup of the operation tests: a ledger with a fixed clock, a base currency and two accounts.
 pub use aa_core::ids::new_id;
 pub use aa_core::ops::{AccountInput, Clock, EntryInput, Ledger, LineInput};
-pub use aa_core::{Error, Id, RuleCode};
+pub use aa_core::{DocId, Error, Id, RuleCode};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
@@ -25,10 +25,10 @@ pub struct Book {
     pub ledger: Ledger,
     pub clock: TestClock,
     pub author: Id,
-    pub try_id: Id,
-    pub usd_id: Id,
-    pub cash: Id,
-    pub food: Id,
+    pub try_id: DocId,
+    pub usd_id: DocId,
+    pub cash: DocId,
+    pub food: DocId,
 }
 
 pub fn book() -> Book {
@@ -58,7 +58,7 @@ pub fn book() -> Book {
     }
 }
 
-pub fn account(name: &str, commodity: Id) -> AccountInput {
+pub fn account(name: &str, commodity: DocId) -> AccountInput {
     AccountInput {
         name: name.to_string(),
         parent: None,
@@ -67,7 +67,7 @@ pub fn account(name: &str, commodity: Id) -> AccountInput {
     }
 }
 
-pub fn line(account: Id, amount: &str) -> LineInput {
+pub fn line(account: DocId, amount: &str) -> LineInput {
     LineInput {
         account,
         amount: amount.to_string(),

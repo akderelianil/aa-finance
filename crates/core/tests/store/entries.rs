@@ -23,7 +23,7 @@ fn an_unbalanced_posted_entry_is_refused_and_nothing_is_stored() {
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -46,7 +46,7 @@ fn a_posted_entry_needs_two_lines() {
     // Act
     let result = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body));
     // Assert
     assert!(matches!(
         result,
@@ -61,7 +61,7 @@ fn a_draft_entry_may_be_unbalanced() {
     let body = entry_body(&w, "draft", &[(w.food, 5000)]);
     // Act / Assert
     w.store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
         .unwrap();
 }
 
@@ -150,7 +150,7 @@ fn a_posted_entry_balances_on_base_value_not_on_quantity() {
     // Act
     let balanced_on_base = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         lines_body(
             "posted",
@@ -159,7 +159,7 @@ fn a_posted_entry_balances_on_base_value_not_on_quantity() {
     ));
     let balanced_on_quantity = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         lines_body(
             "posted",
@@ -184,10 +184,10 @@ fn an_entry_that_is_one_unit_off_is_unbalanced() {
     // Act
     let off_by_one = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, off));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, off));
     let exact = w
         .store
-        .write_revision(rev(DocKind::Entry, new_id(), None, exact_body));
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, exact_body));
     // Assert
     assert!(matches!(
         off_by_one,
@@ -204,7 +204,7 @@ fn a_line_whose_base_value_has_the_other_sign_is_refused_with_a_code() {
     // Act
     let result = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         lines_body(
             "posted",
@@ -223,7 +223,7 @@ fn a_line_with_neither_quantity_nor_base_value_is_refused_with_a_code() {
     // Act
     let result = w.store.write_revision(rev(
         DocKind::Entry,
-        new_id(),
+        DocId::new(),
         None,
         lines_body("draft", &[(food, try_id, 0, 0), (cash, try_id, 0, 0)]),
     ));
@@ -307,7 +307,7 @@ fn a_draft_cannot_be_posted_directly_when_it_does_not_balance() {
     let (food, cash) = (w.food, w.cash);
     let body = entry_body(&w, "draft", &[(food, 5000), (cash, -4000)]);
     w.store
-        .write_revision(rev(DocKind::Entry, new_id(), None, body))
+        .write_revision(rev(DocKind::Entry, DocId::new(), None, body))
         .unwrap();
     // Act
     let result = w.store.tamper("UPDATE entry SET status = 'posted'");

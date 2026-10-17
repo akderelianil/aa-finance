@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::error::Error;
-use crate::ids::new_id;
+use crate::ids::DocId;
 
 fn entry() -> EntryBody {
     EntryBody {
@@ -12,14 +12,14 @@ fn entry() -> EntryBody {
         status: EntryStatus::Posted,
         lines: vec![
             LineBody {
-                account: new_id(),
-                commodity: new_id(),
+                account: DocId::new(),
+                commodity: DocId::new(),
                 quantity: -1250,
                 base_value: -1250,
             },
             LineBody {
-                account: new_id(),
-                commodity: new_id(),
+                account: DocId::new(),
+                commodity: DocId::new(),
                 quantity: 1250,
                 base_value: 1250,
             },
@@ -35,9 +35,9 @@ fn every_body_reads_back_exactly_as_written() {
     });
     let account = Body::Account(AccountBody {
         name: "Wallet".into(),
-        parent: Some(new_id()),
+        parent: Some(DocId::new()),
         kind: AccountKind::Asset,
-        commodity: new_id(),
+        commodity: DocId::new(),
         archived: false,
     });
     let entry = Body::Entry(entry());
@@ -80,7 +80,7 @@ fn a_body_of_the_wrong_kind_is_refused() {
 fn an_unknown_account_kind_is_refused() {
     let json = format!(
         r#"{{"name":"x","parent":null,"kind":"cash","commodity":"{}","archived":false}}"#,
-        new_id()
+        DocId::new()
     );
     assert!(Body::from_json(DocKind::Account, &json).is_err());
 }
