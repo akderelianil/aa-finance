@@ -2,7 +2,7 @@
 
 use crate::body::{AccountBody, AccountKind};
 use crate::ids::{DocId, Id, RevisionId};
-use crate::RevisionRecord;
+use crate::{Restore, RevisionRecord};
 use serde::Serialize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -11,6 +11,8 @@ pub struct HistoryItem {
     pub parent_id: Option<RevisionId>,
     pub author_id: Id,
     pub created_at_ms: i64,
+    /// Set when this revision only brought an earlier version back (undo or redo).
+    pub restore: Option<Restore>,
 }
 
 impl From<RevisionRecord> for HistoryItem {
@@ -20,6 +22,7 @@ impl From<RevisionRecord> for HistoryItem {
             parent_id: record.parent_id,
             author_id: record.author_id,
             created_at_ms: record.created_at_ms,
+            restore: record.restore,
         }
     }
 }

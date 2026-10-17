@@ -1,7 +1,7 @@
 # ADR-0021: Sealed ledger kernel, the invariants that never bend
 
 **Date**: 2026-10-17
-**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17; K22 was added the same day with the settings document, [ADR-0022](0022-book-settings-document.md); K19 and K20 were built and K23 added on 2026-10-17)
+**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17; K22 was added the same day with the settings document, [ADR-0022](0022-book-settings-document.md); K19 and K20 were built and K23 added on 2026-10-17; K24 added with repeated undo and redo)
 **Deciders**: product owner (core-rebuild-4 talk)
 
 **Relation**: Collects rules that [ADR-0004](0004-balance-by-base-amount-trigger.md), [ADR-0010](0010-amounts-commodities-balancing.md) and [ADR-0012](0012-revisions-as-truth.md) state in prose. It adds no new storage; it makes each rule one row with its enforcement and its test.
@@ -38,11 +38,12 @@ The kernel is the set of rows below. A row is only "sealed" when the database (o
 | K21 | The base currency is fixed once any entry has a revision (a draft counts); it can change before that | trigger on `settings.base_commodity_id` | `base_currency_locked` | store/settings.rs: `the_base_currency_is_locked_once_an_entry_exists`, `a_draft_entry_locks_the_base_currency_too`, `a_refused_base_change_leaves_the_settings_as_they_were`; ops/settings.rs: `the_base_currency_is_locked_by_the_first_entry` |
 | K22 | A book has one settings document, under one fixed id; its row is written only by the projector | Rust check in the projector; `CHECK (id = 1)`; projection gate | `settings_id_fixed`, `projection_closed` | store/settings.rs: `settings_under_any_other_document_id_are_refused`, `only_the_projector_writes_the_settings_table` |
 | K23 | A system key belongs to one account | `UNIQUE` on `account.system_key` | `system_key_taken` | store/accounts.rs: `a_system_key_belongs_to_one_account` |
+| K24 | An undo or a redo names the revision it copies (both fields or neither), and that revision belongs to the same document | `CHECK`; trigger | `revision_parent_mismatch` | store/revisions.rs: `a_restore_needs_both_its_source_and_its_kind_and_a_source_in_the_same_document` |
 
 K21, K22 and K23 keep the numbers they had when they were planned, so references in the story and the notes stay valid.
 
 ### Refusals of input, not invariants
-These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo`, `book_already_open` (a book is opened once), `name_empty`, `account_parent_archived`, `account_parent_kind_mismatch` and `account_name_taken` (case ignored, per parent) and `entry_deleted` (a deleted entry is neither edited nor deleted again; undo first). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
+These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo`, `nothing_to_redo`, `book_already_open` (a book is opened once), `name_empty`, `account_parent_archived`, `account_parent_kind_mismatch` and `account_name_taken` (case ignored, per parent) and `entry_deleted` (a deleted entry is neither edited nor deleted again; undo first). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
 
 ### Found while writing this table
 - **Commodities have no archived state.** ADR-0012 says "archived commodities and accounts take no new lines". Only accounts archive. A commodity is never deleted, and to stop using one the user archives its accounts; the UI can hide a commodity that has no active account. Decision (2026-10-17): correct ADR-0012 (done there); no commodity archive in v1.

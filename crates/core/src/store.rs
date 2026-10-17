@@ -42,6 +42,37 @@ impl DocKind {
     }
 }
 
+/// Why a revision exists only to bring an earlier body back: an undo or a redo, and the revision whose body it copies.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+pub struct Restore {
+    pub kind: RestoreKind,
+    pub from: RevisionId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RestoreKind {
+    Undo,
+    Redo,
+}
+
+impl RestoreKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            RestoreKind::Undo => "undo",
+            RestoreKind::Redo => "redo",
+        }
+    }
+
+    fn from_name(name: &str) -> Option<RestoreKind> {
+        match name {
+            "undo" => Some(RestoreKind::Undo),
+            "redo" => Some(RestoreKind::Redo),
+            _ => None,
+        }
+    }
+}
+
 /// A local revision to write. `body` is JSON until the canonical encoding is frozen (ADR-0012).
 /// `parent_id` must be the current head of the document, or `None` for its first revision.
 #[derive(Debug, Clone)]
@@ -52,6 +83,7 @@ pub struct NewRevision {
     pub author_id: Id,
     pub created_at_ms: i64,
     pub body: String,
+    pub restore: Option<Restore>,
 }
 
 /// A revision that arrives from elsewhere (sync): it keeps its id and may fork a document.
@@ -72,6 +104,7 @@ pub struct RevisionRecord {
     pub author_id: Id,
     pub created_at_ms: i64,
     pub body: String,
+    pub restore: Option<Restore>,
 }
 
 /// One ledger file: revisions, the projection and its verification.
@@ -144,8 +177,8 @@ impl Store {
         let mut ids = Vec::with_capacity(batch.len());
         {
             let mut insert = tx.prepare_cached(
-                "INSERT INTO revision (id, doc_kind, doc_id, parent_id, author_id, created_at_ms, rules_version, schema_version, core_version, server_seq, body)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                "INSERT INTO revision (id, doc_kind, doc_id, parent_id, author_id, created_at_ms, rules_version, schema_version, core_version, server_seq, body, restored_from, restore_kind)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )?;
             for (id, server_seq, rev, strict) in batch {
                 if strict {
@@ -165,7 +198,9 @@ impl Store {
                     SCHEMA_VERSION,
                     env!("CARGO_PKG_VERSION"),
                     server_seq,
-                    rev.body
+                    rev.body,
+                    rev.restore.map(|restore| restore.from),
+                    rev.restore.map(|restore| restore.kind.as_str())
                 ])?;
                 projection::rebuild(&tx, rev.doc_kind, rev.doc_id, false)?;
                 ids.push(id);
@@ -225,7 +260,7 @@ impl Store {
         key: impl rusqlite::ToSql,
     ) -> Result<Vec<RevisionRecord>> {
         let sql = format!(
-            "SELECT id, doc_kind, doc_id, parent_id, author_id, created_at_ms, body FROM revision {filter}"
+            "SELECT id, doc_kind, doc_id, parent_id, author_id, created_at_ms, body, restored_from, restore_kind FROM revision {filter}"
         );
         let mut stmt = self.conn.prepare(&sql)?;
         let rows = stmt.query_map(params![key], |row| {
@@ -237,13 +272,26 @@ impl Store {
                 row.get::<_, Id>(4)?,
                 row.get::<_, i64>(5)?,
                 row.get::<_, String>(6)?,
+                row.get::<_, Option<RevisionId>>(7)?,
+                row.get::<_, Option<String>>(8)?,
             ))
         })?;
         rows.map(|row| {
-            let (id, kind, doc_id, parent_id, author_id, created_at_ms, body) = row?;
+            let (id, kind, doc_id, parent_id, author_id, created_at_ms, body, from, restore_kind) =
+                row?;
             let doc_kind = DocKind::from_name(&kind).ok_or(Error::Internal(
                 "a revision has a document kind this build does not know",
             ))?;
+            let restore = match (from, restore_kind) {
+                (None, None) => None,
+                (Some(from), Some(name)) => Some(Restore {
+                    kind: RestoreKind::from_name(&name).ok_or(Error::Internal(
+                        "a revision has a restore kind this build does not know",
+                    ))?,
+                    from,
+                }),
+                _ => return Err(Error::Internal("a revision has half a restore link")),
+            };
             Ok(RevisionRecord {
                 id,
                 doc_kind,
@@ -252,6 +300,7 @@ impl Store {
                 author_id,
                 created_at_ms,
                 body,
+                restore,
             })
         })
         .collect()

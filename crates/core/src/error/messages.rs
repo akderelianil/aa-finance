@@ -96,6 +96,10 @@ impl RuleCode {
                 "Geri alınacak önceki bir sürüm yok.",
                 "There is no earlier version to go back to.",
             ),
+            RuleCode::NothingToRedo => (
+                "Yinelenecek geri alınmış bir işlem yok.",
+                "There is no undone change to bring back.",
+            ),
             RuleCode::EntryMustStartAsDraft => (
                 "Bir fiş önce taslak olarak başlamalı, sonra kaydedilebilir.",
                 "An entry must start as a draft before it can be posted.",

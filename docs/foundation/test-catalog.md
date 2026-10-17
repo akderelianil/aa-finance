@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 225 tests.
+Total: 233 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -68,11 +68,18 @@ Opening a book and the base currency through the operations: `open_book` writes 
 - The base currency is locked by the first entry
 - The base currency must be a commodity
 
-### ops/undo.rs (5)
+### ops/undo.rs (12)
 Undo is a new revision that restores the previous body; nothing is removed and the history keeps both.
 
 - Undo restores the previous version as a new revision
-- Undoing twice brings the edit back
+- Undoing twice walks back two versions
+- Undo stops at the first version
+- Redo brings back what undo took away one step at a time
+- Redo with nothing undone is refused
+- A new edit after an undo drops the redo
+- Undo after a redo goes back again
+- The history marks the revisions that only restore
+- A locked account cannot be redone
 - A document with one revision has nothing to undo
 - Undoing an unknown document is a missing reference
 - Undo of a rename restores the old name
@@ -147,7 +154,7 @@ Rebuilding the projection from the revisions: it repairs drift, replays parents 
 - A rebuild that cannot find a parent account reports the missing reference
 - A rebuild reproduces the incremental projection exactly
 
-### store/revisions.rs (7)
+### store/revisions.rs (8)
 Revisions are immutable and chain correctly: no edit or delete, a parent belongs to the same document, a document never changes kind, and a failed batch changes nothing (ADR-0012).
 
 - A revision cannot be changed or deleted
@@ -157,6 +164,7 @@ Revisions are immutable and chain correctly: no edit or delete, a parent belongs
 - A conflict in the middle of a batch rolls the whole batch back
 - Every column of a revision is immutable
 - A replace cannot rewrite a revision
+- A restore needs both its source and its kind and a source in the same document
 
 ### store/settings.rs (11)
 The settings document: one revisioned document under a fixed id whose projection holds the base currency; the base currency is locked once an entry exists (ADR-0021, K21 and K22).

@@ -142,6 +142,8 @@ fn every_column_of_a_revision_is_immutable() {
         ("schema_version", "schema_version + 1"),
         ("core_version", "'other'"),
         ("body", "'{}'"),
+        ("restored_from", "randomblob(16)"),
+        ("restore_kind", "'redo'"),
     ];
     for (column, value) in columns {
         // Act
@@ -187,4 +189,48 @@ fn a_replace_cannot_rewrite_a_revision() {
         ),
         0
     );
+}
+
+#[test]
+fn a_restore_needs_both_its_source_and_its_kind_and_a_source_in_the_same_document() {
+    // Arrange
+    let w = world();
+    let conn = w.store.raw_connection();
+    let insert = |from: &str, kind: &str| {
+        conn.execute(
+            &format!(
+                "INSERT INTO revision (id, doc_kind, doc_id, parent_id, author_id, created_at_ms, rules_version,
+                                       schema_version, core_version, body, restored_from, restore_kind)
+                 SELECT randomblob(16), doc_kind, doc_id, id, author_id, 1, 1, 1, 'x', body, {from}, {kind}
+                 FROM revision AS last WHERE seq = (SELECT max(seq) FROM revision)"
+            ),
+            [],
+        )
+        .map_err(Error::from)
+    };
+    // Act
+    let source_only = insert("id", "NULL");
+    let kind_only = insert("NULL", "'undo'");
+    let unknown_kind = insert("id", "'toggle'");
+    let foreign: Vec<u8> = conn
+        .query_row(
+            "SELECT id FROM revision WHERE doc_id <> (SELECT doc_id FROM revision WHERE seq = (SELECT max(seq) FROM revision)) LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    let foreign = format!(
+        "X'{}'",
+        foreign
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+    );
+    let other_document = insert(&foreign, "'undo'");
+    // Assert
+    assert!(source_only.is_err() && kind_only.is_err() && unknown_kind.is_err());
+    assert!(matches!(
+        other_document,
+        Err(Error::Rule(RuleCode::RevisionParentMismatch))
+    ));
 }

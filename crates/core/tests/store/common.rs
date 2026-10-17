@@ -18,6 +18,7 @@ pub fn rev(
         author_id: new_id(),
         created_at_ms: 1_000,
         body: body.to_string(),
+        restore: None,
     }
 }
 

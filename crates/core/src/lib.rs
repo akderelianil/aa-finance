@@ -17,7 +17,9 @@ mod store;
 pub use error::{Error, Lang, Result, RuleCode};
 pub use ids::{DocId, Id, RevisionId};
 pub use projection::{Drift, DriftReason};
-pub use store::{DocKind, ImportedRevision, NewRevision, RevisionRecord, Store};
+pub use store::{
+    DocKind, ImportedRevision, NewRevision, Restore, RestoreKind, RevisionRecord, Store,
+};
 
 /// The version of the named-operation API this build speaks.
 pub const API_VERSION: u32 = 0;

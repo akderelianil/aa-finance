@@ -13,7 +13,11 @@ CREATE TABLE revision (
   schema_version INTEGER NOT NULL,
   core_version TEXT NOT NULL,
   server_seq INTEGER,
-  body TEXT NOT NULL CHECK (json_valid(body))
+  body TEXT NOT NULL CHECK (json_valid(body)),
+  -- An undo or a redo copies the body of an earlier revision of the same document and says which one.
+  restored_from BLOB CHECK (restored_from IS NULL OR length(restored_from) = 16),
+  restore_kind TEXT CHECK (restore_kind IN ('undo', 'redo')),
+  CHECK ((restored_from IS NULL) = (restore_kind IS NULL))
 ) STRICT;
 
 CREATE INDEX revision_doc ON revision (doc_id, created_at_ms);
@@ -22,6 +26,11 @@ CREATE INDEX revision_parent ON revision (parent_id);
 CREATE TRIGGER revision_parent_same_doc BEFORE INSERT ON revision
 WHEN NEW.parent_id IS NOT NULL
  AND (SELECT doc_id FROM revision WHERE id = NEW.parent_id) IS NOT NEW.doc_id
+BEGIN SELECT RAISE(ABORT, 'revision_parent_mismatch'); END;
+
+CREATE TRIGGER revision_restored_from_same_doc BEFORE INSERT ON revision
+WHEN NEW.restored_from IS NOT NULL
+ AND (SELECT doc_id FROM revision WHERE id = NEW.restored_from) IS NOT NEW.doc_id
 BEGIN SELECT RAISE(ABORT, 'revision_parent_mismatch'); END;
 
 -- All revisions of one document have one kind (an account never becomes an entry).
@@ -34,7 +43,7 @@ WHEN NEW.seq IS NOT OLD.seq OR NEW.id IS NOT OLD.id OR NEW.doc_kind IS NOT OLD.d
   OR NEW.doc_id IS NOT OLD.doc_id OR NEW.parent_id IS NOT OLD.parent_id OR NEW.author_id IS NOT OLD.author_id
   OR NEW.created_at_ms IS NOT OLD.created_at_ms OR NEW.rules_version IS NOT OLD.rules_version
   OR NEW.schema_version IS NOT OLD.schema_version OR NEW.core_version IS NOT OLD.core_version
-  OR NEW.body IS NOT OLD.body OR OLD.server_seq IS NOT NULL
+  OR NEW.body IS NOT OLD.body OR NEW.restored_from IS NOT OLD.restored_from OR NEW.restore_kind IS NOT OLD.restore_kind OR OLD.server_seq IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'revision_immutable'); END;
 
 -- INSERT OR REPLACE removes the old row without firing delete triggers, so a repeated id or seq is refused here.

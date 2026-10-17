@@ -16,6 +16,7 @@ fn revision(kind: DocKind, doc_id: DocId, author: Id, body: String) -> NewRevisi
         author_id: author,
         created_at_ms: 1_000,
         body,
+        restore: None,
     }
 }
 

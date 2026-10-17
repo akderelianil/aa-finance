@@ -11,7 +11,7 @@ use crate::body::{
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, Id, RevisionId};
 use crate::rate::{resolve_line, rounding_line, ForeignLine, Rate};
-use crate::store::{NewRevision, Store};
+use crate::store::{NewRevision, Restore, RestoreKind, RevisionRecord, Store};
 use serde::{Deserialize, Serialize};
 
 mod views;
@@ -242,20 +242,85 @@ impl Ledger {
         Ok(body)
     }
 
-    /// Writes the body of the previous version as a new revision. Doing it again brings the undone
-    /// version back, so nothing is ever removed.
+    /// Goes one step back: writes the body of the version before the current one as a new revision.
+    /// Repeating it walks back to the first version; `redo` walks forward again. Nothing is removed.
     pub fn undo(&mut self, doc: DocId) -> Result<DocRef> {
         let head = self.head_record(doc)?;
+        self.refuse_locked(&head)?;
+        let current = self.live_version(&head)?;
+        let before = current
+            .parent_id
+            .ok_or(Error::Rule(RuleCode::NothingToUndo))?;
+        let before = self.live_version(&self.revision_record(before)?)?;
+        self.restore(doc, RestoreKind::Undo, &before)
+    }
+
+    /// Brings back what the last undo took away, as long as nothing was changed after it.
+    pub fn redo(&mut self, doc: DocId) -> Result<DocRef> {
+        let head = self.head_record(doc)?;
+        self.refuse_locked(&head)?;
+        let mut undone = Vec::new();
+        let mut cursor = Some(head);
+        let mut run = Vec::new();
+        while let Some(record) = cursor.filter(|record| record.restore.is_some()) {
+            cursor = record
+                .parent_id
+                .map(|id| self.revision_record(id))
+                .transpose()?;
+            run.push(record);
+        }
+        for record in run.iter().rev() {
+            match record.restore.map(|restore| restore.kind) {
+                Some(RestoreKind::Undo) => {
+                    let parent = record
+                        .parent_id
+                        .ok_or(Error::Internal("an undo has no parent"))?;
+                    undone.push(self.live_version(&self.revision_record(parent)?)?);
+                }
+                _ => {
+                    undone.pop();
+                }
+            }
+        }
+        let target = undone.pop().ok_or(Error::Rule(RuleCode::NothingToRedo))?;
+        self.restore(doc, RestoreKind::Redo, &target)
+    }
+
+    fn refuse_locked(&self, head: &RevisionRecord) -> Result<()> {
         if matches!(Body::from_json(head.doc_kind, &head.body)?, Body::Account(account) if account.locked)
         {
             return Err(Error::Rule(RuleCode::AccountLocked));
         }
-        let parent = head.parent_id.ok_or(Error::Rule(RuleCode::NothingToUndo))?;
-        let previous = self.store.revision(parent)?.ok_or(Error::Internal(
-            "a revision points to a parent that is not stored",
-        ))?;
-        let body = Body::from_json(previous.doc_kind, &previous.body)?;
-        self.write_next(doc, body)
+        Ok(())
+    }
+
+    /// The revision whose body a revision shows: itself, or the one an undo or redo copied.
+    fn live_version(&self, record: &RevisionRecord) -> Result<RevisionRecord> {
+        match record.restore {
+            Some(restore) => self.revision_record(restore.from),
+            None => Ok(record.clone()),
+        }
+    }
+
+    fn revision_record(&self, id: RevisionId) -> Result<RevisionRecord> {
+        self.store.revision(id)?.ok_or(Error::Internal(
+            "a revision points to one that is not stored",
+        ))
+    }
+
+    fn restore(&mut self, doc: DocId, kind: RestoreKind, from: &RevisionRecord) -> Result<DocRef> {
+        let body = Body::from_json(from.doc_kind, &from.body)?;
+        let head = self.head_record(doc)?;
+        let mut revision = self.revision(doc, Some(head.id), &body)?;
+        revision.restore = Some(Restore {
+            kind,
+            from: from.id,
+        });
+        let revision_id = self.store.write_revision(revision)?;
+        Ok(DocRef {
+            doc_id: doc,
+            revision_id,
+        })
     }
 
     pub fn history(&self, doc: DocId) -> Result<Vec<HistoryItem>> {
@@ -432,7 +497,7 @@ impl Ledger {
         Body::from_json(head.doc_kind, &head.body)
     }
 
-    fn head_record(&self, doc: DocId) -> Result<crate::RevisionRecord> {
+    fn head_record(&self, doc: DocId) -> Result<RevisionRecord> {
         let head = self
             .store
             .current_revision(doc)?
@@ -464,6 +529,7 @@ impl Ledger {
             author_id: self.author,
             created_at_ms: self.clock.now_ms(),
             body: body.to_json()?,
+            restore: None,
         })
     }
 

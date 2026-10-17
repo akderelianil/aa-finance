@@ -1,7 +1,7 @@
 //! Shared setup of the operation tests: a ledger with a fixed clock, a base currency and two accounts.
 pub use aa_core::ids::new_id;
 pub use aa_core::ops::{AccountInput, Clock, EntryInput, Ledger, LineInput};
-pub use aa_core::{DocId, Error, Id, RuleCode};
+pub use aa_core::{DocId, Error, Id, RestoreKind, RuleCode};
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
