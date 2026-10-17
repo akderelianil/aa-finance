@@ -1,0 +1,65 @@
+# ADR-0021: Sealed ledger kernel, the invariants that never bend
+
+**Date**: 2026-10-17
+**Status**: proposed (the table is agreed in form; the owner confirms the list)
+**Deciders**: product owner (core-rebuild-4 talk)
+
+**Relation**: Collects rules that [ADR-0004](0004-balance-by-base-amount-trigger.md), [ADR-0010](0010-amounts-commodities-balancing.md) and [ADR-0012](0012-revisions-as-truth.md) state in prose. It adds no new storage; it makes each rule one row with its enforcement and its test.
+
+## Context
+Quality order puts data integrity first. The rules that protect it were spread over three ADRs and the schema, so nobody could answer "is every invariant enforced, and by what?" without reading all of them. New operations (delete, undo, settings, system accounts) will touch the same rules.
+
+## Decision
+The kernel is the set of rows below. A row is only "sealed" when the database (or the single Rust function that writes revisions) refuses the violation, a stable code names it, and a test proves the refusal. Rust-only checks are allowed for rules the database cannot see (rates, parsing), and then say so. A new operation may not weaken a row; changing a row needs a new ADR that supersedes this one. Tests are anchored by name so the generated test catalog can be checked against this table.
+
+### Sealed today
+| # | Invariant | Enforced by | Code | Test (file: name) |
+|---|---|---|---|---|
+| K1 | A posted entry has at least two lines | trigger on status change and on every line change; `verify_projection` | `entry_too_few_lines` | store/entries.rs: `a_posted_entry_needs_two_lines`; store/verify.rs: `verify_projection_reports_a_posted_entry_with_one_line_even_when_it_sums_to_zero` |
+| K2 | A posted entry sums to exactly zero in base value, no tolerance | same triggers; `verify_projection` | `entry_unbalanced` | store/entries.rs: `an_unbalanced_posted_entry_is_refused_and_nothing_is_stored`, `an_entry_that_is_one_unit_off_is_unbalanced`, `a_faulty_writer_cannot_unbalance_a_posted_entry` |
+| K3 | Balance is measured on base value, never on quantity | schema column `base_value` | `entry_unbalanced` | store/entries.rs: `a_posted_entry_balances_on_base_value_not_on_quantity` |
+| K4 | A revision is append-only: no update, no delete, every column | triggers on `revision` | `revision_immutable` | store/revisions.rs: `a_revision_cannot_be_changed_or_deleted`, `every_column_of_a_revision_is_immutable` |
+| K5 | A local write continues the current head; a stale parent is a conflict | revision writer | `conflict`, `revision_parent_mismatch` | store/revisions.rs (parent mismatch), store/conflicts.rs |
+| K6 | All revisions of a document share one kind | trigger | `revision_kind_mismatch` | store/revisions.rs (kind mismatch) |
+| K7 | Only the projector writes projection tables | triggers and the projection session | `projection_closed` | store/verify.rs: `only_the_projector_writes_projection_tables`, `the_projection_session_cannot_be_removed_or_replaced_to_open_the_gates` |
+| K8 | Amounts are scaled integers inside ±2^62, never float | `CHECK` on `quantity` and `base_value`; checked arithmetic | `amount_out_of_range` | store/validation.rs: `a_duplicate_commodity_code_scale_range_and_amount_bound_have_codes`; amount tests |
+| K9 | A line is never empty and quantity and base agree in sign | `CHECK` constraints | `line_empty`, `line_base_sign` | store/entries.rs (both), ops/entries.rs |
+| K10 | The scale of a commodity is 0 to 18 and cannot change once a line uses it | `CHECK`; trigger | `commodity_scale_invalid`, `commodity_scale_locked` | store/accounts.rs: `the_scale_of_a_commodity_in_use_cannot_change` |
+| K11 | A line uses the commodity of its account; an account in use cannot change commodity | triggers | `line_commodity_mismatch`, `account_commodity_locked` | store/accounts.rs: `a_line_must_use_the_commodity_of_its_account`, `the_commodity_of_an_account_in_use_cannot_change` |
+| K12 | An archived account takes no new lines (an unchanged carried line may stay) | trigger with the carry flag | `account_archived` | store/accounts.rs: `an_archived_account_takes_no_new_lines`, `an_old_entry_on_an_archived_account_can_still_be_corrected` |
+| K13 | The account tree has no cycle | projector | `account_parent_cycle` | store/accounts.rs (three cases) |
+| K14 | A date is a real civil Gregorian `YYYY-MM-DD` | `CHECK` | `date_invalid` | ops/entries.rs |
+| K15 | A given rate and a given base must agree | Rust (database cannot see rates) | `rate_base_conflict` | ops/entries.rs |
+| K16 | The projection can always be rebuilt from revisions and compared | `rebuild_projection`, `verify_projection` | (report) | store/rebuild.rs: `a_rebuild_reproduces_the_incremental_projection_exactly`; store/verify.rs |
+
+### Decided, not yet sealed (to build in core-rebuild-4)
+| # | Invariant | Plan | Code (new) |
+|---|---|---|---|
+| K17 | Nothing is hard-deleted; delete is a `deleted` status that drops the lines from the projection | tombstone revision, trigger keeps lines of a deleted entry out of balance sums | to be named in the story |
+| K18 | The Rounding account is opened and locked by the system; a locked account cannot be edited or archived by a user | `locked` and `system_key` as account data | `account_locked` |
+| K19 | The base currency is fixed per book once the first entry exists | settings check | `base_currency_locked` |
+
+### Found while writing this table
+- **Commodities cannot be archived.** ADR-0012 says "archived commodities and accounts take no new lines", but the schema has no archive on commodities and no code for it. Decision needed: add it (a row K20) or correct ADR-0012. Not in v1 scope unless the owner wants it.
+- **`entry_starts_as_draft` reuses `entry_unbalanced`.** An insert of a non-draft entry is refused with a code that names a different problem. A code of its own would keep messages honest.
+- **K5 and K6 test names are not listed above** because their tests are inline assertions in a larger test; give them their own names when the story touches them.
+
+## Alternatives Considered
+### Prose list in one ADR
+- **Pros**: easy to write
+- **Cons**: cannot be checked; drifts
+- **Why not**: the owner chose a table, and a table row maps to a code and a test.
+
+### Generate the table from code
+- **Pros**: never drifts
+- **Cons**: the reasons and the "decided, not sealed" rows are not in code
+- **Why not**: keep this hand-written for now; a check that every code in `RuleCode` appears in a row is cheap and can go into `npm run verify`.
+
+## Consequences
+### Positive
+- One place answers "what can never happen, and what stops it".
+- Gaps are visible (K17 to K19, commodity archive).
+### Negative
+- A row has to be edited when a test is renamed.
+### Risks
+- The table is hand-kept. Mitigation: add the `RuleCode` coverage check to `verify` (story to add under release-and-quality or in core-rebuild-4).

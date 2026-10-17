@@ -29,6 +29,7 @@ Short records of decisions that shape the code. Format: Nygard (context, decisio
 | [0018](0018-quality-gates-and-release-security.md) | Quality gates, test layers and release security | accepted | 2026-10-13 |
 | [0019](0019-licenses-contribution-privacy.md) | Licenses, contributions and privacy defaults | accepted | 2026-10-13 |
 | [0020](0020-coverage-floor-95-on-money-rules-crypto.md) | Coverage floor of 95 percent on money, rules and crypto (supersedes the floor in 0018) | accepted | 2026-10-14 |
+| [0021](0021-sealed-ledger-kernel.md) | Sealed ledger kernel: the invariants, their codes and tests | proposed | 2026-10-17 |
 
 
 Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/backend/architecture/overview.md) (technical design), [PIN gate](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/pin-gate.md) (full PIN plan).
