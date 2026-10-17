@@ -2,4 +2,4 @@
 - [Rebuild status](rebuild-status.md) — current sprint state and the first thing to do next session
 - [Workflow notes](workflow-notes.md) — tools, commands and gotchas (ledger, plan-canvas, Claude Docs, cargo)
 - [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, explain terms simply; answer in Turkish
-- [Core-rebuild-4 decisions](core-rebuild-4-decisions.md) — owner decisions 2026-10-16, two talks pending before building
+- [Core-rebuild-4 decisions](core-rebuild-4-decisions.md) — owner decisions 2026-10-16/17, base currency closed, sealed kernel talk pending before building

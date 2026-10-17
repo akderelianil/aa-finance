@@ -51,3 +51,4 @@ Found while building the store and in the independent Rust and silent-failure re
 - A line uses the commodity of its account, and an account in use cannot change commodity; an account cannot become its own ancestor.
 - The first migration was edited during this story because no release exists yet; the rule against editing an applied migration starts with the first release.
 - Decision of 2026-10-16: the period lock date is not part of v1. The sentence about a period lock above stays as the later design; the settings document may gain an optional `lock_date` with one check point in `Ledger` when several members and reconciliation exist (backlog).
+- Correction of 2026-10-17: only accounts have an archived state. The phrase "archived commodities" above is not implemented and not planned for v1: a commodity is never deleted, and to stop using one the user archives its accounts (ADR-0021).

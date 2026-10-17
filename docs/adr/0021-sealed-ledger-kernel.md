@@ -31,18 +31,26 @@ The kernel is the set of rows below. A row is only "sealed" when the database (o
 | K14 | A date is a real civil Gregorian `YYYY-MM-DD` | `CHECK` | `date_invalid` | ops/entries.rs |
 | K15 | A given rate and a given base must agree | Rust (database cannot see rates) | `rate_base_conflict` | ops/entries.rs |
 | K16 | The projection can always be rebuilt from revisions and compared | `rebuild_projection`, `verify_projection` | (report) | store/rebuild.rs: `a_rebuild_reproduces_the_incremental_projection_exactly`; store/verify.rs |
+| K17 | An entry row starts as a draft and becomes posted only through the balance check | trigger on insert | `entry_must_start_as_draft` | store/entries.rs: `an_entry_cannot_be_inserted_as_posted_without_its_lines` |
+| K18 | A commodity code is used once | `UNIQUE` | `commodity_code_taken` | store/validation.rs: `a_duplicate_commodity_code_scale_range_and_amount_bound_have_codes` |
 
 ### Decided, not yet sealed (to build in core-rebuild-4)
 | # | Invariant | Plan | Code (new) |
 |---|---|---|---|
-| K17 | Nothing is hard-deleted; delete is a `deleted` status that drops the lines from the projection | tombstone revision, trigger keeps lines of a deleted entry out of balance sums | to be named in the story |
-| K18 | The Rounding account is opened and locked by the system; a locked account cannot be edited or archived by a user | `locked` and `system_key` as account data | `account_locked` |
-| K19 | The base currency is fixed per book once the first entry exists | settings check | `base_currency_locked` |
+| K19 | Nothing is hard-deleted; delete is a `deleted` status that drops the lines from the projection | tombstone revision, trigger keeps lines of a deleted entry out of balance sums | to be named in the story |
+| K20 | The Rounding account is opened and locked by the system; a locked account cannot be edited or archived by a user | `locked` and `system_key` as account data | `account_locked` |
+| K21 | The base currency is fixed per book once the first entry exists | settings check | `base_currency_locked` |
+
+### Refusals of input, not invariants
+These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, and `nothing_to_undo`. The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
 
 ### Found while writing this table
-- **Commodities cannot be archived.** ADR-0012 says "archived commodities and accounts take no new lines", but the schema has no archive on commodities and no code for it. Decision needed: add it (a row K20) or correct ADR-0012. Not in v1 scope unless the owner wants it.
-- **`entry_starts_as_draft` reuses `entry_unbalanced`.** An insert of a non-draft entry is refused with a code that names a different problem. A code of its own would keep messages honest.
+- **Commodities have no archived state.** ADR-0012 says "archived commodities and accounts take no new lines". Only accounts archive. A commodity is never deleted, and to stop using one the user archives its accounts; the UI can hide a commodity that has no active account. Decision (2026-10-17): correct ADR-0012 (done there); no commodity archive in v1.
+- **The draft-start trigger used the wrong code.** It raised `entry_unbalanced` for a non-draft insert. Fixed on 2026-10-17: it raises `entry_must_start_as_draft` (K17).
 - **K5 and K6 test names are not listed above** because their tests are inline assertions in a larger test; give them their own names when the story touches them.
+
+### The check
+`npm run kernel:check` (part of `npm run verify`) fails when a rule code of `RuleCode::as_str` is missing from this file, or when a test named after a file here (`file.rs: \`name\``) no longer exists in the Rust sources. Rename a test and the commit stops until this table is updated.
 
 ## Alternatives Considered
 ### Prose list in one ADR
@@ -58,8 +66,8 @@ The kernel is the set of rows below. A row is only "sealed" when the database (o
 ## Consequences
 ### Positive
 - One place answers "what can never happen, and what stops it".
-- Gaps are visible (K17 to K19, commodity archive).
+- Gaps are visible (K19 to K21).
 ### Negative
 - A row has to be edited when a test is renamed.
 ### Risks
-- The table is hand-kept. Mitigation: add the `RuleCode` coverage check to `verify` (story to add under release-and-quality or in core-rebuild-4).
+- The table is hand-kept. Mitigation: `npm run kernel:check` fails on a missing code or a vanished test. It does not prove that a row's text is true; reviewers read the table when they touch a rule.
