@@ -96,6 +96,10 @@ impl RuleCode {
                 "Geri alınacak önceki bir sürüm yok.",
                 "There is no earlier version to go back to.",
             ),
+            RuleCode::EntryMustStartAsDraft => (
+                "Bir fiş önce taslak olarak başlamalı, sonra kaydedilebilir.",
+                "An entry must start as a draft before it can be posted.",
+            ),
         };
         match lang {
             Lang::Tr => tr,

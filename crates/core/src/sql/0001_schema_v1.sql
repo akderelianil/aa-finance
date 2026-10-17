@@ -164,7 +164,7 @@ END;
 
 CREATE TRIGGER entry_starts_as_draft BEFORE INSERT ON entry
 WHEN NEW.status <> 'draft'
-BEGIN SELECT RAISE(ABORT, 'entry_unbalanced'); END;
+BEGIN SELECT RAISE(ABORT, 'entry_must_start_as_draft'); END;
 
 -- An archived account takes no new use; a line carried over unchanged from the previous head of its entry is allowed.
 CREATE TRIGGER line_account_not_archived BEFORE INSERT ON line

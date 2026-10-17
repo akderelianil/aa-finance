@@ -330,6 +330,6 @@ fn an_entry_cannot_be_inserted_as_posted_without_its_lines() {
     // Assert
     assert!(matches!(
         result,
-        Err(Error::Rule(RuleCode::EntryUnbalanced))
+        Err(Error::Rule(RuleCode::EntryMustStartAsDraft))
     ));
 }

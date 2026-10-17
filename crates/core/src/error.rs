@@ -38,6 +38,7 @@ pub enum RuleCode {
     RateBaseConflict,
     LineEmpty,
     NothingToUndo,
+    EntryMustStartAsDraft,
 }
 
 impl RuleCode {
@@ -67,10 +68,11 @@ impl RuleCode {
             RuleCode::RateBaseConflict => "rate_base_conflict",
             RuleCode::LineEmpty => "line_empty",
             RuleCode::NothingToUndo => "nothing_to_undo",
+            RuleCode::EntryMustStartAsDraft => "entry_must_start_as_draft",
         }
     }
 
-    pub(crate) const TRIGGER_CODES: [RuleCode; 10] = [
+    pub(crate) const TRIGGER_CODES: [RuleCode; 11] = [
         RuleCode::ProjectionClosed,
         RuleCode::RevisionImmutable,
         RuleCode::RevisionParentMismatch,
@@ -81,6 +83,7 @@ impl RuleCode {
         RuleCode::LineCommodityMismatch,
         RuleCode::AccountCommodityLocked,
         RuleCode::RevisionKindMismatch,
+        RuleCode::EntryMustStartAsDraft,
     ];
 }
 
