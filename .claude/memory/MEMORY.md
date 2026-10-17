@@ -2,4 +2,5 @@
 - [Rebuild status](rebuild-status.md) — current sprint state and the first thing to do next session
 - [Workflow notes](workflow-notes.md) — tools, commands and gotchas (ledger, plan-canvas, Claude Docs, cargo)
 - [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, explain terms simply; answer in Turkish
+- [Verify before claiming](verify-before-claiming.md) — search by behavior, check git and project rules before saying something is missing; my slips of 2026-10-17
 - [Core-rebuild-4 decisions](core-rebuild-4-decisions.md) — owner decisions 2026-10-16/17; base currency, ADR-0021 kernel and the settings document (ADR-0022) done
