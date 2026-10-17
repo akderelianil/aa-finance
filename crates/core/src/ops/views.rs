@@ -13,16 +13,23 @@ pub struct HistoryItem {
     pub created_at_ms: i64,
     /// Set when this revision only brought an earlier version back (undo or redo).
     pub restore: Option<Restore>,
+    /// The revision the document shows now.
+    pub head: bool,
+    /// A branch that nothing continues and that is not the head: a version written elsewhere that
+    /// lost the race and is kept for the user to see (ADR-0012).
+    pub conflict: bool,
 }
 
-impl From<RevisionRecord> for HistoryItem {
-    fn from(record: RevisionRecord) -> HistoryItem {
+impl HistoryItem {
+    pub(crate) fn from_record(record: RevisionRecord, head: bool, conflict: bool) -> HistoryItem {
         HistoryItem {
             revision_id: record.id,
             parent_id: record.parent_id,
             author_id: record.author_id,
             created_at_ms: record.created_at_ms,
             restore: record.restore,
+            head,
+            conflict,
         }
     }
 }

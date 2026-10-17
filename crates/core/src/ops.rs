@@ -328,7 +328,25 @@ impl Ledger {
         if revisions.is_empty() {
             return Err(missing("document", doc));
         }
-        Ok(revisions.into_iter().map(HistoryItem::from).collect())
+        let head = self.store.current_revision(doc)?;
+        let parents: std::collections::HashSet<RevisionId> = revisions
+            .iter()
+            .filter_map(|record| record.parent_id)
+            .collect();
+        Ok(revisions
+            .into_iter()
+            .map(|record| {
+                let is_head = Some(record.id) == head;
+                let conflict = !is_head && !parents.contains(&record.id);
+                HistoryItem::from_record(record, is_head, conflict)
+            })
+            .collect())
+    }
+
+    /// Test support: the store under the ledger, to write what only another device could write.
+    #[cfg(feature = "test-support")]
+    pub fn store_mut(&mut self) -> &mut Store {
+        &mut self.store
     }
 
     /// The account the system opened under `key`, such as `rounding`.

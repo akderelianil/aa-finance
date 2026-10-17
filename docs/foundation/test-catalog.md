@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 243 tests.
+Total: 245 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -76,6 +76,12 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - Undoing a delete brings the entry back
 - A deleted entry cannot be edited or deleted again
 - Deleting something that is not an entry is a missing reference
+
+### ops/history.rs (2)
+The history marks the head and keeps a lost branch visible as a conflict (ADR-0012).
+
+- The last revision of a straight history is the head and nothing conflicts
+- A branch written elsewhere is kept as a conflict and the head stays
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).

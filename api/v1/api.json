@@ -844,6 +844,14 @@
               "type": "null"
             }
           ]
+        },
+        "head": {
+          "type": "boolean",
+          "description": "The revision the document shows now."
+        },
+        "conflict": {
+          "type": "boolean",
+          "description": "A branch nothing continues that is not the head: a version written elsewhere that lost the race. Kept for the user to see."
         }
       },
       "required": [
@@ -851,7 +859,9 @@
         "parent_id",
         "author_id",
         "created_at_ms",
-        "restore"
+        "restore",
+        "head",
+        "conflict"
       ],
       "additionalProperties": false
     },
