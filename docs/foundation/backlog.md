@@ -50,3 +50,11 @@ Goal: keep the suite small, ordered and fast as it grows; remove tests that guar
 | Which tests are useless. | Evidence, not taste: a mutation run (`cargo mutants`) shows tests that catch nothing; coverage shows code no test reaches; a duplicate check finds tests that assert the same rule. A test that guards a money, rule or crypto invariant (ADR-0020) is never removed without a replacement. |
 | Time and resources. | Record the run time per test binary in `npm run verify`; flag the slowest; keep the pre-commit hook fast and move the long runs to CI. |
 | When. | After core-rebuild-4, before the test count passes about 400, as a short story in `release-and-quality`. |
+
+## Base currency and period lock (owner, 2026-10-17)
+| Question | Decision |
+|---|---|
+| Base currency when a family moves country. | Fixed per book. It cannot change once the first entry exists (stable error code). No base periods, no `base` on each entry. |
+| Moving or re-basing. | Later feature "carry over as a new book": the old book becomes a read-only archive; the new book copies the account tree, commodities, price history, members, roles, scenario settings and open debts; one opening entry per account is written in the account's own currency and balanced by an Opening Equity account at a user-given rate; investment lots are carried with their cost and acquisition date so the gain/loss report keeps working; the new book stores `previous_book`. Not in v1. |
+| "See it in another unit" (USD, EUR, gold). | A display choice, always virtual. Flows (spending, income, returns) are valued at the rate of each entry's date, balances at the latest price. Needs rate lookup by date: see core-rebuild-6. |
+| Period lock date. | Dropped from v1; an idea for later with several members and reconciliation (optional `lock_date` in the settings, one check point in `Ledger`; ADR-0012). |
