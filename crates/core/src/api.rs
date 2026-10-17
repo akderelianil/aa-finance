@@ -102,7 +102,9 @@ struct SystemKey {
 }
 
 fn parse<T: DeserializeOwned>(input: Value) -> Result<T> {
-    serde_json::from_value(input).map_err(|err| Error::InvalidInput(err.to_string()))
+    // Only the category: serde's text can quote what the caller sent, and this error reaches logs.
+    serde_json::from_value(input)
+        .map_err(|err| Error::InvalidInput(format!("{:?}", err.classify())))
 }
 
 fn output<T: serde::Serialize>(value: T) -> Result<Value> {

@@ -328,16 +328,27 @@ impl Ledger {
         if revisions.is_empty() {
             return Err(missing("document", doc));
         }
-        let head = self.store.current_revision(doc)?;
-        let parents: std::collections::HashSet<RevisionId> = revisions
+        let head = self
+            .store
+            .current_revision(doc)?
+            .ok_or(Error::Internal("a document with revisions has no head"))?;
+        let parent_of: std::collections::HashMap<RevisionId, Option<RevisionId>> = revisions
             .iter()
-            .filter_map(|record| record.parent_id)
+            .map(|record| (record.id, record.parent_id))
             .collect();
+        // The way from the head back to the first revision is the shown history; any other
+        // revision belongs to a branch that lost.
+        let mut shown = std::collections::HashSet::new();
+        let mut cursor = Some(head);
+        while let Some(id) = cursor {
+            shown.insert(id);
+            cursor = parent_of.get(&id).copied().flatten();
+        }
         Ok(revisions
             .into_iter()
             .map(|record| {
-                let is_head = Some(record.id) == head;
-                let conflict = !is_head && !parents.contains(&record.id);
+                let is_head = record.id == head;
+                let conflict = !shown.contains(&record.id);
                 HistoryItem::from_record(record, is_head, conflict)
             })
             .collect())

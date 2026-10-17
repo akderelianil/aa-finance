@@ -8,7 +8,7 @@ metadata:
   modified: 2026-10-17T12:32:25.892Z
 ---
 
-State on 2026-10-17 (later): repeated undo and redo are done (K24, `restored_from`/`restore_kind` on the revision, `nothing_to_redo`); counts 77 unit, 61 operation, 95 store. API contract done (ADR-0023, `api/v1/api.json` is the authority, `Ledger::call`, docs/api/v1.md generated, 9 api tests). Next: `history()` marking head and conflict branches, then reviewer agents and close core-rebuild-4.
+State on 2026-10-17 (later): repeated undo and redo are done (K24, `restored_from`/`restore_kind` on the revision, `nothing_to_redo`); counts 77 unit, 61 operation, 95 store. API contract done (ADR-0023, `api/v1/api.json` is the authority, `Ledger::call`, docs/api/v1.md generated, 9 api tests). History head/conflict marks done and reviewed (rust-reviewer, silent-failure-hunter). Next: test-support guard for shipped crates, then decide with the owner whether core-rebuild-4 closes (spec-to-test mapping is core-rebuild-9).
 
 State on 2026-10-17 (end of day): core-rebuild-4 slices done and pushed after the settings document: rate on line (0ac21b6), locked system accounts with the Rounding account and rounding line (c0fe272, K20, K23), input rules (1d4a083), delete as a tombstone (2e38ef4, K19). All K1 to K23 of ADR-0021 are sealed. Counts: 77 unit, 54 operation, 94 store tests. Next, in order: repeated undo (walk back with a `restored_from` link, redo as a separate explicit operation; today `undo` is a one-step toggle), then the API reference generated from an operation registry (name, version, input/output schema, error codes), then `history()` marking head and conflict branches. Start with `npm run story -- status` and the Progress (2026-10-17) section of `.stories/core-rebuild-4.md`.
 

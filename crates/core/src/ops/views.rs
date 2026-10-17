@@ -15,8 +15,8 @@ pub struct HistoryItem {
     pub restore: Option<Restore>,
     /// The revision the document shows now.
     pub head: bool,
-    /// A branch that nothing continues and that is not the head: a version written elsewhere that
-    /// lost the race and is kept for the user to see (ADR-0012).
+    /// On a branch that lost the race (written elsewhere) and is kept for the user to see
+    /// (ADR-0012): not on the way from the head back to the first revision.
     pub conflict: bool,
 }
 

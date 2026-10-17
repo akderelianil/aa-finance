@@ -36,9 +36,24 @@ fn a_session_through_every_operation_fits_the_contract() {
     run(
         &mut l,
         "set_account_archived",
-        json!({"account": id(&food, "doc_id"), "archived": false}),
+        json!({"account": food["doc_id"], "archived": true}),
     )
     .unwrap();
+    let archived = run(&mut l, "account", json!({"account": food["doc_id"]})).unwrap();
+    run(
+        &mut l,
+        "set_account_archived",
+        json!({"account": food["doc_id"], "archived": false}),
+    )
+    .unwrap();
+    let renamed = run(&mut l, "account", json!({"account": food["doc_id"]})).unwrap();
+    let dollars = run(
+        &mut l,
+        "create_account",
+        json!({"name": "Dollars", "parent": null, "kind": "asset", "commodity": usd["doc_id"]}),
+    )
+    .unwrap();
+    let dollars_view = run(&mut l, "account", json!({"account": dollars["doc_id"]})).unwrap();
     let entry_input = |amount: &str, minus: &str| {
         json!({"date": "2026-10-17", "memo": null, "no": null, "lines": [
             {"account": cash["doc_id"], "amount": minus},
@@ -59,16 +74,39 @@ fn a_session_through_every_operation_fits_the_contract() {
     run(&mut l, "account", json!({"account": cash["doc_id"]})).unwrap();
     let rounding = run(&mut l, "system_account", json!({"key": "rounding"})).unwrap();
     let history = run(&mut l, "history", json!({"doc": entry})).unwrap();
+    let rounding_view = run(&mut l, "account", json!({"account": rounding["doc_id"]})).unwrap();
     run(&mut l, "delete_entry", json!({"entry": entry})).unwrap();
-    run(
+    let deleted = run(&mut l, "entry", json!({"entry": entry})).unwrap();
+    let locked_base = run(
         &mut l,
         "set_base_currency",
         json!({"commodity": usd["doc_id"]}),
-    )
-    .unwrap_err();
+    );
+    let locked_rename = run(
+        &mut l,
+        "rename_account",
+        json!({"account": rounding["doc_id"], "name": "x"}),
+    );
+    let unknown_entry = run(
+        &mut l,
+        "entry",
+        json!({"entry": "00000000-0000-7000-8000-000000000000"}),
+    );
+    let no_key = run(&mut l, "system_account", json!({"key": "nothing"}));
     let version = run(&mut l, "api_version", json!({})).unwrap();
     // Assert
     assert_eq!(settings["base_code"], "TRY");
+    assert_eq!(archived["archived"], true);
+    assert_eq!(renamed["name"], "Groceries");
+    assert_eq!(renamed["archived"], false);
+    assert_eq!(dollars_view["commodity"], usd["doc_id"]);
+    assert_eq!(rounding_view["name"], "Rounding");
+    assert_eq!(rounding_view["locked"], true);
+    assert_eq!(deleted["deleted"], true);
+    assert_eq!(locked_base.unwrap_err(), "base_currency_locked");
+    assert_eq!(locked_rename.unwrap_err(), "account_locked");
+    assert_eq!(unknown_entry.unwrap_err(), "missing_reference");
+    assert_eq!(no_key.unwrap_err(), "missing_reference");
     assert_eq!(shown["lines"][1]["amount"], "15.00");
     assert!(rounding["doc_id"].is_string());
     assert_eq!(history.as_array().unwrap().len(), 4);

@@ -62,3 +62,42 @@ fn a_branch_written_elsewhere_is_kept_as_a_conflict_and_the_head_stays() {
     assert!(lost.conflict && !lost.head);
     assert!(kept.head && !kept.conflict);
 }
+
+#[test]
+fn every_revision_of_a_lost_branch_is_a_conflict_not_only_its_tip() {
+    // Arrange
+    let mut b = book();
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![line(b.food, "5.00"), line(b.cash, "-5.00")]))
+        .unwrap();
+    let first = b.ledger.history(posted.doc_id).unwrap()[0].revision_id;
+    let record = b.ledger.store_mut().revision(first).unwrap().unwrap();
+    let revision = |parent, at| NewRevision {
+        doc_kind: record.doc_kind,
+        doc_id: record.doc_id,
+        parent_id: parent,
+        author_id: new_id(),
+        created_at_ms: at,
+        body: record.body.clone(),
+        restore: None,
+    };
+    let (lost_a, lost_b) = (aa_core::RevisionId::new(), aa_core::RevisionId::new());
+    let imported = |id, revision| ImportedRevision {
+        id,
+        server_seq: None,
+        revision,
+    };
+    b.ledger
+        .store_mut()
+        .import_revisions(vec![
+            imported(lost_a, revision(None, 9_000)),
+            imported(lost_b, revision(Some(lost_a), 9_001)),
+        ])
+        .unwrap();
+    // Act
+    let history = b.ledger.history(posted.doc_id).unwrap();
+    // Assert
+    let flags: Vec<(bool, bool)> = history.iter().map(|i| (i.head, i.conflict)).collect();
+    assert_eq!(flags, [(true, false), (false, true), (false, true)]);
+}

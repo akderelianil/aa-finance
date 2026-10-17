@@ -851,7 +851,7 @@
         },
         "conflict": {
           "type": "boolean",
-          "description": "A branch nothing continues that is not the head: a version written elsewhere that lost the race. Kept for the user to see."
+          "description": "On a branch that lost the race (written elsewhere): not on the way from the head back to the first revision. Kept for the user to see."
         }
       },
       "required": [
