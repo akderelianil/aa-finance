@@ -1,7 +1,7 @@
 # ADR-0021: Sealed ledger kernel, the invariants that never bend
 
 **Date**: 2026-10-17
-**Status**: proposed (the table is agreed in form; the owner confirms the list)
+**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17)
 **Deciders**: product owner (core-rebuild-4 talk)
 
 **Relation**: Collects rules that [ADR-0004](0004-balance-by-base-amount-trigger.md), [ADR-0010](0010-amounts-commodities-balancing.md) and [ADR-0012](0012-revisions-as-truth.md) state in prose. It adds no new storage; it makes each rule one row with its enforcement and its test.
