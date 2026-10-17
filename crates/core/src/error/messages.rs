@@ -113,6 +113,22 @@ impl RuleCode {
                 "Bu hesabı sistem açtı; adı değiştirilemez, arşivlenemez ve geri alınamaz.",
                 "The system opened this account; it cannot be renamed, archived or undone.",
             ),
+            RuleCode::NameEmpty => (
+                "Ad ya da kod boş olamaz.",
+                "A name or code cannot be empty.",
+            ),
+            RuleCode::AccountParentArchived => (
+                "Arşivlenmiş bir hesabın altına yeni hesap açılamaz.",
+                "A new account cannot be opened under an archived account.",
+            ),
+            RuleCode::AccountParentKindMismatch => (
+                "Bir hesap, üst hesabıyla aynı türde olmalı.",
+                "An account must be of the same kind as its parent.",
+            ),
+            RuleCode::AccountNameTaken => (
+                "Aynı üst hesabın altında bu adla başka bir hesap var.",
+                "Another account with this name already exists under the same parent.",
+            ),
             RuleCode::SystemKeyTaken => (
                 "Bu sistem anahtarı başka bir hesapta zaten kullanılıyor.",
                 "This system key is already used by another account.",

@@ -269,6 +269,16 @@ impl Store {
             .map_err(Error::from)
     }
 
+    /// The accounts directly under `parent` (the roots when it is none) as `(id, name)`.
+    pub fn child_accounts(&self, parent: Option<DocId>) -> Result<Vec<(DocId, String)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT uuid, name FROM account WHERE parent_id IS (SELECT id FROM account WHERE uuid = ?1)",
+        )?;
+        let rows = stmt.query_map(params![parent], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(Error::from)
+    }
+
     /// The conflict branches of a document: leaves that are not its head.
     pub fn conflicts(&self, doc_id: DocId) -> Result<Vec<RevisionId>> {
         projection::conflicts(&self.conn, doc_id)

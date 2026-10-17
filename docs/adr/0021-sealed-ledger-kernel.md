@@ -46,7 +46,7 @@ K21, K22 and K23 keep the numbers they had when they were planned, so references
 | K19 | Nothing is hard-deleted; delete is a `deleted` status that drops the lines from the projection | tombstone revision, trigger keeps lines of a deleted entry out of balance sums | to be named in the story |
 
 ### Refusals of input, not invariants
-These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo` and `book_already_open` (a book is opened once). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
+These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo`, `book_already_open` (a book is opened once), `name_empty`, `account_parent_archived`, `account_parent_kind_mismatch` and `account_name_taken` (case ignored, per parent). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
 
 ### Found while writing this table
 - **Commodities have no archived state.** ADR-0012 says "archived commodities and accounts take no new lines". Only accounts archive. A commodity is never deleted, and to stop using one the user archives its accounts; the UI can hide a commodity that has no active account. Decision (2026-10-17): correct ADR-0012 (done there); no commodity archive in v1.

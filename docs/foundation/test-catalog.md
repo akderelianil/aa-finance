@@ -3,11 +3,11 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 212 tests.
+Total: 218 tests.
 
 ## core: integration tests (crates/core/tests)
 
-### ops/accounts.rs (11)
+### ops/accounts.rs (17)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -21,6 +21,12 @@ Commodities and accounts through the operations: the author and the time are sta
 - Opening a book opens a locked rounding account
 - A locked account is refused a rename an archive and an undo
 - An ordinary account has no system key and is not locked
+- An account name and a commodity code cannot be empty
+- A blank base currency code cannot open a book
+- An account cannot sit under an archived parent
+- An account must have the kind of its parent
+- Two accounts under one parent cannot share a name
+- Renaming an account to its own name is allowed
 
 ### ops/entries.rs (20)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).

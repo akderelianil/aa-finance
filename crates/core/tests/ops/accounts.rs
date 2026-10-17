@@ -144,3 +144,94 @@ fn an_ordinary_account_has_no_system_key_and_is_not_locked() {
     assert!(!view.locked);
     assert_eq!(view.system_key, None);
 }
+
+fn rule(result: Result<aa_core::ops::DocRef, Error>) -> Option<RuleCode> {
+    match result {
+        Err(Error::Rule(code)) => Some(code),
+        _ => None,
+    }
+}
+
+#[test]
+fn an_account_name_and_a_commodity_code_cannot_be_empty() {
+    // Arrange
+    let mut b = book();
+    // Act
+    let blank_account = b.ledger.create_account(account("  ", b.try_id));
+    let blank_rename = b.ledger.rename_account(b.cash, "");
+    let blank_code = b.ledger.create_commodity(" ", 2);
+    // Assert
+    assert_eq!(rule(blank_account), Some(RuleCode::NameEmpty));
+    assert_eq!(rule(blank_rename), Some(RuleCode::NameEmpty));
+    assert_eq!(rule(blank_code), Some(RuleCode::NameEmpty));
+}
+
+#[test]
+fn a_blank_base_currency_code_cannot_open_a_book() {
+    // Arrange
+    let store = aa_core::Store::open_in_memory().unwrap();
+    let mut ledger = Ledger::new(store, new_id(), Box::new(TestClock(Default::default())));
+    // Act
+    let result = ledger.open_book("", 2);
+    // Assert
+    assert_eq!(rule(result), Some(RuleCode::NameEmpty));
+}
+
+#[test]
+fn an_account_cannot_sit_under_an_archived_parent() {
+    // Arrange
+    let mut b = book();
+    b.ledger.set_account_archived(b.cash, true).unwrap();
+    let mut child = account("Pocket", b.try_id);
+    child.parent = Some(b.cash);
+    // Act
+    let result = b.ledger.create_account(child);
+    // Assert
+    assert_eq!(rule(result), Some(RuleCode::AccountParentArchived));
+}
+
+#[test]
+fn an_account_must_have_the_kind_of_its_parent() {
+    // Arrange
+    let mut b = book();
+    let mut child = account("Salary", b.try_id);
+    child.kind = aa_core::body::AccountKind::Income;
+    child.parent = Some(b.cash);
+    // Act
+    let result = b.ledger.create_account(child);
+    // Assert
+    assert_eq!(rule(result), Some(RuleCode::AccountParentKindMismatch));
+}
+
+#[test]
+fn two_accounts_under_one_parent_cannot_share_a_name() {
+    // Arrange
+    let mut b = book();
+    let mut first = account("Pocket", b.try_id);
+    first.parent = Some(b.cash);
+    b.ledger.create_account(first.clone()).unwrap();
+    let mut other_case = first.clone();
+    other_case.name = " pocket ".to_string();
+    // Act
+    let same = b.ledger.create_account(first);
+    let renamed = b.ledger.rename_account(b.food, "Cash");
+    let under_other_parent = b.ledger.create_account(account("Pocket", b.try_id));
+    // Assert
+    assert_eq!(rule(same), Some(RuleCode::AccountNameTaken));
+    assert_eq!(
+        rule(b.ledger.create_account(other_case)),
+        Some(RuleCode::AccountNameTaken)
+    );
+    assert_eq!(rule(renamed), Some(RuleCode::AccountNameTaken));
+    assert!(under_other_parent.is_ok());
+}
+
+#[test]
+fn renaming_an_account_to_its_own_name_is_allowed() {
+    // Arrange
+    let mut b = book();
+    // Act
+    let result = b.ledger.rename_account(b.cash, "Cash");
+    // Assert
+    assert!(result.is_ok());
+}

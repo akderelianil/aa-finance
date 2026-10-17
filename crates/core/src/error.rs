@@ -44,6 +44,10 @@ pub enum RuleCode {
     BookAlreadyOpen,
     AccountLocked,
     SystemKeyTaken,
+    NameEmpty,
+    AccountParentArchived,
+    AccountParentKindMismatch,
+    AccountNameTaken,
 }
 
 impl RuleCode {
@@ -79,6 +83,10 @@ impl RuleCode {
             RuleCode::BookAlreadyOpen => "book_already_open",
             RuleCode::AccountLocked => "account_locked",
             RuleCode::SystemKeyTaken => "system_key_taken",
+            RuleCode::NameEmpty => "name_empty",
+            RuleCode::AccountParentArchived => "account_parent_archived",
+            RuleCode::AccountParentKindMismatch => "account_parent_kind_mismatch",
+            RuleCode::AccountNameTaken => "account_name_taken",
         }
     }
 

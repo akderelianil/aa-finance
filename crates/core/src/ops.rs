@@ -101,7 +101,7 @@ impl Ledger {
         crate::amount::check_scale(base_scale)?;
         let base = DocId::new();
         let commodity = Body::Commodity(CommodityBody {
-            code: base_code.trim().to_string(),
+            code: non_empty(base_code)?,
             scale: i64::from(base_scale),
         });
         let settings = Body::Settings(SettingsBody {
@@ -158,7 +158,7 @@ impl Ledger {
     pub fn create_commodity(&mut self, code: &str, scale: u8) -> Result<DocRef> {
         crate::amount::check_scale(scale)?;
         let body = Body::Commodity(CommodityBody {
-            code: code.trim().to_string(),
+            code: non_empty(code)?,
             scale: i64::from(scale),
         });
         self.write(DocId::new(), None, body)
@@ -166,11 +166,19 @@ impl Ledger {
 
     pub fn create_account(&mut self, input: AccountInput) -> Result<DocRef> {
         self.commodity(input.commodity)?;
+        let name = non_empty(&input.name)?;
         if let Some(parent) = input.parent {
-            self.account_body(parent)?;
+            let parent = self.account_body(parent)?;
+            if parent.archived {
+                return Err(Error::Rule(RuleCode::AccountParentArchived));
+            }
+            if parent.kind != input.kind {
+                return Err(Error::Rule(RuleCode::AccountParentKindMismatch));
+            }
         }
+        self.check_name_free(input.parent, &name, None)?;
         let body = Body::Account(AccountBody {
-            name: input.name.trim().to_string(),
+            name,
             parent: input.parent,
             kind: input.kind,
             commodity: input.commodity,
@@ -182,7 +190,24 @@ impl Ledger {
     }
 
     pub fn rename_account(&mut self, account: DocId, name: &str) -> Result<DocRef> {
-        self.change_account(account, |body| body.name = name.trim().to_string())
+        let name = non_empty(name)?;
+        let parent = self.account_body(account)?.parent;
+        self.check_name_free(parent, &name, Some(account))?;
+        self.change_account(account, |body| body.name = name)
+    }
+
+    /// Refuses a name that another account under the same parent already has (case ignored).
+    fn check_name_free(&self, parent: Option<DocId>, name: &str, own: Option<DocId>) -> Result<()> {
+        let wanted = name.to_lowercase();
+        let taken = self
+            .store
+            .child_accounts(parent)?
+            .into_iter()
+            .any(|(id, other)| Some(id) != own && other.to_lowercase() == wanted);
+        if taken {
+            return Err(Error::Rule(RuleCode::AccountNameTaken));
+        }
+        Ok(())
     }
 
     pub fn set_account_archived(&mut self, account: DocId, archived: bool) -> Result<DocRef> {
@@ -437,6 +462,15 @@ impl Ledger {
             revision_id,
         })
     }
+}
+
+/// The text without surrounding blanks; a name or code that is nothing but blanks is refused.
+fn non_empty(text: &str) -> Result<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Err(Error::Rule(RuleCode::NameEmpty));
+    }
+    Ok(trimmed.to_string())
 }
 
 fn missing(kind: &'static str, id: DocId) -> Error {
