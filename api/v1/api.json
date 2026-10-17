@@ -1,0 +1,865 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "aa-finance named-operation API",
+  "description": "The authority for the boundary between the core and the UI, the command line and plugins (ADR-0023). Change this file first, then the code. Additive changes keep the version; removing or renaming a field or changing a type is breaking.",
+  "api_version": "1",
+  "global_errors": [
+    "invalid_input",
+    "unknown_operation",
+    "database",
+    "internal",
+    "invalid_body",
+    "foreign_database",
+    "newer_database"
+  ],
+  "operations": {
+    "open_book": {
+      "summary": "Opens a new book: its base currency and its settings, written together. A book is opened once.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "base_code": {
+            "type": "string"
+          },
+          "base_scale": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18
+          }
+        },
+        "required": [
+          "base_code",
+          "base_scale"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "book_already_open",
+        "name_empty",
+        "commodity_scale_invalid"
+      ]
+    },
+    "settings": {
+      "summary": "Reads the settings of the book.",
+      "input": {
+        "$ref": "#/$defs/Empty"
+      },
+      "output": {
+        "$ref": "#/$defs/SettingsView"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "set_base_currency": {
+      "summary": "Changes the base currency. Refused once any entry exists.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "commodity": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "commodity"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "base_currency_locked",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "create_commodity": {
+      "summary": "Adds a currency or commodity with its scale.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "scale": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 18
+          }
+        },
+        "required": [
+          "code",
+          "scale"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "commodity_code_taken",
+        "commodity_scale_invalid",
+        "name_empty"
+      ]
+    },
+    "create_account": {
+      "summary": "Adds an account.",
+      "input": {
+        "$ref": "#/$defs/AccountInput"
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "name_empty",
+        "account_name_taken",
+        "account_parent_archived",
+        "account_parent_kind_mismatch",
+        "account_parent_cycle",
+        "missing_reference"
+      ]
+    },
+    "rename_account": {
+      "summary": "Renames an account. Locked accounts are refused.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "$ref": "#/$defs/DocId"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "account",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "account_locked",
+        "name_empty",
+        "account_name_taken",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "set_account_archived": {
+      "summary": "Archives or restores an account. Locked accounts are refused.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "$ref": "#/$defs/DocId"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "account",
+          "archived"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "account_locked",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "post_entry": {
+      "summary": "Posts a balanced entry (at least two lines).",
+      "input": {
+        "$ref": "#/$defs/EntryInput"
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "entry_too_few_lines",
+        "entry_unbalanced",
+        "line_empty",
+        "line_base_sign",
+        "line_commodity_mismatch",
+        "account_archived",
+        "amount_invalid",
+        "amount_too_precise",
+        "amount_out_of_range",
+        "rate_invalid",
+        "rate_missing",
+        "rate_base_conflict",
+        "date_invalid",
+        "missing_reference"
+      ]
+    },
+    "edit_entry": {
+      "summary": "Replaces an entry with a new version. A deleted entry is refused; undo first.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "$ref": "#/$defs/DocId"
+          },
+          "input": {
+            "$ref": "#/$defs/EntryInput"
+          }
+        },
+        "required": [
+          "entry",
+          "input"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "entry_deleted",
+        "entry_too_few_lines",
+        "entry_unbalanced",
+        "line_empty",
+        "line_base_sign",
+        "line_commodity_mismatch",
+        "account_archived",
+        "amount_invalid",
+        "amount_too_precise",
+        "amount_out_of_range",
+        "rate_invalid",
+        "rate_missing",
+        "rate_base_conflict",
+        "date_invalid",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "delete_entry": {
+      "summary": "Deletes an entry as a tombstone revision; undo brings it back.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "entry"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "entry_deleted",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "undo": {
+      "summary": "Goes one version back for a document. Repeats until the first version.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "doc": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "doc"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "nothing_to_undo",
+        "account_locked",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "redo": {
+      "summary": "Brings back what the last undo took away, while nothing was changed after it.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "doc": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "doc"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "nothing_to_redo",
+        "account_locked",
+        "missing_reference",
+        "conflict"
+      ]
+    },
+    "history": {
+      "summary": "Lists every revision of a document in stored order.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "doc": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "doc"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/HistoryItem"
+        }
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "system_account": {
+      "summary": "Finds the account the system opened under a key, such as rounding.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "doc_id"
+        ],
+        "additionalProperties": false
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "account": {
+      "summary": "Reads an account.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "account"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/AccountView"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "entry": {
+      "summary": "Reads an entry.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "entry"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/EntryView"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "api_version": {
+      "summary": "The version of this contract.",
+      "input": {
+        "$ref": "#/$defs/Empty"
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "errors": []
+    }
+  },
+  "$defs": {
+    "DocId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "A UUID in lower case. Opaque: never parse it."
+    },
+    "RevisionId": {
+      "$ref": "#/$defs/DocId",
+      "description": "The id of one revision."
+    },
+    "Amount": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "description": "A decimal number as text, in the scale of its commodity. Never a JSON number."
+    },
+    "Rate": {
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?$",
+      "description": "A positive decimal number as text."
+    },
+    "Date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "A civil Gregorian date, YYYY-MM-DD, no time zone."
+    },
+    "AccountKind": {
+      "enum": [
+        "asset",
+        "liability",
+        "equity",
+        "income",
+        "expense"
+      ]
+    },
+    "ErrorCode": {
+      "enum": [
+        "projection_closed",
+        "revision_immutable",
+        "revision_parent_mismatch",
+        "entry_too_few_lines",
+        "entry_unbalanced",
+        "account_archived",
+        "commodity_scale_locked",
+        "amount_out_of_range",
+        "date_invalid",
+        "commodity_scale_invalid",
+        "commodity_code_taken",
+        "account_parent_cycle",
+        "line_commodity_mismatch",
+        "account_commodity_locked",
+        "revision_kind_mismatch",
+        "amount_invalid",
+        "amount_too_precise",
+        "rate_invalid",
+        "rate_missing",
+        "line_base_sign",
+        "rate_base_conflict",
+        "line_empty",
+        "nothing_to_undo",
+        "nothing_to_redo",
+        "entry_must_start_as_draft",
+        "base_currency_locked",
+        "settings_id_fixed",
+        "book_already_open",
+        "account_locked",
+        "system_key_taken",
+        "name_empty",
+        "account_parent_archived",
+        "account_parent_kind_mismatch",
+        "account_name_taken",
+        "entry_deleted_has_lines",
+        "entry_deleted",
+        "conflict",
+        "database",
+        "invalid_body",
+        "missing_reference",
+        "foreign_database",
+        "internal",
+        "newer_database",
+        "unknown_operation",
+        "invalid_input"
+      ],
+      "description": "Every stable code the API can return."
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/ErrorCode"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "DocRef": {
+      "type": "object",
+      "properties": {
+        "doc_id": {
+          "$ref": "#/$defs/DocId"
+        },
+        "revision_id": {
+          "$ref": "#/$defs/RevisionId"
+        }
+      },
+      "required": [
+        "doc_id",
+        "revision_id"
+      ],
+      "additionalProperties": false
+    },
+    "SettingsView": {
+      "type": "object",
+      "properties": {
+        "base_commodity": {
+          "$ref": "#/$defs/DocId"
+        },
+        "base_code": {
+          "type": "string"
+        },
+        "base_scale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18
+        }
+      },
+      "required": [
+        "base_commodity",
+        "base_code",
+        "base_scale"
+      ],
+      "additionalProperties": false
+    },
+    "AccountInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DocId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/AccountKind"
+        },
+        "commodity": {
+          "$ref": "#/$defs/DocId"
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "commodity"
+      ],
+      "additionalProperties": false
+    },
+    "AccountView": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "parent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DocId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/AccountKind"
+        },
+        "commodity": {
+          "$ref": "#/$defs/DocId"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "system_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "parent",
+        "kind",
+        "commodity",
+        "archived",
+        "locked",
+        "system_key"
+      ],
+      "additionalProperties": false
+    },
+    "LineInput": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/DocId"
+        },
+        "amount": {
+          "$ref": "#/$defs/Amount"
+        },
+        "rate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "base": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Amount"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "account",
+        "amount"
+      ],
+      "additionalProperties": false
+    },
+    "EntryInput": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "$ref": "#/$defs/Date"
+        },
+        "memo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "no": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineInput"
+          }
+        }
+      },
+      "required": [
+        "date",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "LineView": {
+      "type": "object",
+      "properties": {
+        "account": {
+          "$ref": "#/$defs/DocId"
+        },
+        "commodity": {
+          "$ref": "#/$defs/DocId"
+        },
+        "amount": {
+          "$ref": "#/$defs/Amount"
+        },
+        "base": {
+          "$ref": "#/$defs/Amount"
+        },
+        "rate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Rate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "account",
+        "commodity",
+        "amount",
+        "base",
+        "rate"
+      ],
+      "additionalProperties": false
+    },
+    "EntryView": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean"
+        },
+        "date": {
+          "$ref": "#/$defs/Date"
+        },
+        "memo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "no": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineView"
+          }
+        }
+      },
+      "required": [
+        "deleted",
+        "date",
+        "memo",
+        "no",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "Restore": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "undo",
+            "redo"
+          ]
+        },
+        "from": {
+          "$ref": "#/$defs/RevisionId"
+        }
+      },
+      "required": [
+        "kind",
+        "from"
+      ],
+      "additionalProperties": false
+    },
+    "HistoryItem": {
+      "type": "object",
+      "properties": {
+        "revision_id": {
+          "$ref": "#/$defs/RevisionId"
+        },
+        "parent_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RevisionId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "author_id": {
+          "$ref": "#/$defs/DocId"
+        },
+        "created_at_ms": {
+          "type": "integer"
+        },
+        "restore": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Restore"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "revision_id",
+        "parent_id",
+        "author_id",
+        "created_at_ms",
+        "restore"
+      ],
+      "additionalProperties": false
+    },
+    "Empty": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  }
+}

@@ -205,6 +205,11 @@ fn other_errors_have_fixed_codes() {
     assert_eq!(Error::ForeignDatabase.code(), "foreign_database");
     assert_eq!(Error::Internal("x").code(), "internal");
     assert_eq!(
+        Error::UnknownOperation("x".into()).code(),
+        "unknown_operation"
+    );
+    assert_eq!(Error::InvalidInput("x".into()).code(), "invalid_input");
+    assert_eq!(
         Error::NewerDatabase {
             found: 2,
             supported: 1
@@ -227,6 +232,8 @@ fn api_messages_never_carry_database_or_internal_text() {
             Some(secret.to_string()),
         )),
         Error::InvalidBody(secret.to_string()),
+        Error::InvalidInput(secret.to_string()),
+        Error::UnknownOperation(secret.to_string()),
         Error::Internal("secret internal detail"),
         Error::MissingReference {
             kind: "account",
@@ -241,4 +248,42 @@ fn api_messages_never_carry_database_or_internal_text() {
             assert!(!text.contains("/tmp"), "{text}");
         }
     }
+}
+
+#[test]
+fn the_api_contract_names_every_code_the_core_can_return_and_no_other() {
+    // Arrange
+    let contract: serde_json::Value =
+        serde_json::from_str(include_str!("../../../../api/v1/api.json")).unwrap();
+    let id = crate::ids::DocId::new();
+    let others = [
+        Error::Conflict { doc_id: id },
+        Error::Sqlite(rusqlite::Error::QueryReturnedNoRows),
+        Error::InvalidBody(String::new()),
+        Error::MissingReference {
+            kind: "account",
+            what: String::new(),
+        },
+        Error::ForeignDatabase,
+        Error::Internal(""),
+        Error::NewerDatabase {
+            found: 2,
+            supported: 1,
+        },
+        Error::UnknownOperation(String::new()),
+        Error::InvalidInput(String::new()),
+    ];
+    // Act
+    let mut expected: Vec<&str> = ALL.iter().map(|code| code.as_str()).collect();
+    expected.extend(others.iter().map(Error::code));
+    let mut in_contract: Vec<&str> = contract["$defs"]["ErrorCode"]["enum"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|code| code.as_str().unwrap())
+        .collect();
+    // Assert
+    expected.sort_unstable();
+    in_contract.sort_unstable();
+    assert_eq!(in_contract, expected);
 }

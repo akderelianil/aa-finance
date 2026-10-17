@@ -3,9 +3,30 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 233 tests.
+Total: 243 tests.
 
 ## core: integration tests (crates/core/tests)
+
+### api/contract.rs (4)
+The contract file and the dispatcher list the same operations, and every listed code is real.
+
+- The contract lists exactly the operations the core has
+- The contract and the core speak the same version
+- Every error an operation lists is a known code
+- Every operation has a summary an input and an output
+
+### api/errors.rs (3)
+Bad calls fail with a stable code in the error envelope, never with internal text.
+
+- An unknown operation is refused with its code
+- An input the contract rejects is refused by the dispatcher too
+- An error message does not repeat what the caller sent
+
+### api/operations.rs (2)
+A whole session through the named operations, every answer held to the contract.
+
+- A session through every operation fits the contract
+- Rule failures come back with codes the contract lists
 
 ### ops/accounts.rs (17)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
@@ -252,7 +273,7 @@ The typed revision bodies: what is written is what is read back, and nothing unk
 - An unknown account kind is refused
 - A body knows its document kind
 
-### error/tests.rs (9)
+### error/tests.rs (10)
 The mapping of database messages to stable rule codes, and of other errors to their variants.
 
 - The list of all codes covers every variant
@@ -264,6 +285,7 @@ The mapping of database messages to stable rule codes, and of other errors to th
 - A rule error exposes the rule code as its api code
 - Other errors have fixed codes
 - Api messages never carry database or internal text
+- The api contract names every code the core can return and no other
 
 ### ids/tests.rs (6)
 Identifiers: time-ordered UUIDv7 values and their text form (ADR-0011).

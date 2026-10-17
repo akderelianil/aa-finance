@@ -7,10 +7,12 @@
     "test": "node --test --disable-warning=ExperimentalWarning \"scripts/**/*.test.ts\"",
     "test:catalog": "node --disable-warning=ExperimentalWarning scripts/test-catalog.ts",
     "test:catalog:check": "node --disable-warning=ExperimentalWarning scripts/test-catalog.ts --check",
-    "verify": "npm run test && npm run test:catalog:check && npm run kernel:check",
+    "verify": "npm run test && npm run test:catalog:check && npm run kernel:check && npm run api:docs:check",
     "story": "node --disable-warning=ExperimentalWarning scripts/story.ts",
     "changelog": "node --disable-warning=ExperimentalWarning scripts/gen-changelog.ts",
     "hooks:install": "sh scripts/hooks/install.sh",
-    "kernel:check": "node --disable-warning=ExperimentalWarning scripts/kernel-table.ts"
+    "kernel:check": "node --disable-warning=ExperimentalWarning scripts/kernel-table.ts",
+    "api:docs": "node --disable-warning=ExperimentalWarning scripts/api-docs.ts",
+    "api:docs:check": "node --disable-warning=ExperimentalWarning scripts/api-docs.ts --check"
   }
 }

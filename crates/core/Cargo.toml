@@ -21,3 +21,4 @@ test-support = []
 aa-core = { path = ".", features = ["test-support"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 proptest = "1"
+jsonschema = { version = "0.59.0", default-features = false }

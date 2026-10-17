@@ -133,6 +133,12 @@ pub enum Error {
     ForeignDatabase,
     #[error("internal error: {0}")]
     Internal(&'static str),
+    /// The API was asked for an operation it does not have.
+    #[error("unknown operation: {0}")]
+    UnknownOperation(String),
+    /// The input of an operation does not have the shape the contract gives.
+    #[error("invalid input: {0}")]
+    InvalidInput(String),
     #[error(
         "the database is newer (version {found}) than this app supports (version {supported})"
     )]
@@ -150,6 +156,8 @@ impl Error {
             Error::MissingReference { .. } => "missing_reference",
             Error::ForeignDatabase => "foreign_database",
             Error::Internal(_) => "internal",
+            Error::UnknownOperation(_) => "unknown_operation",
+            Error::InvalidInput(_) => "invalid_input",
             Error::NewerDatabase { .. } => "newer_database",
         }
     }
@@ -182,6 +190,11 @@ impl Error {
             Error::Internal(_) => (
                 "Beklenmeyen bir iç hata oluştu.",
                 "An unexpected internal error occurred.",
+            ),
+            Error::UnknownOperation(_) => ("Bu işlem tanınmıyor.", "This operation is not known."),
+            Error::InvalidInput(_) => (
+                "İşleme verilen bilgi beklenen biçimde değil.",
+                "The information given to the operation is not in the expected shape.",
             ),
             Error::NewerDatabase { .. } => (
                 "Bu defter, uygulamanın daha yeni bir sürümüyle yazılmış. Uygulamayı güncelleyin.",
