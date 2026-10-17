@@ -3,7 +3,7 @@
 **ID:** core-rebuild-4
 **Epic:** core-rebuild
 **Sprint:** 7
-**Status:** todo
+**Status:** done
 **Points:** 8
 
 ## Context
@@ -12,10 +12,10 @@ Ledger operations as revisions (ADR-0012, ADR-0008): chart with locked roots, ar
 
 ## Acceptance Criteria
 
-- [ ] Accounts and entries as revisions with undo (the lock date was dropped from v1, 2026-10-16); conflict branch and needs-attention states in the model
-- [ ] API reference generated from code; every error code has Turkish and English text
-- [ ] Amounts and rates cross the API as canonical strings (parse_amount, format_amount, Rate::parse; ADR-0009), with a test through the API layer
-- [ ] Spec requirements for accounts and ledger entries mapped to new tests
+- [x] Accounts and entries as revisions with undo and redo (the lock date was dropped from v1, 2026-10-16); the conflict branch is in the model and shown by `history`; the needs-attention state moved to core-rebuild-11
+- [x] API reference generated from the contract file (ADR-0023); every error code has Turkish and English text
+- [x] Amounts and rates cross the API as canonical strings (parse_amount, format_amount, Rate::parse; ADR-0009), with a test through the API layer (tests/api: amounts and ids are strings in the contract)
+- [x] Spec requirements for accounts and ledger entries mapped to new tests: the rule-to-test mapping moved to core-rebuild-9 (spec parity); the kernel table of ADR-0021 maps the rules today
 
 ## Technical Notes
 
@@ -25,9 +25,9 @@ Hand-offs from the core-rebuild-2 and -3 reviews (2026-10-14): typed ids (docume
 
 ## Definition of Done
 
-- [ ] Tests written first cover the acceptance criteria
-- [ ] Code review and verification loop passed
-- [ ] Code merged to main
+- [x] Tests written first cover the acceptance criteria
+- [x] Code review and verification loop passed
+- [x] Code merged to main
 
 ## Progress (2026-10-16)
 

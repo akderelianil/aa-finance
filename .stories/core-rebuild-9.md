@@ -20,6 +20,8 @@ Close the loop: every prototype spec requirement is carried, changed or dropped 
 
 Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.md.
 
+- Moved here from core-rebuild-4: map the spec requirements for accounts and entries to the new tests.
+
 ## Definition of Done
 
 - [ ] Tests written first cover the acceptance criteria
