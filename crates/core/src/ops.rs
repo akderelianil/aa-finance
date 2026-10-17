@@ -10,11 +10,15 @@ use crate::body::{
 };
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, Id, RevisionId};
-use crate::rate::{resolve_line, ForeignLine, Rate};
+use crate::rate::{resolve_line, rounding_line, ForeignLine, Rate};
 use crate::store::{NewRevision, Store};
 use serde::{Deserialize, Serialize};
 
 mod views;
+
+/// The system key and the name of the account that takes the rounding differences of conversions.
+const ROUNDING_KEY: &str = "rounding";
+const ROUNDING_NAME: &str = "Rounding";
 
 pub use views::{AccountView, EntryView, HistoryItem, LineView, SettingsView};
 
@@ -103,9 +107,19 @@ impl Ledger {
         let settings = Body::Settings(SettingsBody {
             base_commodity: base,
         });
+        let rounding = Body::Account(AccountBody {
+            name: ROUNDING_NAME.to_string(),
+            parent: None,
+            kind: AccountKind::Expense,
+            commodity: base,
+            archived: false,
+            locked: true,
+            system_key: Some(ROUNDING_KEY.to_string()),
+        });
         let revisions = vec![
             self.revision(base, None, &commodity)?,
             self.revision(SETTINGS_DOC, None, &settings)?,
+            self.revision(DocId::new(), None, &rounding)?,
         ];
         let written = self.store.write_revisions(revisions)?;
         Ok(DocRef {
@@ -161,6 +175,8 @@ impl Ledger {
             kind: input.kind,
             commodity: input.commodity,
             archived: false,
+            locked: false,
+            system_key: None,
         });
         self.write(DocId::new(), None, body)
     }
@@ -188,6 +204,10 @@ impl Ledger {
     /// version back, so nothing is ever removed.
     pub fn undo(&mut self, doc: DocId) -> Result<DocRef> {
         let head = self.head_record(doc)?;
+        if matches!(Body::from_json(head.doc_kind, &head.body)?, Body::Account(account) if account.locked)
+        {
+            return Err(Error::Rule(RuleCode::AccountLocked));
+        }
         let parent = head.parent_id.ok_or(Error::Rule(RuleCode::NothingToUndo))?;
         let previous = self.store.revision(parent)?.ok_or(Error::Internal(
             "a revision points to a parent that is not stored",
@@ -202,6 +222,16 @@ impl Ledger {
             return Err(missing("document", doc));
         }
         Ok(revisions.into_iter().map(HistoryItem::from).collect())
+    }
+
+    /// The account the system opened under `key`, such as `rounding`.
+    pub fn system_account(&self, key: &str) -> Result<DocId> {
+        self.store
+            .account_by_system_key(key)?
+            .ok_or_else(|| Error::MissingReference {
+                kind: "system account",
+                what: key.to_string(),
+            })
     }
 
     pub fn account(&self, account: DocId) -> Result<AccountView> {
@@ -239,6 +269,9 @@ impl Ledger {
         change: impl FnOnce(&mut AccountBody),
     ) -> Result<DocRef> {
         let mut body = self.account_body(account)?;
+        if body.locked {
+            return Err(Error::Rule(RuleCode::AccountLocked));
+        }
         change(&mut body);
         self.write_next(account, Body::Account(body))
     }
@@ -246,11 +279,24 @@ impl Ledger {
     fn entry_body(&self, input: EntryInput) -> Result<EntryBody> {
         let settings = self.settings()?;
         let (base, base_scale) = (settings.base_commodity, settings.base_scale);
-        let lines = input
+        let (mut lines, converted): (Vec<_>, Vec<_>) = input
             .lines
             .iter()
             .map(|line| self.line_body(line, base, base_scale))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .unzip();
+        let base_values: Vec<i64> = lines.iter().map(|line| line.base_value).collect();
+        let converted_lines = converted.iter().filter(|converted| **converted).count();
+        if let Some(difference) = rounding_line(&base_values, converted_lines)? {
+            lines.push(LineBody {
+                account: self.system_account(ROUNDING_KEY)?,
+                commodity: base,
+                quantity: difference,
+                base_value: difference,
+                rate: None,
+            });
+        }
         Ok(EntryBody {
             date: input.date,
             memo: input.memo,
@@ -260,7 +306,8 @@ impl Ledger {
         })
     }
 
-    fn line_body(&self, line: &LineInput, base: DocId, base_scale: u8) -> Result<LineBody> {
+    /// The line as stored, and whether the core converted it (which allows a rounding difference).
+    fn line_body(&self, line: &LineInput, base: DocId, base_scale: u8) -> Result<(LineBody, bool)> {
         let account = self.account_body(line.account)?;
         let scale = self.scale(account.commodity)?;
         let quantity = parse_amount(&line.amount, scale, Separators::CANONICAL)?;
@@ -269,7 +316,7 @@ impl Ledger {
             .as_deref()
             .map(|text| parse_amount(text, base_scale, Separators::CANONICAL))
             .transpose()?;
-        let (base_value, rate) = if account.commodity == base {
+        let (base_value, rate, converted) = if account.commodity == base {
             let rate_is_not_one = line
                 .rate
                 .as_deref()
@@ -279,7 +326,7 @@ impl Ledger {
             if rate_is_not_one || given_base.is_some_and(|given| given != quantity) {
                 return Err(Error::Rule(RuleCode::RateBaseConflict));
             }
-            (quantity, None)
+            (quantity, None, false)
         } else {
             let given_rate = line.rate.as_deref().map(Rate::parse).transpose()?;
             let resolved = resolve_line(
@@ -292,15 +339,20 @@ impl Ledger {
                 },
                 base_scale,
             )?;
-            (resolved.base_value, Some(resolved.rate.to_text()))
+            (
+                resolved.base_value,
+                Some(resolved.rate.to_text()),
+                resolved.converted,
+            )
         };
-        Ok(LineBody {
+        let body = LineBody {
             account: line.account,
             commodity: account.commodity,
             quantity,
             base_value,
             rate,
-        })
+        };
+        Ok((body, converted))
     }
 
     fn scale(&self, commodity: DocId) -> Result<u8> {

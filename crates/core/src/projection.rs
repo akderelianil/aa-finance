@@ -243,10 +243,11 @@ fn write_account(
     assert_no_parent_cycle(conn, doc_id, b.parent)?;
     let parent = b.parent.map(|p| account_id(conn, p)).transpose()?;
     conn.execute(
-        "INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        "INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived, locked, system_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
          ON CONFLICT (uuid) DO UPDATE SET current_revision_id = excluded.current_revision_id, name = excluded.name,
-           parent_id = excluded.parent_id, kind = excluded.kind, commodity_id = excluded.commodity_id, archived = excluded.archived",
-        params![doc_id, revision_id, b.name, parent, b.kind.as_str(), commodity, b.archived],
+           parent_id = excluded.parent_id, kind = excluded.kind, commodity_id = excluded.commodity_id, archived = excluded.archived,
+           locked = excluded.locked, system_key = excluded.system_key",
+        params![doc_id, revision_id, b.name, parent, b.kind.as_str(), commodity, b.archived, b.locked, b.system_key],
     )?;
     Ok(())
 }
@@ -441,7 +442,7 @@ fn check_settings(conn: &Connection, found: &mut Found) -> Result<()> {
 
 fn check_accounts(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut stmt = conn.prepare(
-        "SELECT a.uuid, a.name, a.kind, a.archived, c.uuid, p.uuid, r.body
+        "SELECT a.uuid, a.name, a.kind, a.archived, c.uuid, p.uuid, r.body, a.locked, a.system_key
          FROM account a JOIN commodity c ON c.id = a.commodity_id LEFT JOIN account p ON p.id = a.parent_id
          JOIN revision r ON r.id = a.current_revision_id",
     )?;
@@ -454,15 +455,19 @@ fn check_accounts(conn: &Connection, found: &mut Found) -> Result<()> {
             row.get::<_, DocId>(4)?,
             row.get::<_, Option<DocId>>(5)?,
             row.get::<_, String>(6)?,
+            row.get::<_, bool>(7)?,
+            row.get::<_, Option<String>>(8)?,
         ))
     })?;
     for row in rows {
-        let (uuid, name, kind, archived, commodity, parent, body) = row?;
+        let (uuid, name, kind, archived, commodity, parent, body, locked, system_key) = row?;
         match serde_json::from_str::<AccountBody>(&body) {
             Ok(b)
                 if b.name == name
                     && b.kind.as_str() == kind
                     && b.archived == archived
+                    && b.locked == locked
+                    && b.system_key == system_key
                     && b.commodity == commodity
                     && b.parent == parent => {}
             _ => note(

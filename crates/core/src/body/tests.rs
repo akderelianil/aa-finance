@@ -41,6 +41,8 @@ fn every_body_reads_back_exactly_as_written() {
         kind: AccountKind::Asset,
         commodity: DocId::new(),
         archived: false,
+        locked: true,
+        system_key: Some("rounding".into()),
     });
     let entry = Body::Entry(entry());
     let settings = Body::Settings(SettingsBody {

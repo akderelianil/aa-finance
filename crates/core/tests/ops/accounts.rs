@@ -104,3 +104,43 @@ fn naming_a_wrong_kind_of_document_as_an_account_is_a_missing_reference() {
     // Assert
     assert!(matches!(result, Err(Error::MissingReference { .. })));
 }
+
+#[test]
+fn opening_a_book_opens_a_locked_rounding_account() {
+    // Arrange
+    let b = book();
+    // Act
+    let rounding = b.ledger.system_account("rounding").unwrap();
+    // Assert
+    let view = b.ledger.account(rounding).unwrap();
+    assert_eq!(view.name, "Rounding");
+    assert!(view.locked);
+    assert_eq!(view.system_key.as_deref(), Some("rounding"));
+    assert_eq!(view.commodity, b.try_id);
+}
+
+#[test]
+fn a_locked_account_is_refused_a_rename_an_archive_and_an_undo() {
+    // Arrange
+    let mut b = book();
+    let rounding = b.ledger.system_account("rounding").unwrap();
+    // Act
+    let renamed = b.ledger.rename_account(rounding, "Mine");
+    let archived = b.ledger.set_account_archived(rounding, true);
+    let undone = b.ledger.undo(rounding);
+    // Assert
+    for result in [renamed, archived, undone] {
+        assert!(matches!(result, Err(Error::Rule(RuleCode::AccountLocked))));
+    }
+}
+
+#[test]
+fn an_ordinary_account_has_no_system_key_and_is_not_locked() {
+    // Arrange
+    let b = book();
+    // Act
+    let view = b.ledger.account(b.cash).unwrap();
+    // Assert
+    assert!(!view.locked);
+    assert_eq!(view.system_key, None);
+}

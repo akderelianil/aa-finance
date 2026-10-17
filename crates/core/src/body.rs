@@ -60,6 +60,12 @@ pub struct AccountBody {
     pub kind: AccountKind,
     pub commodity: DocId,
     pub archived: bool,
+    /// Opened by the system; no user can change or archive it.
+    #[serde(default)]
+    pub locked: bool,
+    /// What the system calls this account (`rounding`), so it needs no hard-coded id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

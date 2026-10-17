@@ -209,10 +209,10 @@ fn an_account_tree_deeper_than_the_limit_is_refused_like_a_cycle() {
         .tamper(
             "WITH RECURSIVE base(b) AS (SELECT coalesce(max(id), 0) FROM account),
                   n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 10001)
-             INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived)
+             INSERT INTO account (uuid, current_revision_id, name, parent_id, kind, commodity_id, archived, locked)
              SELECT randomblob(16), (SELECT id FROM revision LIMIT 1), 'chain' || i,
                     CASE WHEN i = 1 THEN NULL ELSE (SELECT b FROM base) + i - 1 END,
-                    'asset', (SELECT id FROM commodity LIMIT 1), 0
+                    'asset', (SELECT id FROM commodity LIMIT 1), 0, 0
              FROM n ORDER BY i",
         )
         .unwrap();
@@ -293,4 +293,93 @@ fn an_account_cannot_be_its_own_parent() {
         result,
         Err(Error::Rule(RuleCode::AccountParentCycle))
     ));
+}
+
+fn locked_account_body(name: &str, commodity: DocId, key: &str) -> serde_json::Value {
+    let mut body = account_body(name, commodity, None, false);
+    body["locked"] = serde_json::json!(true);
+    body["system_key"] = serde_json::json!(key);
+    body
+}
+
+#[test]
+fn a_locked_account_cannot_be_renamed_archived_or_unlocked() {
+    // Arrange
+    let mut w = world();
+    let sys = DocId::new();
+    let first = w
+        .store
+        .write_revision(rev(
+            DocKind::Account,
+            sys,
+            None,
+            locked_account_body("Rounding", w.try_id, "rounding"),
+        ))
+        .unwrap();
+    let mut renamed = locked_account_body("Other", w.try_id, "rounding");
+    let mut archived = locked_account_body("Rounding", w.try_id, "rounding");
+    archived["archived"] = serde_json::json!(true);
+    let mut unlocked = account_body("Rounding", w.try_id, None, false);
+    unlocked["system_key"] = serde_json::json!("rounding");
+    // Act
+    let results: Vec<_> = [renamed.take(), archived, unlocked]
+        .into_iter()
+        .map(|body| {
+            w.store
+                .write_revision(rev(DocKind::Account, sys, Some(first), body))
+        })
+        .collect();
+    // Assert
+    for result in results {
+        assert!(matches!(result, Err(Error::Rule(RuleCode::AccountLocked))));
+    }
+    assert_eq!(w.store.current_revision(sys).unwrap(), Some(first));
+}
+
+#[test]
+fn a_system_key_belongs_to_one_account() {
+    // Arrange
+    let mut w = world();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            DocId::new(),
+            None,
+            locked_account_body("Rounding", w.try_id, "rounding"),
+        ))
+        .unwrap();
+    // Act
+    let result = w.store.write_revision(rev(
+        DocKind::Account,
+        DocId::new(),
+        None,
+        locked_account_body("Rounding 2", w.try_id, "rounding"),
+    ));
+    // Assert
+    assert!(matches!(result, Err(Error::Rule(RuleCode::SystemKeyTaken))));
+}
+
+#[test]
+fn a_locked_account_survives_a_rebuild_and_verifies_clean() {
+    // Arrange
+    let mut w = world();
+    w.store
+        .write_revision(rev(
+            DocKind::Account,
+            DocId::new(),
+            None,
+            locked_account_body("Rounding", w.try_id, "rounding"),
+        ))
+        .unwrap();
+    // Act
+    w.store.rebuild_projection().unwrap();
+    // Assert
+    assert!(w.store.verify_projection().unwrap().is_empty());
+    assert_eq!(
+        count(
+            &w.store,
+            "SELECT count(*) FROM account WHERE locked = 1 AND system_key = 'rounding'"
+        ),
+        1
+    );
 }

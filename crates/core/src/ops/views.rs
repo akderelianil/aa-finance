@@ -31,6 +31,8 @@ pub struct AccountView {
     pub kind: AccountKind,
     pub commodity: DocId,
     pub archived: bool,
+    pub locked: bool,
+    pub system_key: Option<String>,
 }
 
 impl From<AccountBody> for AccountView {
@@ -41,6 +43,8 @@ impl From<AccountBody> for AccountView {
             kind: body.kind,
             commodity: body.commodity,
             archived: body.archived,
+            locked: body.locked,
+            system_key: body.system_key,
         }
     }
 }

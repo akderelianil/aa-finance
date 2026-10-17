@@ -311,3 +311,47 @@ fn an_edit_that_drops_the_rate_and_gives_a_base_replaces_the_stored_rate() {
     let detail = b.ledger.entry(posted.doc_id).unwrap();
     assert_eq!(detail.lines[0].rate.as_deref(), Some("39"));
 }
+
+#[test]
+fn a_rounding_difference_of_converted_lines_goes_to_the_rounding_account() {
+    // Arrange
+    let mut b = book();
+    let dollars = dollar_account(&mut b);
+    let mut first = line(dollars, "0.01");
+    first.rate = Some("33.335".to_string());
+    let second = first.clone();
+    // Act
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![first, second, line(b.cash, "-0.67")]))
+        .unwrap();
+    // Assert
+    let detail = b.ledger.entry(posted.doc_id).unwrap();
+    let rounding = b.ledger.system_account("rounding").unwrap();
+    assert_eq!(detail.lines.len(), 4);
+    assert_eq!(detail.lines[3].account, rounding);
+    assert_eq!(detail.lines[3].amount, "0.01");
+    assert_eq!(detail.lines[3].rate, None);
+}
+
+#[test]
+fn an_edit_that_gets_exact_values_drops_the_old_rounding_line() {
+    // Arrange
+    let mut b = book();
+    let dollars = dollar_account(&mut b);
+    let mut first = line(dollars, "0.01");
+    first.rate = Some("33.335".to_string());
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![first.clone(), first, line(b.cash, "-0.67")]))
+        .unwrap();
+    // Act
+    b.ledger
+        .edit_entry(
+            posted.doc_id,
+            entry(vec![line(b.food, "5"), line(b.cash, "-5")]),
+        )
+        .unwrap();
+    // Assert
+    assert_eq!(b.ledger.entry(posted.doc_id).unwrap().lines.len(), 2);
+}

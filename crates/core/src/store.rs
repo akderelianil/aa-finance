@@ -257,6 +257,18 @@ impl Store {
         .collect()
     }
 
+    /// The account the system opened under `key` (such as `rounding`), if the book has one.
+    pub fn account_by_system_key(&self, key: &str) -> Result<Option<DocId>> {
+        self.conn
+            .query_row(
+                "SELECT uuid FROM account WHERE system_key = ?1",
+                params![key],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(Error::from)
+    }
+
     /// The conflict branches of a document: leaves that are not its head.
     pub fn conflicts(&self, doc_id: DocId) -> Result<Vec<RevisionId>> {
         projection::conflicts(&self.conn, doc_id)

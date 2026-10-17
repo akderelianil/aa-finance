@@ -42,6 +42,8 @@ pub enum RuleCode {
     BaseCurrencyLocked,
     SettingsIdFixed,
     BookAlreadyOpen,
+    AccountLocked,
+    SystemKeyTaken,
 }
 
 impl RuleCode {
@@ -75,10 +77,12 @@ impl RuleCode {
             RuleCode::BaseCurrencyLocked => "base_currency_locked",
             RuleCode::SettingsIdFixed => "settings_id_fixed",
             RuleCode::BookAlreadyOpen => "book_already_open",
+            RuleCode::AccountLocked => "account_locked",
+            RuleCode::SystemKeyTaken => "system_key_taken",
         }
     }
 
-    pub(crate) const TRIGGER_CODES: [RuleCode; 12] = [
+    pub(crate) const TRIGGER_CODES: [RuleCode; 13] = [
         RuleCode::ProjectionClosed,
         RuleCode::RevisionImmutable,
         RuleCode::RevisionParentMismatch,
@@ -91,6 +95,7 @@ impl RuleCode {
         RuleCode::RevisionKindMismatch,
         RuleCode::EntryMustStartAsDraft,
         RuleCode::BaseCurrencyLocked,
+        RuleCode::AccountLocked,
     ];
 }
 
@@ -192,6 +197,10 @@ impl From<rusqlite::Error> for Error {
                     ("scale BETWEEN", RuleCode::CommodityScaleInvalid),
                     ("line_base_sign", RuleCode::LineBaseSign),
                     ("line_not_empty", RuleCode::LineEmpty),
+                    (
+                        "UNIQUE constraint failed: account.system_key",
+                        RuleCode::SystemKeyTaken,
+                    ),
                     (
                         "UNIQUE constraint failed: commodity.code",
                         RuleCode::CommodityCodeTaken,

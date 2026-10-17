@@ -76,7 +76,9 @@ CREATE TABLE account (
   parent_id INTEGER REFERENCES account (id),
   kind TEXT NOT NULL CHECK (kind IN ('asset', 'liability', 'equity', 'income', 'expense')),
   commodity_id INTEGER NOT NULL REFERENCES commodity (id),
-  archived INTEGER NOT NULL CHECK (archived IN (0, 1))
+  archived INTEGER NOT NULL CHECK (archived IN (0, 1)),
+  locked INTEGER NOT NULL CHECK (locked IN (0, 1)),
+  system_key TEXT UNIQUE CHECK (system_key IS NULL OR system_key <> '')
 ) STRICT;
 
 CREATE TABLE entry (
@@ -201,6 +203,13 @@ BEGIN SELECT RAISE(ABORT, 'account_archived'); END;
 CREATE TRIGGER line_commodity_matches_account BEFORE INSERT ON line
 WHEN NEW.commodity_id <> (SELECT commodity_id FROM account WHERE id = NEW.account_id)
 BEGIN SELECT RAISE(ABORT, 'line_commodity_mismatch'); END;
+
+-- A locked account (opened by the system, such as Rounding) keeps every field it was opened with.
+CREATE TRIGGER account_locked BEFORE UPDATE ON account
+WHEN OLD.locked = 1 AND (NEW.name IS NOT OLD.name OR NEW.parent_id IS NOT OLD.parent_id OR NEW.kind IS NOT OLD.kind
+  OR NEW.commodity_id IS NOT OLD.commodity_id OR NEW.archived IS NOT OLD.archived OR NEW.locked IS NOT OLD.locked
+  OR NEW.system_key IS NOT OLD.system_key)
+BEGIN SELECT RAISE(ABORT, 'account_locked'); END;
 
 CREATE TRIGGER account_commodity_locked BEFORE UPDATE OF commodity_id ON account
 WHEN NEW.commodity_id <> OLD.commodity_id AND EXISTS (SELECT 1 FROM line WHERE account_id = OLD.id)

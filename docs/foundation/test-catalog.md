@@ -3,11 +3,11 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 204 tests.
+Total: 212 tests.
 
 ## core: integration tests (crates/core/tests)
 
-### ops/accounts.rs (8)
+### ops/accounts.rs (11)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -18,8 +18,11 @@ Commodities and accounts through the operations: the author and the time are sta
 - A commodity code can be used once
 - A child account can be created under a parent
 - Naming a wrong kind of document as an account is a missing reference
+- Opening a book opens a locked rounding account
+- A locked account is refused a rename an archive and an undo
+- An ordinary account has no system key and is not locked
 
-### ops/entries.rs (18)
+### ops/entries.rs (20)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
 
 - A balanced entry is posted from canonical strings
@@ -40,6 +43,8 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - A foreign line given only a base keeps the rate it implies
 - A base currency line stores no rate even when the user gave one
 - An edit that drops the rate and gives a base replaces the stored rate
+- A rounding difference of converted lines goes to the rounding account
+- An edit that gets exact values drops the old rounding line
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).
@@ -62,7 +67,7 @@ Undo is a new revision that restores the previous body; nothing is removed and t
 - Undoing an unknown document is a missing reference
 - Undo of a rename restores the old name
 
-### store/accounts.rs (11)
+### store/accounts.rs (14)
 Accounts and commodities: archived accounts, the commodity and scale of an account in use, the account tree (cycles and depth) and account kinds (ADR-0010, ADR-0012).
 
 - An archived account takes no new lines
@@ -76,6 +81,9 @@ Accounts and commodities: archived accounts, the commodity and scale of an accou
 - An account tree deeper than the limit is refused like a cycle
 - A duplicate of a carried line is a new use of an archived account
 - An account cannot be its own parent
+- A locked account cannot be renamed archived or unlocked
+- A system key belongs to one account
+- A locked account survives a rebuild and verifies clean
 
 ### store/conflicts.rs (9)
 Server order and conflicts: the earliest server sequence is the head, a sibling is kept as a branch, and a stale parent is a conflict (ADR-0012).

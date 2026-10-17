@@ -109,6 +109,14 @@ impl RuleCode {
                 "The book settings must be written under their fixed document id.",
             ),
             RuleCode::BookAlreadyOpen => ("Bu defter zaten açılmış.", "This book is already open."),
+            RuleCode::AccountLocked => (
+                "Bu hesabı sistem açtı; adı değiştirilemez, arşivlenemez ve geri alınamaz.",
+                "The system opened this account; it cannot be renamed, archived or undone.",
+            ),
+            RuleCode::SystemKeyTaken => (
+                "Bu sistem anahtarı başka bir hesapta zaten kullanılıyor.",
+                "This system key is already used by another account.",
+            ),
         };
         match lang {
             Lang::Tr => tr,
