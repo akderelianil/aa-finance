@@ -14,7 +14,7 @@ Goal: a local-first, open-source family finance app that a person with no accoun
 Epic `foundation-reset` is closed and approved. Done: `core-rebuild-1` (repository move, Rust workspace, CI), `core-rebuild-2` (schema v1, revisions, projection, `verify_projection`; 1,000,000 entries verify clean in about 8 s, see [measurements](foundation/measurements.md)) and `core-rebuild-3` (exact amounts, rates, rounding line). Next: `release-and-quality-1` (CI floors, mutation and fuzz jobs) and, before sync work, `core-rebuild-11` (needs-attention state, idempotent import).
 
 ## Next (sprint 7)
-`core-rebuild-4` ledger operations and the named-operation API, `core-rebuild-5` scenario engine with Gider, Gelir, Transfer, Borç. Then reports, local roles, backup and export, spec parity, command line; the desktop app in the `desktop-ui` epic.
+`core-rebuild-4` ledger operations and the named-operation API (in progress: operations for commodities, accounts and entries with undo and history, typed ids and the sealed kernel [ADR-0021](adr/0021-sealed-ledger-kernel.md) are done; settings, delete, undo semantics and the API reference remain), `core-rebuild-5` scenario engine with Gider, Gelir, Transfer, Borç. Then reports, local roles, backup and export, spec parity, command line; the desktop app in the `desktop-ui` epic.
 
 ## Later
 Epics `investments`, `sync-and-server` (signing gate first), `mobile-and-reminders`; see the release table in the [vision](foundation/vision.md#goals-by-release) and the [backlog](foundation/backlog.md).

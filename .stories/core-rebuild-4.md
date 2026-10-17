@@ -12,7 +12,7 @@ Ledger operations as revisions (ADR-0012, ADR-0008): chart with locked roots, ar
 
 ## Acceptance Criteria
 
-- [ ] Accounts and entries as revisions with undo and a lock date; conflict branch and needs-attention states in the model
+- [ ] Accounts and entries as revisions with undo (the lock date was dropped from v1, 2026-10-16); conflict branch and needs-attention states in the model
 - [ ] API reference generated from code; every error code has Turkish and English text
 - [ ] Amounts and rates cross the API as canonical strings (parse_amount, format_amount, Rate::parse; ADR-0009), with a test through the API layer
 - [ ] Spec requirements for accounts and ledger entries mapped to new tests
@@ -37,7 +37,7 @@ Slice 1 done: `ops::Ledger` with commodity, account and entry operations, undo, 
 - Rounding line for foreign conversions; the rate is not stored on a line (decide if it must be).
 - Input rules: empty names and codes, archived or mismatched parent, draft status on edit.
 - `history()` should mark the head and conflict branches; views need docs.
-- Also still open: entry delete (tombstone), lock date, root accounts, API reference, typed ids.
+- Also still open: entry delete (tombstone), root accounts, API reference. (Lock date dropped; typed ids done on 2026-10-17.)
 
 ## Decisions (owner, 2026-10-16)
 1. Undo: B, a `restored_from` link; repeated undo walks back, redo is a separate explicit operation.
@@ -45,5 +45,13 @@ Slice 1 done: `ops::Ledger` with commodity, account and entry operations, undo, 
 3. One settings document (revisioned). Base currency is fixed per book (decided 2026-10-17): the settings refuse a change once the first entry exists, with a stable error code. No base periods and no `base` on entries; moving countries is the later "carry over as a new book" feature (docs/foundation/backlog.md).
 4. Store the rate on the line (optional field). 5. The system opens and locks the Rounding account. 6. `locked` and `system_key` on accounts, as data so new system accounts need no code change. 7. Reject empty names and codes, archived parent, parent of another kind, duplicate sibling names. 9. Typed ids `DocId`, `RevisionId` now. 10. Drafts are not user-visible in v1; edit keeps the entry status. 11. API reference generated from an operation registry (name, version, input/output schema, error codes).
 8. The period lock date is dropped from v1 (an idea for later with several members and reconciliation; the settings document may gain an optional `lock_date`, one check point in `Ledger`). Noted in ADR-0012 and docs/foundation/backlog.md.
-Open for the next session: a sealed ledger kernel (invariants list as an ADR). The base currency talk is closed (3).
-Order: typed ids, settings, rate on line, account fields and system accounts, input rules, delete, undo, API reference.
+Both talks are closed: the base currency (3) and the sealed ledger kernel (ADR-0021, accepted 2026-10-17).
+Order: ~~typed ids~~, settings, rate on line, account fields and system accounts, input rules, delete, undo, API reference.
+
+## Progress (2026-10-17)
+- ADR-0021 accepted: the sealed kernel as a table K1 to K21 (invariant, enforcement, stable code, test). K1 to K18 are sealed today; K19 (delete), K20 (locked system accounts) and K21 (base currency locked after the first entry) are built in this story and move into the sealed table when done. `npm run kernel:check` (part of `npm run verify`) fails when a rule code is missing from the ADR or a test it names no longer exists.
+- Fixed: a non-draft entry insert raised `entry_unbalanced`; it now raises `entry_must_start_as_draft` (K17). Commodities have no archived state (ADR-0012 corrected; accounts archive instead).
+- Typed ids done (commit ad3e285): `DocId` and `RevisionId` replace the bare `Id` for documents and revisions; the author stays a raw `Id` until the member type exists. A `compile_fail` doctest proves the two cannot be mixed.
+- Base currency decided: fixed per book, locked after the first entry; moving countries is the later "carry over as a new book" feature, display in USD, EUR or gold is virtual (backlog; the date-based rate lookup is an acceptance criterion of core-rebuild-6).
+- Next: the settings document. Talk first about what it holds (proposal: only the base currency in v1).
+- Counts: 75 unit, 28 operation and 76 store tests, 1 doctest, 15 script tests.
