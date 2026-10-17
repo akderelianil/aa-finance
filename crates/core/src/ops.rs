@@ -5,7 +5,8 @@
 
 use crate::amount::{format_amount, parse_amount, Separators};
 use crate::body::{
-    AccountBody, AccountKind, Body, CommodityBody, EntryBody, EntryStatus, LineBody,
+    AccountBody, AccountKind, Body, CommodityBody, EntryBody, EntryStatus, LineBody, SettingsBody,
+    SETTINGS_DOC,
 };
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, Id, RevisionId};
@@ -15,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 mod views;
 
-pub use views::{AccountView, EntryView, HistoryItem, LineView};
+pub use views::{AccountView, EntryView, HistoryItem, LineView, SettingsView};
 
 /// The source of "now", in milliseconds since the Unix epoch. Tests move it by hand.
 pub trait Clock: Send {
@@ -76,7 +77,6 @@ pub struct Ledger {
     store: Store,
     author: Id,
     clock: Box<dyn Clock>,
-    base: Option<DocId>,
 }
 
 impl Ledger {
@@ -85,21 +85,60 @@ impl Ledger {
             store,
             author,
             clock,
-            base: None,
         }
     }
 
-    /// Sets the base currency of this session. It becomes a stored book setting with the settings
-    /// revisions; until then the caller names it.
-    pub fn set_base_commodity(&mut self, commodity: DocId) -> Result<()> {
-        self.commodity(commodity)?;
-        if self.base.is_some_and(|current| current != commodity) {
-            return Err(Error::Internal(
-                "the base currency cannot change in a session",
-            ));
+    /// Opens a book: its base currency and its settings document, written together or not at all.
+    /// A book is opened once; the settings are read from the file from then on.
+    pub fn open_book(&mut self, base_code: &str, base_scale: u8) -> Result<DocRef> {
+        if self.store.current_revision(SETTINGS_DOC)?.is_some() {
+            return Err(Error::Rule(RuleCode::BookAlreadyOpen));
         }
-        self.base = Some(commodity);
-        Ok(())
+        crate::amount::check_scale(base_scale)?;
+        let base = DocId::new();
+        let commodity = Body::Commodity(CommodityBody {
+            code: base_code.trim().to_string(),
+            scale: i64::from(base_scale),
+        });
+        let settings = Body::Settings(SettingsBody {
+            base_commodity: base,
+        });
+        let revisions = vec![
+            self.revision(base, None, &commodity)?,
+            self.revision(SETTINGS_DOC, None, &settings)?,
+        ];
+        let written = self.store.write_revisions(revisions)?;
+        Ok(DocRef {
+            doc_id: base,
+            revision_id: written[0],
+        })
+    }
+
+    /// The settings of the book, read from the file.
+    pub fn settings(&self) -> Result<SettingsView> {
+        let Body::Settings(settings) = self.current_body(SETTINGS_DOC, "settings")? else {
+            return Err(missing("settings", SETTINGS_DOC));
+        };
+        let base = self.commodity(settings.base_commodity)?;
+        Ok(SettingsView {
+            base_commodity: settings.base_commodity,
+            base_code: base.code,
+            base_scale: u8::try_from(base.scale)
+                .map_err(|_| Error::Internal("a stored scale is out of range"))?,
+        })
+    }
+
+    /// Changes the base currency. The database refuses it once the first entry exists. Every write
+    /// of the book settings goes through here, which is where the admin check belongs once members
+    /// and roles exist (core-rebuild-7).
+    pub fn set_base_currency(&mut self, commodity: DocId) -> Result<DocRef> {
+        self.commodity(commodity)?;
+        self.write_next(
+            SETTINGS_DOC,
+            Body::Settings(SettingsBody {
+                base_commodity: commodity,
+            }),
+        )
     }
 
     pub fn create_commodity(&mut self, code: &str, scale: u8) -> Result<DocRef> {
@@ -171,7 +210,7 @@ impl Ledger {
 
     pub fn entry(&self, entry: DocId) -> Result<EntryView> {
         let body = self.entry_body_of(entry)?;
-        let base_scale = self.scale(self.base_commodity()?)?;
+        let base_scale = self.settings()?.base_scale;
         let lines = body
             .lines
             .iter()
@@ -204,8 +243,8 @@ impl Ledger {
     }
 
     fn entry_body(&self, input: EntryInput) -> Result<EntryBody> {
-        let base = self.base_commodity()?;
-        let base_scale = self.scale(base)?;
+        let settings = self.settings()?;
+        let (base, base_scale) = (settings.base_commodity, settings.base_scale);
         let lines = input
             .lines
             .iter()
@@ -262,13 +301,6 @@ impl Ledger {
         })
     }
 
-    fn base_commodity(&self) -> Result<DocId> {
-        self.base.ok_or(Error::MissingReference {
-            kind: "base currency",
-            what: "none is set".to_string(),
-        })
-    }
-
     fn scale(&self, commodity: DocId) -> Result<u8> {
         u8::try_from(self.commodity(commodity)?.scale)
             .map_err(|_| Error::Internal("a stored scale is out of range"))
@@ -321,20 +353,31 @@ impl Ledger {
         self.write(doc, Some(parent.id), body)
     }
 
-    fn write(
-        &mut self,
+    /// A revision stamped with the author and the time, ready for the store.
+    fn revision(
+        &self,
         doc_id: DocId,
         parent_id: Option<RevisionId>,
-        body: Body,
-    ) -> Result<DocRef> {
-        let revision_id = self.store.write_revision(NewRevision {
+        body: &Body,
+    ) -> Result<NewRevision> {
+        Ok(NewRevision {
             doc_kind: body.kind(),
             doc_id,
             parent_id,
             author_id: self.author,
             created_at_ms: self.clock.now_ms(),
             body: body.to_json()?,
-        })?;
+        })
+    }
+
+    fn write(
+        &mut self,
+        doc_id: DocId,
+        parent_id: Option<RevisionId>,
+        body: Body,
+    ) -> Result<DocRef> {
+        let revision = self.revision(doc_id, parent_id, &body)?;
+        let revision_id = self.store.write_revision(revision)?;
         Ok(DocRef {
             doc_id,
             revision_id,

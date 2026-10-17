@@ -100,6 +100,15 @@ impl RuleCode {
                 "Bir fiş önce taslak olarak başlamalı, sonra kaydedilebilir.",
                 "An entry must start as a draft before it can be posted.",
             ),
+            RuleCode::BaseCurrencyLocked => (
+                "Ana para birimi, ilk fiş girildikten sonra değiştirilemez.",
+                "The base currency cannot be changed once an entry exists.",
+            ),
+            RuleCode::SettingsIdFixed => (
+                "Defter ayarları kendi sabit kimliğiyle yazılmalı.",
+                "The book settings must be written under their fixed document id.",
+            ),
+            RuleCode::BookAlreadyOpen => ("Bu defter zaten açılmış.", "This book is already open."),
         };
         match lang {
             Lang::Tr => tr,

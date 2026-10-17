@@ -53,5 +53,6 @@ Order: ~~typed ids~~, settings, rate on line, account fields and system accounts
 - Fixed: a non-draft entry insert raised `entry_unbalanced`; it now raises `entry_must_start_as_draft` (K17). Commodities have no archived state (ADR-0012 corrected; accounts archive instead).
 - Typed ids done (commit ad3e285): `DocId` and `RevisionId` replace the bare `Id` for documents and revisions; the author stays a raw `Id` until the member type exists. A `compile_fail` doctest proves the two cannot be mixed.
 - Base currency decided: fixed per book, locked after the first entry; moving countries is the later "carry over as a new book" feature, display in USD, EUR or gold is virtual (backlog; the date-based rate lookup is an acceptance criterion of core-rebuild-6).
-- Next: the settings document. Talk first about what it holds (proposal: only the base currency in v1).
-- Counts: 75 unit, 28 operation and 76 store tests, 1 doctest, 15 script tests.
+- Settings document done (ADR-0022): `open_book`, `settings`, `set_base_currency`; fixed document id, one projection row with the base currency as a column, the rest of the settings in the JSON body; the base currency is locked once any entry has a revision (K21, sealed; mutation checked). `Ledger` no longer holds a session base currency. Book settings are admin-only: the check is an acceptance criterion of core-rebuild-7 and goes into the one write path.
+- Next: rate on line, account fields and system accounts, input rules, delete, undo, API reference.
+- Counts: 77 unit, 35 operation and 87 store tests, 1 doctest, 15 script tests.

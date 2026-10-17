@@ -13,11 +13,18 @@ pub enum DocKind {
     Commodity,
     Account,
     Entry,
+    Settings,
 }
 
 impl DocKind {
-    /// Every kind, in the order a full rebuild replays them.
-    pub const ALL: [DocKind; 3] = [DocKind::Commodity, DocKind::Account, DocKind::Entry];
+    /// Every kind, in the order a full rebuild replays them: settings name a commodity, so they
+    /// come after the commodities.
+    pub const ALL: [DocKind; 4] = [
+        DocKind::Commodity,
+        DocKind::Settings,
+        DocKind::Account,
+        DocKind::Entry,
+    ];
 
     /// The kind with this stored name, or `None` for a name this build does not know.
     pub fn from_name(name: &str) -> Option<DocKind> {
@@ -30,6 +37,7 @@ impl DocKind {
             DocKind::Commodity => "commodity",
             DocKind::Account => "account",
             DocKind::Entry => "entry",
+            DocKind::Settings => "settings",
         }
     }
 }

@@ -14,6 +14,22 @@ pub struct CommodityBody {
     pub scale: i64,
 }
 
+/// The id every book gives its one settings document. It is the same in every book, so two devices
+/// that open a book on their own write revisions of the same document and a clash shows up as a
+/// visible conflict instead of two settings documents.
+pub const SETTINGS_DOC: DocId = DocId::from_uuid(uuid::Uuid::from_u128(
+    0x0000_0000_0000_7000_8000_0000_0000_0001,
+));
+
+/// The settings of a book that the whole family shares. Personal and device settings live outside
+/// the ledger. A field becomes a column of the projection only when a rule or a query needs it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SettingsBody {
+    /// The currency every entry balances in; fixed once the first entry exists.
+    pub base_commodity: DocId,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AccountKind {
@@ -88,6 +104,7 @@ pub enum Body {
     Commodity(CommodityBody),
     Account(AccountBody),
     Entry(EntryBody),
+    Settings(SettingsBody),
 }
 
 impl Body {
@@ -96,6 +113,7 @@ impl Body {
             Body::Commodity(_) => DocKind::Commodity,
             Body::Account(_) => DocKind::Account,
             Body::Entry(_) => DocKind::Entry,
+            Body::Settings(_) => DocKind::Settings,
         }
     }
 
@@ -105,6 +123,7 @@ impl Body {
             Body::Commodity(b) => serde_json::to_string(b)?,
             Body::Account(b) => serde_json::to_string(b)?,
             Body::Entry(b) => serde_json::to_string(b)?,
+            Body::Settings(b) => serde_json::to_string(b)?,
         })
     }
 
@@ -114,6 +133,7 @@ impl Body {
             DocKind::Commodity => Body::Commodity(serde_json::from_str(json)?),
             DocKind::Account => Body::Account(serde_json::from_str(json)?),
             DocKind::Entry => Body::Entry(serde_json::from_str(json)?),
+            DocKind::Settings => Body::Settings(serde_json::from_str(json)?),
         })
     }
 }

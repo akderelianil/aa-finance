@@ -1,7 +1,7 @@
 # ADR-0021: Sealed ledger kernel, the invariants that never bend
 
 **Date**: 2026-10-17
-**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17)
+**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17; K22 was added the same day with the settings document, [ADR-0022](0022-book-settings-document.md))
 **Deciders**: product owner (core-rebuild-4 talk)
 
 **Relation**: Collects rules that [ADR-0004](0004-balance-by-base-amount-trigger.md), [ADR-0010](0010-amounts-commodities-balancing.md) and [ADR-0012](0012-revisions-as-truth.md) state in prose. It adds no new storage; it makes each rule one row with its enforcement and its test.
@@ -33,16 +33,19 @@ The kernel is the set of rows below. A row is only "sealed" when the database (o
 | K16 | The projection can always be rebuilt from revisions and compared | `rebuild_projection`, `verify_projection` | (report) | store/rebuild.rs: `a_rebuild_reproduces_the_incremental_projection_exactly`; store/verify.rs |
 | K17 | An entry row starts as a draft and becomes posted only through the balance check | trigger on insert | `entry_must_start_as_draft` | store/entries.rs: `an_entry_cannot_be_inserted_as_posted_without_its_lines` |
 | K18 | A commodity code is used once | `UNIQUE` | `commodity_code_taken` | store/validation.rs: `a_duplicate_commodity_code_scale_range_and_amount_bound_have_codes` |
+| K21 | The base currency is fixed once any entry has a revision (a draft counts); it can change before that | trigger on `settings.base_commodity_id` | `base_currency_locked` | store/settings.rs: `the_base_currency_is_locked_once_an_entry_exists`, `a_draft_entry_locks_the_base_currency_too`, `a_refused_base_change_leaves_the_settings_as_they_were`; ops/settings.rs: `the_base_currency_is_locked_by_the_first_entry` |
+| K22 | A book has one settings document, under one fixed id; its row is written only by the projector | Rust check in the projector; `CHECK (id = 1)`; projection gate | `settings_id_fixed`, `projection_closed` | store/settings.rs: `settings_under_any_other_document_id_are_refused`, `only_the_projector_writes_the_settings_table` |
+
+K21 and K22 keep the numbers they had when they were planned, so references in the story and the notes stay valid.
 
 ### Decided, not yet sealed (to build in core-rebuild-4)
 | # | Invariant | Plan | Code (new) |
 |---|---|---|---|
 | K19 | Nothing is hard-deleted; delete is a `deleted` status that drops the lines from the projection | tombstone revision, trigger keeps lines of a deleted entry out of balance sums | to be named in the story |
 | K20 | The Rounding account is opened and locked by the system; a locked account cannot be edited or archived by a user | `locked` and `system_key` as account data | `account_locked` |
-| K21 | The base currency is fixed per book once the first entry exists | settings check | `base_currency_locked` |
 
 ### Refusals of input, not invariants
-These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, and `nothing_to_undo`. The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
+These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo` and `book_already_open` (a book is opened once). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
 
 ### Found while writing this table
 - **Commodities have no archived state.** ADR-0012 says "archived commodities and accounts take no new lines". Only accounts archive. A commodity is never deleted, and to stop using one the user archives its accounts; the UI can hide a commodity that has no active account. Decision (2026-10-17): correct ADR-0012 (done there); no commodity archive in v1.
@@ -66,7 +69,7 @@ These codes stop bad input at the boundary in Rust, before anything is stored: `
 ## Consequences
 ### Positive
 - One place answers "what can never happen, and what stops it".
-- Gaps are visible (K19 to K21).
+- Gaps are visible (K19 and K20).
 ### Negative
 - A row has to be edited when a test is renamed.
 ### Risks

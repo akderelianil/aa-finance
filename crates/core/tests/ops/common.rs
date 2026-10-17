@@ -36,9 +36,8 @@ pub fn book() -> Book {
     let author = new_id();
     let store = aa_core::Store::open_in_memory().unwrap();
     let mut ledger = Ledger::new(store, author, Box::new(clock.clone()));
-    let try_id = ledger.create_commodity("TRY", 2).unwrap().doc_id;
+    let try_id = ledger.open_book("TRY", 2).unwrap().doc_id;
     let usd_id = ledger.create_commodity("USD", 2).unwrap().doc_id;
-    ledger.set_base_commodity(try_id).unwrap();
     let cash = ledger
         .create_account(account("Cash", try_id))
         .unwrap()

@@ -4,7 +4,7 @@
 CREATE TABLE revision (
   seq INTEGER PRIMARY KEY,
   id BLOB NOT NULL UNIQUE CHECK (length(id) = 16),
-  doc_kind TEXT NOT NULL CHECK (doc_kind IN ('commodity', 'account', 'entry')),
+  doc_kind TEXT NOT NULL CHECK (doc_kind IN ('commodity', 'account', 'entry', 'settings')),
   doc_id BLOB NOT NULL CHECK (length(doc_id) = 16),
   parent_id BLOB CHECK (parent_id IS NULL OR length(parent_id) = 16),
   author_id BLOB NOT NULL CHECK (length(author_id) = 16),
@@ -117,6 +117,33 @@ BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 CREATE TRIGGER commodity_delete_gate BEFORE DELETE ON commodity
 WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+-- The one row of the settings document (a fixed document id). Only fields that a rule or a query
+-- needs are columns; the rest of the settings stay in the revision body.
+CREATE TABLE settings (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  uuid BLOB NOT NULL UNIQUE CHECK (length(uuid) = 16),
+  current_revision_id BLOB NOT NULL REFERENCES revision (id),
+  base_commodity_id INTEGER NOT NULL REFERENCES commodity (id)
+) STRICT;
+
+CREATE TRIGGER settings_insert_gate BEFORE INSERT ON settings
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER settings_update_gate BEFORE UPDATE ON settings
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER settings_delete_gate BEFORE DELETE ON settings
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+-- The base currency is fixed once any entry has a revision, also a draft or a deleted one.
+CREATE TRIGGER settings_base_locked BEFORE UPDATE OF base_commodity_id ON settings
+WHEN NEW.base_commodity_id <> OLD.base_commodity_id
+  AND EXISTS (SELECT 1 FROM revision WHERE doc_kind = 'entry')
+BEGIN SELECT RAISE(ABORT, 'base_currency_locked'); END;
 
 CREATE TRIGGER account_insert_gate BEFORE INSERT ON account
 WHEN (SELECT open FROM projection_session) IS NOT 1

@@ -231,13 +231,3 @@ fn a_failed_edit_leaves_the_entry_as_it_was() {
         "12.50"
     );
 }
-
-#[test]
-fn the_base_currency_cannot_be_swapped_for_another() {
-    // Arrange
-    let mut b = book();
-    // Act
-    let result = b.ledger.set_base_commodity(b.usd_id);
-    // Assert
-    assert!(result.is_err());
-}

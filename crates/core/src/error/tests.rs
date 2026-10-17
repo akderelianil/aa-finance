@@ -3,7 +3,7 @@
 use super::*;
 
 /// Every rule code. `listed` below stops compiling when a variant is added, so this list cannot be forgotten.
-const ALL: [RuleCode; 24] = [
+const ALL: [RuleCode; 27] = [
     RuleCode::ProjectionClosed,
     RuleCode::RevisionImmutable,
     RuleCode::RevisionParentMismatch,
@@ -28,6 +28,9 @@ const ALL: [RuleCode; 24] = [
     RuleCode::LineEmpty,
     RuleCode::NothingToUndo,
     RuleCode::EntryMustStartAsDraft,
+    RuleCode::BaseCurrencyLocked,
+    RuleCode::SettingsIdFixed,
+    RuleCode::BookAlreadyOpen,
 ];
 
 #[test]
@@ -57,7 +60,10 @@ fn the_list_of_all_codes_covers_every_variant() {
             | RuleCode::RateBaseConflict
             | RuleCode::LineEmpty
             | RuleCode::NothingToUndo
-            | RuleCode::EntryMustStartAsDraft => true,
+            | RuleCode::EntryMustStartAsDraft
+            | RuleCode::BaseCurrencyLocked
+            | RuleCode::SettingsIdFixed
+            | RuleCode::BookAlreadyOpen => true,
         }
     }
     assert!(ALL.iter().all(|code| listed(*code)));

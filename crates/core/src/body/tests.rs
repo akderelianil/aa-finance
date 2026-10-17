@@ -41,7 +41,10 @@ fn every_body_reads_back_exactly_as_written() {
         archived: false,
     });
     let entry = Body::Entry(entry());
-    for body in [commodity, account, entry] {
+    let settings = Body::Settings(SettingsBody {
+        base_commodity: DocId::new(),
+    });
+    for body in [commodity, account, entry, settings] {
         let json = body.to_json().unwrap();
         assert_eq!(Body::from_json(body.kind(), &json).unwrap(), body);
     }
@@ -60,6 +63,28 @@ fn a_body_with_an_unknown_field_is_refused() {
         Body::from_json(DocKind::Commodity, json),
         Err(Error::InvalidBody(_))
     ));
+}
+
+#[test]
+fn a_settings_body_refuses_unknown_fields_and_a_missing_base() {
+    let extra = format!(r#"{{"base_commodity":"{}","country":"TR"}}"#, DocId::new());
+    assert!(matches!(
+        Body::from_json(DocKind::Settings, &extra),
+        Err(Error::InvalidBody(_))
+    ));
+    assert!(matches!(
+        Body::from_json(DocKind::Settings, "{}"),
+        Err(Error::InvalidBody(_))
+    ));
+}
+
+#[test]
+fn the_settings_document_has_one_fixed_id_in_every_book() {
+    assert_eq!(
+        SETTINGS_DOC.to_string(),
+        "00000000-0000-7000-8000-000000000001"
+    );
+    assert_eq!(SETTINGS_DOC.as_uuid().get_version_num(), 7);
 }
 
 #[test]

@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 179 tests.
+Total: 199 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -19,7 +19,7 @@ Commodities and accounts through the operations: the author and the time are sta
 - A child account can be created under a parent
 - Naming a wrong kind of document as an account is a missing reference
 
-### ops/entries.rs (15)
+### ops/entries.rs (14)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
 
 - A balanced entry is posted from canonical strings
@@ -36,7 +36,18 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - A rate other than one on a base currency line is refused
 - A zero line and a bad date are refused with codes
 - A failed edit leaves the entry as it was
-- The base currency cannot be swapped for another
+
+### ops/settings.rs (8)
+Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).
+
+- Opening a book creates the base currency and the settings
+- A book can be opened only once
+- A book with an invalid base currency is not opened
+- A book without settings has no base currency to read
+- A ledger opened over the same file finds the base currency
+- The base currency can change until the first entry
+- The base currency is locked by the first entry
+- The base currency must be a commodity
 
 ### ops/undo.rs (5)
 Undo is a new revision that restores the previous body; nothing is removed and the history keeps both.
@@ -122,6 +133,21 @@ Revisions are immutable and chain correctly: no edit or delete, a parent belongs
 - Every column of a revision is immutable
 - A replace cannot rewrite a revision
 
+### store/settings.rs (11)
+The settings document: one revisioned document under a fixed id whose projection holds the base currency; the base currency is locked once an entry exists (ADR-0021, K21 and K22).
+
+- The settings document projects the base currency
+- Settings that name an unknown commodity are a missing reference
+- Settings under any other document id are refused
+- The base currency can change until the first entry exists
+- The base currency is locked once an entry exists
+- A draft entry locks the base currency too
+- A new settings revision with the same base is allowed after entries
+- A refused base change leaves the settings as they were
+- Only the projector writes the settings table
+- Verify projection finds a changed base currency
+- A rebuild restores the settings
+
 ### store/storage.rs (5)
 The ledger file: WAL and foreign keys, two connections writing one file, a file that is not ours, and a drive without WAL support.
 
@@ -180,12 +206,14 @@ Reading and writing amounts: the canonical form and both separator styles, every
 - Canonical text parses to the exact scaled integer
 - Formatting never panics for any value
 
-### body/tests.rs (6)
+### body/tests.rs (8)
 The typed revision bodies: what is written is what is read back, and nothing unknown gets in.
 
 - Every body reads back exactly as written
 - The json of a body is deterministic
 - A body with an unknown field is refused
+- A settings body refuses unknown fields and a missing base
+- The settings document has one fixed id in every book
 - A body of the wrong kind is refused
 - An unknown account kind is refused
 - A body knows its document kind

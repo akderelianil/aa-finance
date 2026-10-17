@@ -47,7 +47,7 @@ macro_rules! typed_id {
                 Self(new_id())
             }
 
-            pub fn from_uuid(id: Id) -> Self {
+            pub const fn from_uuid(id: Id) -> Self {
                 Self(id)
             }
 

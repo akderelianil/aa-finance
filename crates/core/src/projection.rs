@@ -2,7 +2,9 @@
 //! Only this module opens `projection_session`; triggers refuse any other writer. The gate stops faulty
 //! writers, not hostile ones: anyone holding the raw connection can open it.
 
-use crate::body::{AccountBody, CommodityBody, EntryBody, EntryStatus, LineBody};
+use crate::body::{
+    AccountBody, CommodityBody, EntryBody, EntryStatus, LineBody, SettingsBody, SETTINGS_DOC,
+};
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, RevisionId};
 use crate::store::DocKind;
@@ -132,16 +134,17 @@ pub(crate) fn rebuild(
         DocKind::Commodity => write_commodity(conn, doc_id, revision_id, &body),
         DocKind::Account => write_account(conn, doc_id, revision_id, &body),
         DocKind::Entry => write_entry(conn, doc_id, revision_id, &body, carry_all),
+        DocKind::Settings => write_settings(conn, doc_id, revision_id, &body),
     })
 }
 
 /// Empties the projection and rebuilds all of it from the revisions: commodities, then accounts (parents first), then entries.
 pub(crate) fn rebuild_all(conn: &Connection) -> Result<()> {
     with_session(conn, true, || {
-        conn.execute_batch("UPDATE entry SET status = 'draft'; DELETE FROM line; DELETE FROM entry; UPDATE account SET parent_id = NULL; DELETE FROM account; DELETE FROM commodity;")?;
+        conn.execute_batch("UPDATE entry SET status = 'draft'; DELETE FROM line; DELETE FROM entry; UPDATE account SET parent_id = NULL; DELETE FROM account; DELETE FROM settings; DELETE FROM commodity;")?;
         Ok(())
     })?;
-    for kind in [DocKind::Commodity, DocKind::Account, DocKind::Entry] {
+    for kind in DocKind::ALL {
         let mut pending = docs_of(conn, kind)?;
         while !pending.is_empty() {
             let before = pending.len();
@@ -187,6 +190,25 @@ fn write_commodity(
         "INSERT INTO commodity (uuid, current_revision_id, code, scale) VALUES (?1, ?2, ?3, ?4)
          ON CONFLICT (uuid) DO UPDATE SET current_revision_id = excluded.current_revision_id, code = excluded.code, scale = excluded.scale",
         params![doc_id, revision_id, b.code, b.scale],
+    )?;
+    Ok(())
+}
+
+fn write_settings(
+    conn: &Connection,
+    doc_id: DocId,
+    revision_id: RevisionId,
+    body: &str,
+) -> Result<()> {
+    if doc_id != SETTINGS_DOC {
+        return Err(Error::Rule(RuleCode::SettingsIdFixed));
+    }
+    let b: SettingsBody = serde_json::from_str(body)?;
+    let base = commodity_id(conn, b.base_commodity)?;
+    conn.execute(
+        "INSERT INTO settings (id, uuid, current_revision_id, base_commodity_id) VALUES (1, ?1, ?2, ?3)
+         ON CONFLICT (id) DO UPDATE SET current_revision_id = excluded.current_revision_id, base_commodity_id = excluded.base_commodity_id",
+        params![doc_id, revision_id, base],
     )?;
     Ok(())
 }
@@ -319,10 +341,12 @@ pub(crate) fn verify(conn: &Connection) -> Result<Vec<Drift>> {
         (DocKind::Commodity, "commodity"),
         (DocKind::Account, "account"),
         (DocKind::Entry, "entry"),
+        (DocKind::Settings, "settings"),
     ] {
         check_pointers(conn, kind, table, &mut found)?;
     }
     check_commodities(conn, &mut found)?;
+    check_settings(conn, &mut found)?;
     check_accounts(conn, &mut found)?;
     check_entries(conn, &mut found)?;
     Ok(found
@@ -380,6 +404,33 @@ fn check_commodities(conn: &Connection, found: &mut Found) -> Result<()> {
             _ => note(
                 found,
                 DocKind::Commodity,
+                uuid,
+                DriftReason::DiffersFromRevision,
+            ),
+        }
+    }
+    Ok(())
+}
+
+fn check_settings(conn: &Connection, found: &mut Found) -> Result<()> {
+    let mut stmt = conn.prepare(
+        "SELECT s.uuid, c.uuid, r.body FROM settings s JOIN commodity c ON c.id = s.base_commodity_id
+         JOIN revision r ON r.id = s.current_revision_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, DocId>(0)?,
+            row.get::<_, DocId>(1)?,
+            row.get::<_, String>(2)?,
+        ))
+    })?;
+    for row in rows {
+        let (uuid, base, body) = row?;
+        match serde_json::from_str::<SettingsBody>(&body) {
+            Ok(b) if b.base_commodity == base => {}
+            _ => note(
+                found,
+                DocKind::Settings,
                 uuid,
                 DriftReason::DiffersFromRevision,
             ),

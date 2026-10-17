@@ -5,4 +5,5 @@
 mod accounts;
 mod common;
 mod entries;
+mod settings;
 mod undo;

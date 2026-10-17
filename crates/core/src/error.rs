@@ -39,6 +39,9 @@ pub enum RuleCode {
     LineEmpty,
     NothingToUndo,
     EntryMustStartAsDraft,
+    BaseCurrencyLocked,
+    SettingsIdFixed,
+    BookAlreadyOpen,
 }
 
 impl RuleCode {
@@ -69,10 +72,13 @@ impl RuleCode {
             RuleCode::LineEmpty => "line_empty",
             RuleCode::NothingToUndo => "nothing_to_undo",
             RuleCode::EntryMustStartAsDraft => "entry_must_start_as_draft",
+            RuleCode::BaseCurrencyLocked => "base_currency_locked",
+            RuleCode::SettingsIdFixed => "settings_id_fixed",
+            RuleCode::BookAlreadyOpen => "book_already_open",
         }
     }
 
-    pub(crate) const TRIGGER_CODES: [RuleCode; 11] = [
+    pub(crate) const TRIGGER_CODES: [RuleCode; 12] = [
         RuleCode::ProjectionClosed,
         RuleCode::RevisionImmutable,
         RuleCode::RevisionParentMismatch,
@@ -84,6 +90,7 @@ impl RuleCode {
         RuleCode::AccountCommodityLocked,
         RuleCode::RevisionKindMismatch,
         RuleCode::EntryMustStartAsDraft,
+        RuleCode::BaseCurrencyLocked,
     ];
 }
 

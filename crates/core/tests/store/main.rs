@@ -9,6 +9,7 @@ mod entries;
 mod failures;
 mod rebuild;
 mod revisions;
+mod settings;
 mod storage;
 mod validation;
 mod verify;

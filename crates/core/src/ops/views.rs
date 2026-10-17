@@ -53,6 +53,14 @@ pub struct LineView {
     pub base: String,
 }
 
+/// The settings of the book, with the base currency spelled out.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct SettingsView {
+    pub base_commodity: DocId,
+    pub base_code: String,
+    pub base_scale: u8,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EntryView {
     pub date: String,

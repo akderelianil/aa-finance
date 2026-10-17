@@ -5,10 +5,10 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 041dd174-e7cc-4221-b414-0b1342261923
-  modified: 2026-10-17T12:19:53.440Z
+  modified: 2026-10-17T12:32:25.892Z
 ---
 
-State on 2026-10-17: core-rebuild-4 is in progress (slice 1 of `ops::Ledger`, typed `DocId`/`RevisionId` in commit ad3e285, ADR-0021 sealed kernel accepted with `npm run kernel:check` in `verify`, base currency fixed per book). Next is the settings document (talk first about what it holds; proposal: only the base currency in v1), then rate on line, account fields and system accounts, input rules, delete, undo, API reference; details in [[core-rebuild-4-decisions]] and `.stories/core-rebuild-4.md`. Counts: 75 unit, 28 operation, 76 store tests, 1 doctest, 15 script tests.
+State on 2026-10-17: core-rebuild-4 is in progress (slice 1 of `ops::Ledger`, typed `DocId`/`RevisionId` in commit ad3e285, ADR-0021 sealed kernel accepted with `npm run kernel:check` in `verify`, base currency fixed per book). The settings document is built (ADR-0022: `open_book`, `settings`, `set_base_currency`, base currency locked by the first entry). Next: rate on line, account fields and system accounts, input rules, delete, undo, API reference; details in [[core-rebuild-4-decisions]] and `.stories/core-rebuild-4.md`. Counts: 77 unit, 35 operation, 87 store tests, 1 doctest, 15 script tests.
 
 State on 2026-10-14: foundation-reset closed. core-rebuild-1, -2 and -3 are done (store with revisions, projection, verify; exact amounts, rates, rounding line). Reviewer agents (rust-reviewer, silent-failure-hunter, type-design-analyzer, pr-test-analyzer) ran on both; their schema and test findings are fixed (136 tests, mutation experiments on every money and store check, 99.1 percent line coverage). Coverage floor is now 95 percent on money, rules and crypto (ADR-0020, owner feedback). Open store items went into core-rebuild-11 (needs-attention state, idempotent import, provenance); hand-offs for the API went into core-rebuild-4. release-and-quality-5 freezes the deterministic body form before the first release.
 
