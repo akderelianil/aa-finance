@@ -355,3 +355,65 @@ fn an_edit_that_gets_exact_values_drops_the_old_rounding_line() {
     // Assert
     assert_eq!(b.ledger.entry(posted.doc_id).unwrap().lines.len(), 2);
 }
+
+fn posted_lunch(b: &mut Book) -> DocId {
+    let (food, cash) = (b.food, b.cash);
+    b.ledger
+        .post_entry(entry(vec![line(food, "12.50"), line(cash, "-12.50")]))
+        .unwrap()
+        .doc_id
+}
+
+#[test]
+fn deleting_an_entry_keeps_its_revisions_and_marks_it_deleted() {
+    // Arrange
+    let mut b = book();
+    let lunch = posted_lunch(&mut b);
+    // Act
+    b.ledger.delete_entry(lunch).unwrap();
+    // Assert
+    let detail = b.ledger.entry(lunch).unwrap();
+    assert!(detail.deleted);
+    assert_eq!(detail.lines.len(), 2);
+    assert_eq!(b.ledger.history(lunch).unwrap().len(), 2);
+}
+
+#[test]
+fn undoing_a_delete_brings_the_entry_back() {
+    // Arrange
+    let mut b = book();
+    let lunch = posted_lunch(&mut b);
+    b.ledger.delete_entry(lunch).unwrap();
+    // Act
+    b.ledger.undo(lunch).unwrap();
+    // Assert
+    let detail = b.ledger.entry(lunch).unwrap();
+    assert!(!detail.deleted);
+    assert_eq!(detail.lines[0].amount, "12.50");
+}
+
+#[test]
+fn a_deleted_entry_cannot_be_edited_or_deleted_again() {
+    // Arrange
+    let mut b = book();
+    let lunch = posted_lunch(&mut b);
+    b.ledger.delete_entry(lunch).unwrap();
+    // Act
+    let edited = b
+        .ledger
+        .edit_entry(lunch, entry(vec![line(b.food, "1"), line(b.cash, "-1")]));
+    let again = b.ledger.delete_entry(lunch);
+    // Assert
+    assert!(matches!(edited, Err(Error::Rule(RuleCode::EntryDeleted))));
+    assert!(matches!(again, Err(Error::Rule(RuleCode::EntryDeleted))));
+}
+
+#[test]
+fn deleting_something_that_is_not_an_entry_is_a_missing_reference() {
+    // Arrange
+    let mut b = book();
+    // Act
+    let result = b.ledger.delete_entry(b.cash);
+    // Assert
+    assert!(matches!(result, Err(Error::MissingReference { .. })));
+}

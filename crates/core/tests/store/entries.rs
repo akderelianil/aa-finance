@@ -333,3 +333,79 @@ fn an_entry_cannot_be_inserted_as_posted_without_its_lines() {
         Err(Error::Rule(RuleCode::EntryMustStartAsDraft))
     ));
 }
+
+fn deleted_body(w: &World, amounts: &[(DocId, i64)]) -> serde_json::Value {
+    entry_body(w, "deleted", amounts)
+}
+
+#[test]
+fn a_deleted_entry_keeps_no_lines_in_the_projection() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    let (entry, first) = post(&mut w, &[(food, 5000), (cash, -5000)]);
+    // Act
+    w.store
+        .write_revision(rev(
+            DocKind::Entry,
+            entry,
+            Some(first),
+            deleted_body(&w, &[(food, 5000), (cash, -5000)]),
+        ))
+        .unwrap();
+    // Assert
+    assert_eq!(count(&w.store, "SELECT count(*) FROM line"), 0);
+    assert_eq!(
+        count(
+            &w.store,
+            "SELECT count(*) FROM entry WHERE status = 'deleted'"
+        ),
+        1
+    );
+    assert!(w.store.verify_projection().unwrap().is_empty());
+}
+
+#[test]
+fn a_restored_entry_gets_its_lines_back_and_a_rebuild_agrees() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    let (entry, first) = post(&mut w, &[(food, 5000), (cash, -5000)]);
+    let tombstone = w
+        .store
+        .write_revision(rev(
+            DocKind::Entry,
+            entry,
+            Some(first),
+            deleted_body(&w, &[(food, 5000), (cash, -5000)]),
+        ))
+        .unwrap();
+    // Act
+    w.store
+        .write_revision(rev(
+            DocKind::Entry,
+            entry,
+            Some(tombstone),
+            entry_body(&w, "posted", &[(food, 5000), (cash, -5000)]),
+        ))
+        .unwrap();
+    w.store.rebuild_projection().unwrap();
+    // Assert
+    assert_eq!(count(&w.store, "SELECT count(*) FROM line"), 2);
+    assert!(w.store.verify_projection().unwrap().is_empty());
+}
+
+#[test]
+fn a_deleted_entry_row_cannot_hold_lines() {
+    // Arrange
+    let mut w = world();
+    let (food, cash) = (w.food, w.cash);
+    post(&mut w, &[(food, 5000), (cash, -5000)]);
+    // Act
+    let result = w.store.tamper("UPDATE entry SET status = 'deleted'");
+    // Assert
+    assert!(matches!(
+        result,
+        Err(Error::Rule(RuleCode::EntryDeletedHasLines))
+    ));
+}

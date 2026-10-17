@@ -302,7 +302,12 @@ fn write_entry(
         "INSERT INTO line (entry_id, line_no, account_id, commodity_id, quantity, base_value) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
     )?;
     let mut carrying = false;
-    for (line_no, line) in b.lines.iter().enumerate() {
+    let kept = if b.status == EntryStatus::Deleted {
+        &[][..]
+    } else {
+        &b.lines[..]
+    };
+    for (line_no, line) in kept.iter().enumerate() {
         let account = account_id(conn, line.account)?;
         let commodity = commodity_id(conn, line.commodity)?;
         let carried = carry_all
@@ -323,7 +328,7 @@ fn write_entry(
             line.base_value
         ])?;
     }
-    if b.status == EntryStatus::Posted {
+    if b.status != EntryStatus::Draft {
         conn.execute(
             "UPDATE entry SET status = ?2 WHERE id = ?1",
             params![entry_id, b.status.as_str()],
@@ -528,7 +533,7 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
                     && b.memo == memo
                     && b.no == no
                     && b.status.as_str() == status
-                    && without_rates(&b.lines) == actual
+                    && expected_lines(&b) == actual
                     && numbered =>
             {
                 if status == "posted" && (actual.len() < 2 || sum != 0) {
@@ -551,9 +556,14 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
     Ok(())
 }
 
-/// The lines as the database holds them: the rate is kept in the body only.
-fn without_rates(lines: &[LineBody]) -> Vec<LineBody> {
-    lines
+/// The lines as the database holds them: the rate is kept in the body only, and a deleted entry
+/// keeps none.
+fn expected_lines(entry: &EntryBody) -> Vec<LineBody> {
+    if entry.status == EntryStatus::Deleted {
+        return Vec::new();
+    }
+    entry
+        .lines
         .iter()
         .map(|line| LineBody {
             rate: None,

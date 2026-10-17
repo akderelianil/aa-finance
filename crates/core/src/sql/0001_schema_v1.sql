@@ -88,7 +88,7 @@ CREATE TABLE entry (
   date TEXT NOT NULL CHECK (date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]' AND date(date) IS date),
   memo TEXT,
   no TEXT,
-  status TEXT NOT NULL CHECK (status IN ('draft', 'posted'))
+  status TEXT NOT NULL CHECK (status IN ('draft', 'posted', 'deleted'))
 ) STRICT;
 
 CREATE INDEX entry_date ON entry (date, id);
@@ -190,6 +190,15 @@ BEGIN
   SELECT RAISE(ABORT, 'entry_too_few_lines') WHERE (SELECT count(*) FROM line WHERE entry_id = NEW.id) < 2;
   SELECT RAISE(ABORT, 'entry_unbalanced') WHERE (SELECT sum(base_value) FROM line WHERE entry_id = NEW.id) <> 0;
 END;
+
+-- Delete is a status, never a removal: a deleted entry keeps no lines in the projection, so no balance or report sees it.
+CREATE TRIGGER entry_deleted_has_no_lines BEFORE UPDATE OF status ON entry
+WHEN NEW.status = 'deleted' AND EXISTS (SELECT 1 FROM line WHERE entry_id = NEW.id)
+BEGIN SELECT RAISE(ABORT, 'entry_deleted_has_lines'); END;
+
+CREATE TRIGGER line_not_on_deleted_entry BEFORE INSERT ON line
+WHEN (SELECT status FROM entry WHERE id = NEW.entry_id) = 'deleted'
+BEGIN SELECT RAISE(ABORT, 'entry_deleted_has_lines'); END;
 
 CREATE TRIGGER entry_starts_as_draft BEFORE INSERT ON entry
 WHEN NEW.status <> 'draft'

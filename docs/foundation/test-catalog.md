@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 218 tests.
+Total: 225 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -28,7 +28,7 @@ Commodities and accounts through the operations: the author and the time are sta
 - Two accounts under one parent cannot share a name
 - Renaming an account to its own name is allowed
 
-### ops/entries.rs (20)
+### ops/entries.rs (24)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
 
 - A balanced entry is posted from canonical strings
@@ -51,6 +51,10 @@ Posting and editing entries through the operations: amounts arrive as canonical 
 - An edit that drops the rate and gives a base replaces the stored rate
 - A rounding difference of converted lines goes to the rounding account
 - An edit that gets exact values drops the old rounding line
+- Deleting an entry keeps its revisions and marks it deleted
+- Undoing a delete brings the entry back
+- A deleted entry cannot be edited or deleted again
+- Deleting something that is not an entry is a missing reference
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).
@@ -104,7 +108,7 @@ Server order and conflicts: the earliest server sequence is the head, a sibling 
 - A sequenced branch beats an unsequenced one whatever their times
 - A revision of a kind this build does not know is an internal error
 
-### store/entries.rs (15)
+### store/entries.rs (18)
 Posting entries: an entry balances to exactly zero, a revision replaces its lines and keeps history, and a faulty writer cannot unbalance a posted entry (ADR-0004, ADR-0010, ADR-0012).
 
 - A balanced posted entry projects its lines
@@ -122,6 +126,9 @@ Posting entries: an entry balances to exactly zero, a revision replaces its line
 - Lines of a posted entry cannot be added or removed directly
 - A draft cannot be posted directly when it does not balance
 - An entry cannot be inserted as posted without its lines
+- A deleted entry keeps no lines in the projection
+- A restored entry gets its lines back and a rebuild agrees
+- A deleted entry row cannot hold lines
 
 ### store/failures.rs (3)
 A database that breaks in the middle of an operation: each case damages the schema, then the operation must return an error and change nothing.

@@ -73,6 +73,8 @@ pub struct AccountBody {
 pub enum EntryStatus {
     Draft,
     Posted,
+    /// A tombstone: the revision keeps the lines, the projection drops them.
+    Deleted,
 }
 
 impl EntryStatus {
@@ -80,6 +82,7 @@ impl EntryStatus {
         match self {
             EntryStatus::Draft => "draft",
             EntryStatus::Posted => "posted",
+            EntryStatus::Deleted => "deleted",
         }
     }
 }

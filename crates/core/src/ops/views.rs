@@ -69,6 +69,8 @@ pub struct SettingsView {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EntryView {
+    /// True after a delete; the lines are still shown, the books do not count them.
+    pub deleted: bool,
     pub date: String,
     pub memo: Option<String>,
     pub no: Option<String>,

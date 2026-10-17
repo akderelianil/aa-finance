@@ -220,9 +220,26 @@ impl Ledger {
     }
 
     pub fn edit_entry(&mut self, entry: DocId, input: EntryInput) -> Result<DocRef> {
-        self.entry_body_of(entry)?;
+        self.live_entry_body(entry)?;
         let body = self.entry_body(input)?;
         self.write_next(entry, Body::Entry(body))
+    }
+
+    /// Deletes an entry: a tombstone revision that keeps the lines for the history and takes them
+    /// out of the books. Undo brings the entry back.
+    pub fn delete_entry(&mut self, entry: DocId) -> Result<DocRef> {
+        let mut body = self.live_entry_body(entry)?;
+        body.status = EntryStatus::Deleted;
+        self.write_next(entry, Body::Entry(body))
+    }
+
+    /// The body of an entry that is not deleted.
+    fn live_entry_body(&self, entry: DocId) -> Result<EntryBody> {
+        let body = self.entry_body_of(entry)?;
+        if body.status == EntryStatus::Deleted {
+            return Err(Error::Rule(RuleCode::EntryDeleted));
+        }
+        Ok(body)
     }
 
     /// Writes the body of the previous version as a new revision. Doing it again brings the undone
@@ -281,6 +298,7 @@ impl Ledger {
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(EntryView {
+            deleted: body.status == EntryStatus::Deleted,
             date: body.date,
             memo: body.memo,
             no: body.no,

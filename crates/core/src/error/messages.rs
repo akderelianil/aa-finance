@@ -129,6 +129,14 @@ impl RuleCode {
                 "Aynı üst hesabın altında bu adla başka bir hesap var.",
                 "Another account with this name already exists under the same parent.",
             ),
+            RuleCode::EntryDeletedHasLines => (
+                "Silinmiş bir fişin satırı olamaz.",
+                "A deleted entry cannot have lines.",
+            ),
+            RuleCode::EntryDeleted => (
+                "Bu fiş silinmiş; önce silme geri alınmalı.",
+                "This entry is deleted; undo the delete first.",
+            ),
             RuleCode::SystemKeyTaken => (
                 "Bu sistem anahtarı başka bir hesapta zaten kullanılıyor.",
                 "This system key is already used by another account.",

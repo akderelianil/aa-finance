@@ -48,6 +48,8 @@ pub enum RuleCode {
     AccountParentArchived,
     AccountParentKindMismatch,
     AccountNameTaken,
+    EntryDeletedHasLines,
+    EntryDeleted,
 }
 
 impl RuleCode {
@@ -87,10 +89,12 @@ impl RuleCode {
             RuleCode::AccountParentArchived => "account_parent_archived",
             RuleCode::AccountParentKindMismatch => "account_parent_kind_mismatch",
             RuleCode::AccountNameTaken => "account_name_taken",
+            RuleCode::EntryDeletedHasLines => "entry_deleted_has_lines",
+            RuleCode::EntryDeleted => "entry_deleted",
         }
     }
 
-    pub(crate) const TRIGGER_CODES: [RuleCode; 13] = [
+    pub(crate) const TRIGGER_CODES: [RuleCode; 14] = [
         RuleCode::ProjectionClosed,
         RuleCode::RevisionImmutable,
         RuleCode::RevisionParentMismatch,
@@ -104,6 +108,7 @@ impl RuleCode {
         RuleCode::EntryMustStartAsDraft,
         RuleCode::BaseCurrencyLocked,
         RuleCode::AccountLocked,
+        RuleCode::EntryDeletedHasLines,
     ];
 }
 
