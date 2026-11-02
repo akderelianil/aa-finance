@@ -13,6 +13,7 @@ pub mod migrate;
 pub mod ops;
 mod projection;
 pub mod rate;
+pub mod scenario;
 mod store;
 
 pub use error::{Error, Lang, Result, RuleCode};

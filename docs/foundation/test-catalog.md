@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 246 tests.
+Total: 275 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -354,3 +354,36 @@ Rates and base values: the rounding rule checked against an independent calculat
 - Parsing a rate never panics
 - The rounding line always balances the entry
 - Large sums never wrap
+
+### scenario/expr/tests.rs (29)
+The scenario expression language (ADR-0024): what loads, what is refused at load, and exact, checked evaluation over amounts of one commodity.
+
+- Adds and subtracts left to right
+- Unary minus binds tighter than subtraction
+- Sum adds a field of every list item
+- Sum of an empty list is a zero that compares with any commodity
+- Every comparison gives the expected answer
+- Zero is the only literal and carries no commodity
+- Not binds tighter than and which binds tighter than or
+- The type of a loaded expression is known before it runs
+- Whitespace between tokens is free
+- Refuses an empty or blank expression
+- Refuses any number other than zero
+- Refuses operators the grammar does not have
+- Refuses a chained comparison
+- Refuses unbalanced parentheses and trailing text
+- Refuses names outside the name pattern
+- Refuses keywords as names
+- Refuses an unknown name or list field
+- Refuses a list or a dotted path used as a plain name
+- Refuses mixing amounts and booleans
+- Refuses text longer than the limit
+- Refuses nesting deeper than the limit
+- A syntax error points at the offending character
+- Mixing two commodities is an error not a conversion
+- Overflow is an error never a wrap
+- A value the environment does not have is an error
+- And or evaluate both sides so a missing value is never hidden
+- Loading arbitrary text never panics
+- Loading token soup never panics
+- Arithmetic matches wide integers or reports overflow

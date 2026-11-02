@@ -23,7 +23,8 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 ## Progress (2026-11-02)
 
 - ADR-0024: own minimal grammar, scenario format, describe/draft API, choice options, minimal contact document, required rate on foreign lines.
-- Next: expression module (`scenario::expr`: lexer, parser, type check, checked evaluation), tests first.
+- Done: expression module `scenario::expr` (lexer and parser in `expr/parse.rs`, separate amount and boolean trees, checked evaluation); 29 unit tests incl. 3 properties; lines 100 and 98.8 percent; mutations on the commodity check and the depth limit caught.
+- Next: the minimal contact document (`create_contact`, line contact id checked by the database), then the scenario document format and loader.
 
 ## Definition of Done
 
