@@ -44,7 +44,7 @@ Every input has `name`, `type`, `label` (a string key) and `required` (default `
 | Type | Value the UI sends | Extra fields | In expressions |
 |---|---|---|---|
 | `amount` | canonical decimal text | `of`: the account input whose commodity it is in | amount |
-| `account` | `{"id": ...}` or `{"new": "name"}` | `kinds` (account kinds allowed); `new` allowed only when `kinds` has one kind | not usable |
+| `account` | `{"id": ...}` or `{"new": "name"}` | `kinds` (account kinds allowed); `new` allowed only when `kinds` has one kind; `default_system`: the system account used when the input is empty | not usable |
 | `rate` | decimal text | `of`: the account input it values; shown only when that account is not in the base currency | not usable |
 | `contact` | `{"id": ...}` or `{"new": "name"}` | none | not usable |
 | `choice` | the option id | `options`: id, label key and `values` | its values, as `name.value` |
@@ -137,7 +137,7 @@ Input: `{ "scenario": "expense", "inputs": { ... } }`. Output:
 
 In v1 the expense accounts of one split share one commodity, so one `expense_rate` serves every row; the draft refuses mixed rows. A single-line Gider is a list with one row; the UI shows the list only after **Birden fazla kaleme böl**. Gelir is the same with the signs turned and `kinds: ["asset"]` on the receiving account.
 
-**Transfer**: `from` (asset) and `to` (asset or liability), marked `distinct`; `amount` of `from`; `amount_in` of `to` with `default: amount` and `show_if_commodity_differs: [from, to]`; optional `fee` of `from` with an expense account defaulting to the system key `bank_fee`; lines `out` (from, `-(amount + fee)`), `in` (to, `amount_in`, `base_of: out`), `fee` (`when: fee > 0`). A card payment is `to` = a liability account.
+**Transfer**: `from` (asset) and `to` (asset or liability), a `distinct` pair; `amount` of `from`; `amount_in` of `to` with `default: amount` and `show_if_commodity_differs: [from, to]`; an optional `fee` of `from` and a `fee_account` with `default_system: bank_fee`. Lines: `out` (from, `amount`, credit), `in` (to, `amount_in`, `base_of: out`), and when `fee > 0` a second credit on `from` and the fee on `fee_account` (`convert: true`). The fee is its own line on `from`, so `in` takes the base value of the transferred amount only. A card payment is `to` = a liability account. The built-in pack is `crates/core/src/scenario/builtin.json`.
 
 **Borç**: a `direction` choice with four options; each sets `money` (`+` or `-`), `debt` (the opposite sign) and `group` (`receivable` or `payable`). Inputs: `person` (contact), `money` (asset), `amount` of `money`, `date`, `memo`. Lines: the money line, and the debt line on `{"system": "direction.group", "commodity_of": "money"}` with `contact: person`.
 

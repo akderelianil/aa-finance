@@ -70,6 +70,8 @@ pub enum InputKind {
     Account {
         kinds: Vec<AccountKind>,
         allow_new: bool,
+        /// The system account the draft uses when the input is left empty.
+        default_system: Option<String>,
     },
     Rate {
         of: AccountRef,

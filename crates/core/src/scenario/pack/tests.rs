@@ -536,3 +536,36 @@ fn every_fault_has_its_own_text() {
     assert_eq!(texts.len(), faults.len());
     assert!(texts.iter().all(|text| !text.is_empty()));
 }
+
+#[test]
+fn an_account_input_may_default_to_a_system_account() {
+    // Arrange
+    let value = pack_with_default("bank_fee");
+    // Act
+    let pack = load_value(&value).unwrap();
+    // Assert
+    assert!(matches!(
+        &pack.scenario("move").unwrap().inputs[2].kind,
+        InputKind::Account { default_system: Some(key), .. } if key == "bank_fee"
+    ));
+    let mut bad = pack_with_default("Bank Fee");
+    assert!(matches!(
+        load_value(&bad),
+        Err(PackError::Fault { fault: Fault::BadName(name), .. }) if name == "Bank Fee"
+    ));
+    bad = pack_with_default("bank_fee");
+    bad["scenarios"][0]["inputs"][0]["default_system"] = json!("bank_fee");
+    assert!(matches!(
+        load_value(&bad),
+        Err(PackError::Fault {
+            fault: Fault::FieldNotAllowed("default_system"),
+            ..
+        })
+    ));
+}
+
+fn pack_with_default(key: &str) -> Value {
+    let mut value = pack();
+    value["scenarios"][0]["inputs"][2]["default_system"] = json!(key);
+    value
+}

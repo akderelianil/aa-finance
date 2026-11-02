@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "id": "builtin",
+  "scenarios": [
+    {
+      "id": "expense",
+      "title": "expense.title",
+      "date": "date",
+      "memo": "memo",
+      "inputs": [
+        { "name": "amount", "type": "amount", "of": "payment", "label": "field.amount" },
+        { "name": "payment", "type": "account", "kinds": ["asset", "liability"], "label": "field.payment" },
+        { "name": "payment_rate", "type": "rate", "of": "payment", "required": false, "label": "field.rate" },
+        { "name": "items", "type": "lines", "label": "field.expense", "columns": [
+          { "name": "expense", "type": "account", "kinds": ["expense"], "new": true, "label": "field.expense" },
+          { "name": "part", "type": "amount", "of": "payment", "label": "field.amount" }
+        ] },
+        { "name": "expense_rate", "type": "rate", "of": "items.expense", "required": false, "label": "field.rate" },
+        { "name": "date", "type": "date", "label": "field.date" },
+        { "name": "memo", "type": "text", "required": false, "max": 200, "label": "field.memo" }
+      ],
+      "checks": [
+        { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" },
+        { "rule": "sum(items.part) = amount", "field": "items", "message": "check.split_total" }
+      ],
+      "lines": [
+        { "id": "spend", "each": "items", "account": "expense", "amount": "part", "convert": true, "rate": "expense_rate" },
+        { "id": "pay", "account": "payment", "amount": "amount", "sign": "-", "rate": "payment_rate" }
+      ],
+      "preview": "expense.preview"
+    },
+    {
+      "id": "income",
+      "title": "income.title",
+      "date": "date",
+      "memo": "memo",
+      "inputs": [
+        { "name": "amount", "type": "amount", "of": "receiving", "label": "field.amount" },
+        { "name": "receiving", "type": "account", "kinds": ["asset"], "label": "field.receiving" },
+        { "name": "receiving_rate", "type": "rate", "of": "receiving", "required": false, "label": "field.rate" },
+        { "name": "items", "type": "lines", "label": "field.income", "columns": [
+          { "name": "income", "type": "account", "kinds": ["income"], "new": true, "label": "field.income" },
+          { "name": "part", "type": "amount", "of": "receiving", "label": "field.amount" }
+        ] },
+        { "name": "income_rate", "type": "rate", "of": "items.income", "required": false, "label": "field.rate" },
+        { "name": "date", "type": "date", "label": "field.date" },
+        { "name": "memo", "type": "text", "required": false, "max": 200, "label": "field.memo" }
+      ],
+      "checks": [
+        { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" },
+        { "rule": "sum(items.part) = amount", "field": "items", "message": "check.split_total" }
+      ],
+      "lines": [
+        { "id": "get", "account": "receiving", "amount": "amount", "rate": "receiving_rate" },
+        { "id": "earn", "each": "items", "account": "income", "amount": "part", "sign": "-", "convert": true, "rate": "income_rate" }
+      ],
+      "preview": "income.preview"
+    },
+    {
+      "id": "transfer",
+      "title": "transfer.title",
+      "date": "date",
+      "memo": "memo",
+      "distinct": [["from", "to"]],
+      "inputs": [
+        { "name": "amount", "type": "amount", "of": "from", "label": "field.amount_out" },
+        { "name": "from", "type": "account", "kinds": ["asset"], "label": "field.from" },
+        { "name": "to", "type": "account", "kinds": ["asset", "liability"], "label": "field.to" },
+        { "name": "amount_in", "type": "amount", "of": "to", "default": "amount", "show_if_commodity_differs": ["from", "to"], "label": "field.amount_in" },
+        { "name": "from_rate", "type": "rate", "of": "from", "required": false, "label": "field.rate" },
+        { "name": "to_rate", "type": "rate", "of": "to", "required": false, "label": "field.rate" },
+        { "name": "fee", "type": "amount", "of": "from", "required": false, "label": "field.fee" },
+        { "name": "fee_account", "type": "account", "kinds": ["expense"], "default_system": "bank_fee", "required": false, "label": "field.fee_account" },
+        { "name": "date", "type": "date", "label": "field.date" },
+        { "name": "memo", "type": "text", "required": false, "max": 200, "label": "field.memo" }
+      ],
+      "checks": [
+        { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" },
+        { "rule": "amount_in > 0", "field": "amount_in", "message": "check.amount_positive" },
+        { "rule": "fee >= 0", "field": "fee", "message": "check.fee_not_negative" }
+      ],
+      "lines": [
+        { "id": "out", "account": "from", "amount": "amount", "sign": "-", "rate": "from_rate" },
+        { "id": "in", "account": "to", "amount": "amount_in", "rate": "to_rate", "base_of": "out" },
+        { "id": "fee_out", "account": "from", "amount": "fee", "sign": "-", "rate": "from_rate", "when": "fee > 0" },
+        { "id": "fee", "account": "fee_account", "amount": "fee", "convert": true, "when": "fee > 0" }
+      ],
+      "preview": "transfer.preview"
+    },
+    {
+      "id": "debt",
+      "title": "debt.title",
+      "date": "date",
+      "memo": "memo",
+      "inputs": [
+        { "name": "direction", "type": "choice", "label": "field.direction", "options": [
+          { "id": "lend", "label": "debt.lend", "values": { "money": "-", "debt": "+", "group": "receivable" } },
+          { "id": "borrow", "label": "debt.borrow", "values": { "money": "+", "debt": "-", "group": "payable" } },
+          { "id": "collect", "label": "debt.collect", "values": { "money": "+", "debt": "-", "group": "receivable" } },
+          { "id": "repay", "label": "debt.repay", "values": { "money": "-", "debt": "+", "group": "payable" } }
+        ] },
+        { "name": "person", "type": "contact", "label": "field.person" },
+        { "name": "money", "type": "account", "kinds": ["asset"], "label": "field.money" },
+        { "name": "money_rate", "type": "rate", "of": "money", "required": false, "label": "field.rate" },
+        { "name": "amount", "type": "amount", "of": "money", "label": "field.amount" },
+        { "name": "date", "type": "date", "label": "field.date" },
+        { "name": "memo", "type": "text", "required": false, "max": 200, "label": "field.memo" }
+      ],
+      "checks": [
+        { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" }
+      ],
+      "lines": [
+        { "id": "money", "account": "money", "amount": "amount", "sign": "direction.money", "rate": "money_rate" },
+        { "id": "debt", "account": { "system": "direction.group", "commodity_of": "money" }, "amount": "amount", "sign": "direction.debt", "contact": "person", "base_of": "money" }
+      ],
+      "preview": "debt.preview"
+    }
+  ],
+  "strings": {
+    "tr": {
+      "expense.title": "Gider",
+      "expense.preview": "{payment} −{amount} → {items}",
+      "income.title": "Gelir",
+      "income.preview": "{items} → {receiving} +{amount}",
+      "transfer.title": "Transfer",
+      "transfer.preview": "{from} −{amount} → {to} +{amount_in}",
+      "debt.title": "Borç",
+      "debt.preview": "{direction}: {person}, {money} {amount}",
+      "debt.lend": "Borç Verme",
+      "debt.borrow": "Borç Alma",
+      "debt.collect": "Tahsilat",
+      "debt.repay": "Ödeme",
+      "field.amount": "Tutar",
+      "field.amount_out": "Çıkan tutar",
+      "field.amount_in": "Giren tutar",
+      "field.payment": "Hesap",
+      "field.receiving": "Hesap",
+      "field.expense": "Gider hesabı",
+      "field.income": "Gelir hesabı",
+      "field.rate": "Kur",
+      "field.from": "Nereden",
+      "field.to": "Nereye",
+      "field.fee": "Masraf",
+      "field.fee_account": "Masraf hesabı",
+      "field.direction": "İşlem",
+      "field.person": "Kişi",
+      "field.money": "Para hesabı",
+      "field.date": "Tarih",
+      "field.memo": "Açıklama",
+      "check.amount_positive": "Tutar sıfırdan büyük olmalı.",
+      "check.split_total": "Satırların toplamı tutara eşit olmalı.",
+      "check.fee_not_negative": "Masraf eksi olamaz."
+    },
+    "en": {
+      "expense.title": "Expense",
+      "expense.preview": "{payment} −{amount} → {items}",
+      "income.title": "Income",
+      "income.preview": "{items} → {receiving} +{amount}",
+      "transfer.title": "Transfer",
+      "transfer.preview": "{from} −{amount} → {to} +{amount_in}",
+      "debt.title": "Debt",
+      "debt.preview": "{direction}: {person}, {money} {amount}",
+      "debt.lend": "Lend",
+      "debt.borrow": "Borrow",
+      "debt.collect": "Collect",
+      "debt.repay": "Repay",
+      "field.amount": "Amount",
+      "field.amount_out": "Amount out",
+      "field.amount_in": "Amount in",
+      "field.payment": "Account",
+      "field.receiving": "Account",
+      "field.expense": "Expense account",
+      "field.income": "Income account",
+      "field.rate": "Rate",
+      "field.from": "From",
+      "field.to": "To",
+      "field.fee": "Fee",
+      "field.fee_account": "Fee account",
+      "field.direction": "Action",
+      "field.person": "Person",
+      "field.money": "Money account",
+      "field.date": "Date",
+      "field.memo": "Memo",
+      "check.amount_positive": "The amount must be above zero.",
+      "check.split_total": "The lines must add up to the amount.",
+      "check.fee_not_negative": "The fee cannot be negative."
+    }
+  }
+}

@@ -197,7 +197,7 @@ impl Builder {
         let on = |f| fault(at, f);
         let allowed: &[&str] = match raw.ty {
             raw::Type::Amount => &["of", "default", "show_if_commodity_differs"],
-            raw::Type::Account => &["kinds", "new"],
+            raw::Type::Account => &["kinds", "new", "default_system"],
             raw::Type::Rate => &["of"],
             raw::Type::Choice => &["options"],
             raw::Type::Lines => &["columns"],
@@ -504,7 +504,14 @@ fn account(raw: &raw::Input) -> Result<InputKind, Fault> {
     if allow_new && kinds.len() != 1 {
         return Err(Fault::NewNeedsOneKind);
     }
-    Ok(InputKind::Account { kinds, allow_new })
+    if let Some(key) = &raw.default_system {
+        name(key)?;
+    }
+    Ok(InputKind::Account {
+        kinds,
+        allow_new,
+        default_system: raw.default_system.clone(),
+    })
 }
 
 fn option_value(key: &str, value: String) -> Result<OptionValue, Fault> {

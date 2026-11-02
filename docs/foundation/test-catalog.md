@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 328 tests.
+Total: 331 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -393,6 +393,12 @@ Rates and base values: the rounding rule checked against an independent calculat
 - The rounding line always balances the entry
 - Large sums never wrap
 
+### scenario/builtin/tests.rs (2)
+The built-in pack (ADR-0024): it loads, and it holds Gider, Gelir, Transfer and Borç.
+
+- The built in pack loads with the four v1 scenarios
+- The built in pack is loaded once
+
 ### scenario/calc/tests.rs (8)
 The official calculators (ADR-0024): converting an amount between two commodities through the book currency, and the cross rate of two rates; exact, rounded half away from zero, never float.
 
@@ -438,7 +444,7 @@ The scenario expression language (ADR-0024): what loads, what is refused at load
 - Loading token soup never panics
 - Arithmetic matches wide integers or reports overflow
 
-### scenario/pack/tests.rs (19)
+### scenario/pack/tests.rs (20)
 Loading a scenario pack (ADR-0024, docs/foundation/scenario-format.md): a pack loads whole or not at all, every name, reference, string and expression is checked at load, and its hash is stable.
 
 - A valid pack loads with its scenarios inputs and lines
@@ -460,3 +466,4 @@ Loading a scenario pack (ADR-0024, docs/foundation/scenario-format.md): a pack l
 - A scenario without a memo loads
 - Columns are accounts or amounts and are named by their list
 - Every fault has its own text
+- An account input may default to a system account
