@@ -1,12 +1,14 @@
 ---
 name: rebuild-status
-description: Where the aa-finance rebuild stands (2026-10-17) and what to do first next session
+description: Where the aa-finance rebuild stands (2026-11-02) and what to do first next session
 metadata:
   node_type: memory
   type: project
   originSessionId: 041dd174-e7cc-4221-b414-0b1342261923
   modified: 2026-10-17T12:32:25.892Z
 ---
+
+State on 2026-11-02 (latest): core-rebuild-5 has all three acceptance criteria met and pushed: post_entry opens accounts and contacts (7e8291d), system groups receivable/payable/bank_fee, pack format accepted (docs/foundation/scenario-format.md), pack loader (543a1d7), calculators (d658dcd), built-in pack (00755f5), draft engine with golden tests (65a9c8a), scenario_list/describe/draft in the contract (3237351). Reviewer agents (rust-reviewer, silent-failure-hunter, type-design-analyzer, pr-test-analyzer) were started on `0aa9d81..HEAD`; next: fix their findings, then move the story to review and ask the owner to close it.
 
 State on 2026-11-02: core-rebuild-5 in progress. Done and pushed: ADR-0024 (dc98c3e), expression language `scenario::expr` (ee9ac05), minimal contact document with `line.contact_id` and K25 (dc8c830). Next: scenario document format and loader, then scenario_list/describe/draft and the four built-in scenarios with golden tests. Decisions: [[core-rebuild-5-decisions]].
 
