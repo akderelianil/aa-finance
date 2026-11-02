@@ -289,3 +289,78 @@ fn scenarios_are_listed_described_and_drafted_through_the_contract() {
     assert_eq!(refused["errors"][0]["text"], "This field is required.");
     assert!(posted["doc_id"].is_string());
 }
+
+#[test]
+fn every_built_in_scenario_drafts_and_posts_through_the_contract() {
+    // Arrange
+    let mut l = ledger();
+    let book = run(
+        &mut l,
+        "open_book",
+        json!({"base_code": "TRY", "base_scale": 2}),
+    )
+    .unwrap();
+    let usd = run(
+        &mut l,
+        "create_commodity",
+        json!({"code": "USD", "scale": 2}),
+    )
+    .unwrap();
+    let account = |name: &str, kind: &str, commodity: &Value| json!({"name": name, "parent": null, "kind": kind, "commodity": commodity});
+    let open = |l: &mut aa_core::ops::Ledger, input: Value| json!({"id": run(l, "create_account", input).unwrap()["doc_id"]});
+    let cash = open(&mut l, account("Cash", "asset", &book["doc_id"]));
+    let dollars = open(&mut l, account("Dollars", "asset", &usd["doc_id"]));
+    let date = "2026-11-02";
+    let cases = [
+        (
+            "expense",
+            json!({"amount": "5.00", "payment": cash, "date": date,
+            "items": [{"expense": {"new": "Market"}, "part": "5.00"}]}),
+        ),
+        (
+            "income",
+            json!({"amount": "9.00", "receiving": cash, "date": date,
+            "items": [{"income": {"new": "Salary"}, "part": "9.00"}]}),
+        ),
+        (
+            "transfer",
+            json!({"amount": "35.00", "from": cash, "to": dollars,
+            "amount_in": "1.00", "fee": "2.00", "date": date}),
+        ),
+        (
+            "debt",
+            json!({"direction": "lend", "person": {"new": "Ayşe"}, "money": dollars,
+            "money_rate": "35", "amount": "1.00", "date": date}),
+        ),
+    ];
+    for (scenario, inputs) in cases {
+        // Act
+        let draft = run(
+            &mut l,
+            "scenario_draft",
+            json!({"scenario": scenario, "language": "en", "inputs": inputs}),
+        )
+        .unwrap();
+        let posted = run(&mut l, "post_entry", draft["entry"].clone());
+        // Assert
+        assert_eq!(draft["errors"], json!([]), "{scenario}");
+        assert!(
+            !draft["preview"]["text"].as_str().unwrap().contains('{'),
+            "{scenario}"
+        );
+        assert!(posted.is_ok(), "{scenario}: {posted:?}");
+    }
+    let contact = run(
+        &mut l,
+        "scenario_draft",
+        json!({"scenario": "debt", "language": "tr",
+        "inputs": {"direction": "repay", "person": {"new": "AYŞE"}, "money": cash,
+            "amount": "1.00", "date": date}}),
+    )
+    .unwrap();
+    assert_eq!(
+        contact["entry"]["create_contacts"],
+        json!([]),
+        "the typed name finds Ayşe"
+    );
+}

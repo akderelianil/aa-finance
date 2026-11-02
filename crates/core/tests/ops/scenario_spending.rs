@@ -21,7 +21,7 @@ fn a_cash_expense_debits_the_expense_and_credits_the_cash() {
         }),
     );
     // Assert
-    let preview = draft.preview.clone().unwrap();
+    let preview = draft.preview().cloned().unwrap();
     assert_eq!(preview.text, "Cash −500,00 TRY → Market");
     assert_eq!(
         post_draft(&mut b, &draft),
@@ -48,10 +48,7 @@ fn a_card_expense_raises_the_card_debt() {
         }),
     );
     // Assert
-    assert_eq!(
-        draft.entry.as_ref().unwrap().memo.as_deref(),
-        Some("Migros")
-    );
+    assert_eq!(draft.entry().unwrap().memo.as_deref(), Some("Migros"));
     assert_eq!(
         post_draft(&mut b, &draft),
         vec![
@@ -81,7 +78,7 @@ fn a_split_expense_opens_a_new_expense_account_with_the_entry() {
         }),
     );
     // Assert
-    let entry = draft.entry.clone().unwrap();
+    let entry = draft.entry().cloned().unwrap();
     assert_eq!(
         entry.create_accounts.len(),
         1,
@@ -116,7 +113,7 @@ fn a_new_name_that_matches_an_existing_account_uses_that_account() {
         }),
     );
     // Assert
-    let entry = draft.entry.unwrap();
+    let entry = draft.entry().cloned().unwrap();
     assert!(entry.create_accounts.is_empty());
     assert_eq!(entry.lines[0].account, market);
 }
@@ -136,13 +133,13 @@ fn a_split_that_does_not_add_up_is_a_field_error() {
         }),
     );
     // Assert
-    assert!(draft.entry.is_none() && draft.preview.is_none());
+    assert!(draft.entry().is_none() && draft.preview().is_none());
     assert_eq!(
         errors(&draft),
         vec![(Some("items".into()), "check.split_total".into())]
     );
     assert_eq!(
-        draft.errors[0].text,
+        draft.errors()[0].text,
         "Satırların toplamı tutara eşit olmalı."
     );
 }
@@ -163,10 +160,7 @@ fn a_dollar_card_expense_converts_the_expense_into_lira_with_the_rate() {
         }),
     );
     // Assert
-    assert_eq!(
-        draft.entry.as_ref().unwrap().lines[1].rate.as_deref(),
-        Some("35")
-    );
+    assert_eq!(draft.entry().unwrap().lines[1].rate.as_deref(), Some("35"));
     assert_eq!(
         post_draft(&mut b, &draft),
         vec![
@@ -217,7 +211,7 @@ fn income_split_into_salary_and_a_new_bonus_account_credits_both() {
         }),
     );
     // Assert
-    let bonus = draft.entry.as_ref().unwrap().create_accounts[0].id;
+    let bonus = draft.entry().unwrap().create_accounts[0].id;
     assert_eq!(
         post_draft(&mut b, &draft),
         vec![

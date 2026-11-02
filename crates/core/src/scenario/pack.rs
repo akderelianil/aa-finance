@@ -18,18 +18,29 @@ pub const MAX_PACK_BYTES: usize = 1 << 20;
 /// The languages every pack string must exist in.
 pub const LANGUAGES: [&str; 2] = ["tr", "en"];
 
-/// A loaded pack.
+/// A loaded pack. Its fields are crate-private, so a pack can only come from `load`, which checks
+/// every name, reference, string and expression.
 #[derive(Debug, Clone)]
 pub struct Pack {
-    pub id: String,
+    pub(crate) id: String,
     /// SHA-256 of the pack text, lower-case hex.
-    pub hash: String,
-    pub scenarios: Vec<Scenario>,
+    pub(crate) hash: String,
+    pub(crate) scenarios: Vec<Scenario>,
     /// Language, then key, then text.
-    pub strings: BTreeMap<String, BTreeMap<String, String>>,
+    pub(crate) strings: BTreeMap<String, BTreeMap<String, String>>,
 }
 
 impl Pack {
+    /// The id the pack gives itself.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    /// SHA-256 of the pack text, lower-case hex.
+    pub fn hash(&self) -> &str {
+        &self.hash
+    }
+
     pub fn scenario(&self, id: &str) -> Option<&Scenario> {
         self.scenarios.iter().find(|scenario| scenario.id == id)
     }
@@ -37,26 +48,26 @@ impl Pack {
 
 #[derive(Debug, Clone)]
 pub struct Scenario {
-    pub id: String,
-    pub title: String,
+    pub(crate) id: String,
+    pub(crate) title: String,
     /// The date input of the entry.
-    pub date: String,
+    pub(crate) date: String,
     /// The text input that becomes the memo of the entry.
-    pub memo: Option<String>,
+    pub(crate) memo: Option<String>,
     /// Pairs of account inputs that may not name the same account.
-    pub distinct: Vec<(String, String)>,
-    pub inputs: Vec<Input>,
-    pub checks: Vec<Check>,
-    pub lines: Vec<Line>,
-    pub preview: String,
+    pub(crate) distinct: Vec<(String, String)>,
+    pub(crate) inputs: Vec<Input>,
+    pub(crate) checks: Vec<Check>,
+    pub(crate) lines: Vec<Line>,
+    pub(crate) preview: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct Input {
-    pub name: String,
-    pub label: String,
-    pub required: bool,
-    pub kind: InputKind,
+    pub(crate) name: String,
+    pub(crate) label: String,
+    pub(crate) required: bool,
+    pub(crate) kind: InputKind,
 }
 
 #[derive(Debug, Clone)]
@@ -98,9 +109,9 @@ pub enum AccountRef {
 
 #[derive(Debug, Clone)]
 pub struct ChoiceOption {
-    pub id: String,
-    pub label: String,
-    pub values: BTreeMap<String, OptionValue>,
+    pub(crate) id: String,
+    pub(crate) label: String,
+    pub(crate) values: BTreeMap<String, OptionValue>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,24 +128,24 @@ pub enum Sign {
 
 #[derive(Debug, Clone)]
 pub struct Check {
-    pub rule: Expr,
-    pub field: String,
-    pub message: String,
+    pub(crate) rule: Expr,
+    pub(crate) field: String,
+    pub(crate) message: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct Line {
-    pub id: String,
+    pub(crate) id: String,
     /// The `lines` input the line repeats over.
-    pub each: Option<String>,
-    pub account: LineAccount,
-    pub amount: Expr,
-    pub sign: LineSign,
-    pub convert: bool,
-    pub rate: Option<String>,
-    pub base_of: Option<String>,
-    pub contact: Option<String>,
-    pub when: Option<Expr>,
+    pub(crate) each: Option<String>,
+    pub(crate) account: LineAccount,
+    pub(crate) amount: Expr,
+    pub(crate) sign: LineSign,
+    pub(crate) convert: bool,
+    pub(crate) rate: Option<String>,
+    pub(crate) base_of: Option<String>,
+    pub(crate) contact: Option<String>,
+    pub(crate) when: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

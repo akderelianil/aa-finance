@@ -201,3 +201,58 @@ fn editing_an_entry_can_open_an_account_too() {
         gift.id
     );
 }
+
+#[test]
+fn a_refused_edit_opens_no_account() {
+    // Arrange
+    let mut b = book();
+    let posted = b
+        .ledger
+        .post_entry(entry(vec![line(b.food, "5.00"), line(b.cash, "-5.00")]))
+        .unwrap();
+    let gift = new_account("Gift", b.try_id, None);
+    let mut input = entry(vec![line(gift.id, "5.00"), line(b.cash, "-4.00")]);
+    input.create_accounts = vec![gift.clone()];
+    // Act
+    let result = b.ledger.edit_entry(posted.doc_id, input);
+    // Assert
+    assert_eq!(rule(result), Some(RuleCode::EntryUnbalanced));
+    assert!(matches!(
+        b.ledger.account(gift.id),
+        Err(Error::MissingReference { .. })
+    ));
+    assert_eq!(b.ledger.history(posted.doc_id).unwrap().len(), 1);
+}
+
+#[test]
+fn two_new_documents_with_one_id_are_refused_and_nothing_is_written() {
+    // Arrange
+    let mut b = book();
+    let gift = new_account("Gift", b.try_id, None);
+    let mut twin = new_account("Present", b.try_id, None);
+    twin.id = gift.id;
+    let mut input = entry(vec![line(gift.id, "5.00"), line(b.cash, "-5.00")]);
+    input.create_accounts = vec![gift.clone(), twin];
+    // Act
+    let result = b.ledger.post_entry(input);
+    // Assert
+    assert!(matches!(result, Err(Error::Conflict { .. })));
+    assert!(matches!(
+        b.ledger.account(gift.id),
+        Err(Error::MissingReference { .. })
+    ));
+}
+
+#[test]
+fn a_new_child_account_may_sit_under_a_new_parent_of_the_same_write() {
+    // Arrange
+    let mut b = book();
+    let parent = new_account("Home", b.try_id, None);
+    let child = new_account("Kitchen", b.try_id, Some(parent.id));
+    let mut input = entry(vec![line(child.id, "5.00"), line(b.cash, "-5.00")]);
+    input.create_accounts = vec![parent.clone(), child.clone()];
+    // Act
+    b.ledger.post_entry(input).unwrap();
+    // Assert
+    assert_eq!(b.ledger.account(child.id).unwrap().parent, Some(parent.id));
+}

@@ -123,10 +123,10 @@ pub fn post_draft(
     b: &mut Book,
     draft: &aa_core::scenario::draft::Draft,
 ) -> Vec<(DocId, String, String)> {
-    assert!(draft.errors.is_empty(), "{:?}", draft.errors);
+    assert!(draft.errors().is_empty(), "{:?}", draft.errors());
     let entry = draft
-        .entry
-        .clone()
+        .entry()
+        .cloned()
         .expect("a draft without errors has an entry");
     let posted = b.ledger.post_entry(entry).unwrap();
     b.ledger
@@ -141,8 +141,39 @@ pub fn post_draft(
 /// The (field, code) pairs of a draft's errors.
 pub fn errors(draft: &aa_core::scenario::draft::Draft) -> Vec<(Option<String>, String)> {
     draft
-        .errors
+        .errors()
         .iter()
         .map(|error| (error.field.clone(), error.code.clone()))
         .collect()
+}
+
+/// Inputs of a one-row cash Gider and helpers for scenario drafts.
+pub fn expense(b: &Book, market: DocId) -> serde_json::Value {
+    serde_json::json!({
+        "amount": "5.00", "payment": pick(b.cash), "date": "2026-11-02",
+        "items": [{ "expense": pick(market), "part": "5.00" }],
+    })
+}
+
+pub fn debt(b: &Book) -> serde_json::Value {
+    serde_json::json!({
+        "direction": "lend", "person": { "new": "Ayşe" }, "money": pick(b.cash),
+        "amount": "5.00", "date": "2026-11-02",
+    })
+}
+
+pub fn set(
+    mut inputs: serde_json::Value,
+    key: &str,
+    value: serde_json::Value,
+) -> serde_json::Value {
+    inputs[key] = value;
+    inputs
+}
+
+pub fn only_error(b: &Book, scenario: &str, inputs: serde_json::Value) -> (Option<String>, String) {
+    let draft = draft(b, scenario, inputs);
+    let errors = errors(&draft);
+    assert_eq!(errors.len(), 1, "{errors:?}");
+    errors[0].clone()
 }

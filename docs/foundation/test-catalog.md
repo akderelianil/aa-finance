@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 377 tests.
+Total: 384 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -22,13 +22,14 @@ Bad calls fail with a stable code in the error envelope, never with internal tex
 - An input the contract rejects is refused by the dispatcher too
 - An error message does not repeat what the caller sent
 
-### api/operations.rs (4)
+### api/operations.rs (5)
 A whole session through the named operations, every answer held to the contract.
 
 - A session through every operation fits the contract
 - Rule failures come back with codes the contract lists
 - An entry that opens an account and a contact fits the contract
 - Scenarios are listed described and drafted through the contract
+- Every built in scenario drafts and posts through the contract
 
 ### ops/accounts.rs (20)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
@@ -100,7 +101,7 @@ The history marks the head and keeps a lost branch visible as a conflict (ADR-00
 - A branch written elsewhere is kept as a conflict and the head stays
 - Every revision of a lost branch is a conflict not only its tip
 
-### ops/new_documents.rs (7)
+### ops/new_documents.rs (10)
 An entry that opens its own accounts and contacts (ADR-0024): a scenario draft names them with ids it chose, `post_entry` writes them with the entry in one transaction, under the same rules as `create_account` and `create_contact`, and writes nothing when any part is refused.
 
 - An entry opens its account and its contact in the same write
@@ -110,28 +111,25 @@ An entry that opens its own accounts and contacts (ADR-0024): a scenario draft n
 - A foreign currency account opens under the receivable group and takes a rated line
 - A new document cannot take an id that is already used
 - Editing an entry can open an account too
+- A refused edit opens no account
+- Two new documents with one id are refused and nothing is written
+- A new child account may sit under a new parent of the same write
 
-### ops/scenario_edges.rs (18)
+### ops/scenario_edges.rs (12)
 Edges of scenario drafts (ADR-0024): every input type refuses a value of the wrong shape, rows name their faults, typed names are reused or refused by kind, rates are asked for exactly where a conversion or a base value needs one, and a pack's own faults come back as errors.
 
 - Every input type refuses a value of the wrong shape
 - A row names its own faults
 - An archived account is refused and a typed contact name is reused
-- Split rows in two currencies are refused
-- A foreign expense account asks for its own rate and then takes it
-- A transfer between two foreign currencies asks for the source rate
-- A fee in dollars is charged to the fee account in lira
 - A pack with one line or an unconverted mix gets an error not an entry
 - A fixed system account and an unclosed brace in the preview are handled
-- Borrowing dollars gives the payable line a negative base value
 - An empty required input of any type is required
 - A date must exist in the calendar
 - A split row of zero adds no line
-- A same currency transfer refuses an amount in that differs
-- A transfer between two foreign currencies values both sides at the rate given for the source
 - A negative split row is refused
 - A fault in a row after a broken row names its own index
-- A missing rate on a dollar debt is one error on the rate
+- An amount for an optional account left empty is refused not dropped
+- An overflow in a line amount is an error not an entry
 
 ### ops/scenario_moving.rs (8)
 Golden drafts of Transfer and Borç (ux/transfer.md, ux/borc.md, ADR-0024): a transfer with a fee, a card payment, a transfer between two currencies, and the four debt actions with a contact on the debt line, a new contact and a currency child under the debt group.
@@ -144,6 +142,19 @@ Golden drafts of Transfer and Borç (ux/transfer.md, ux/borc.md, ADR-0024): a tr
 - Lending to a new person opens the contact and raises what they owe
 - The four debt actions move money and the debt group in opposite directions
 - A dollar loan opens a dollar account under the receivable group
+
+### ops/scenario_rates.rs (9)
+Currencies and rates in scenario drafts (ADR-0024): a foreign line asks for exactly the rate it needs, two rates for one currency must agree, a transfer between currencies takes its value from the source, a debt in dollars opens a dollar account under its group, and a hidden copy of an amount cannot differ from it.
+
+- Split rows in two currencies are refused
+- A foreign expense account asks for its own rate and then takes it
+- A transfer between two foreign currencies asks for the source rate
+- A fee in dollars is charged to the fee account in lira
+- Borrowing dollars gives the payable line a negative base value
+- A same currency transfer refuses an amount in that differs
+- A transfer between two foreign currencies values both sides at the rate given for the source
+- A missing rate on a dollar debt is one error on the rate
+- Two rates for one currency that differ are refused
 
 ### ops/scenario_safety.rs (7)
 What a scenario draft refuses and what it can never do (ADR-0024): bad or missing values come back as field errors in the user's language, a draft writes nothing, and a faulty pack yields at worst an entry the ledger refuses, so it cannot corrupt the books.

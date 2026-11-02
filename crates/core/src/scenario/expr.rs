@@ -18,11 +18,12 @@ pub enum Type {
 }
 
 /// An amount in the scale of its commodity. `commodity` is `None` only for a zero that has none
-/// (the literal `0`, the sum of an empty list); such a zero combines with any commodity.
+/// (the literal `0`, the sum of an empty list); such a zero combines with any commodity. The fields
+/// are crate-private: outside the core a quantity comes from `Quantity::of` or `Quantity::ZERO`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Quantity {
-    pub value: i64,
-    pub commodity: Option<DocId>,
+    pub(crate) value: i64,
+    pub(crate) commodity: Option<DocId>,
 }
 
 impl Quantity {

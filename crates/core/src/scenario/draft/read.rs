@@ -82,6 +82,12 @@ impl<'a> Reader<'a> {
         self.refusals.push((Some(field.to_string()), code));
     }
 
+    fn refused(&self, field: &str) -> bool {
+        self.refusals
+            .iter()
+            .any(|(refused, _)| refused.as_deref() == Some(field))
+    }
+
     pub fn read(&mut self, inputs: &Map<String, Value>) -> Result<Values> {
         let scenario = self.scenario;
         let mut values = Values::default();
@@ -264,6 +270,11 @@ impl<'a> Reader<'a> {
             return;
         };
         let Some(account) = values.accounts.get(of).cloned() else {
+            // An amount without its account cannot be placed; say so unless the account is
+            // already refused.
+            if value.is_some() && !self.refused(of) {
+                self.refuse(of, Code::Required);
+            }
             return;
         };
         let differs = show_if_commodity_differs.as_ref().is_some_and(|(a, b)| {

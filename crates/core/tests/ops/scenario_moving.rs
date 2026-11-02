@@ -47,7 +47,7 @@ fn a_card_payment_without_a_fee_lowers_the_card_debt() {
     );
     // Assert
     assert_eq!(
-        draft.preview.as_ref().unwrap().text,
+        draft.preview().unwrap().text,
         "Bank −2.000,00 TRY → Card +2.000,00 TRY"
     );
     assert_eq!(
@@ -134,12 +134,12 @@ fn lending_to_a_new_person_opens_the_contact_and_raises_what_they_owe() {
     // Act
     let draft = draft(&b, "debt", debt("lend", json!({ "new": "Ayşe" }), b.cash));
     // Assert
-    let entry = draft.entry.clone().unwrap();
+    let entry = draft.entry().cloned().unwrap();
     assert_eq!(entry.create_contacts.len(), 1);
     let ayse = entry.create_contacts[0].id;
     assert_eq!(entry.lines[1].contact, Some(ayse));
     assert_eq!(
-        draft.preview.as_ref().unwrap().text,
+        draft.preview().unwrap().text,
         "Borç Verme: Ayşe, Cash 2.000,00 TRY"
     );
     assert_eq!(
@@ -176,7 +176,7 @@ fn the_four_debt_actions_move_money_and_the_debt_group_in_opposite_directions() 
         // Act
         let draft = draft(&b, "debt", debt(direction, pick(ahmet), b.cash));
         // Assert
-        assert!(draft.entry.as_ref().unwrap().create_contacts.is_empty());
+        assert!(draft.entry().unwrap().create_contacts.is_empty());
         let lines = post_draft(&mut b, &draft);
         assert_eq!(
             lines[0],
@@ -203,10 +203,10 @@ fn a_dollar_loan_opens_a_dollar_account_under_the_receivable_group() {
     // Act
     let first = draft(&b, "debt", inputs.clone());
     let lines = post_draft(&mut b, &first);
-    inputs["person"] = pick(first.entry.as_ref().unwrap().create_contacts[0].id);
+    inputs["person"] = pick(first.entry().unwrap().create_contacts[0].id);
     let second = draft(&b, "debt", inputs);
     // Assert
-    let child = first.entry.as_ref().unwrap().create_accounts[0].clone();
+    let child = first.entry().unwrap().create_accounts[0].clone();
     assert_eq!(child.account.name, "USD");
     assert_eq!(child.account.parent, Some(receivable));
     assert_eq!(child.account.commodity, b.usd_id);
@@ -217,7 +217,7 @@ fn a_dollar_loan_opens_a_dollar_account_under_the_receivable_group() {
             (child.id, "100.00".into(), "3500.00".into()),
         ]
     );
-    let second = second.entry.unwrap();
+    let second = second.entry().cloned().unwrap();
     assert!(
         second.create_accounts.is_empty(),
         "the child is found the next time"

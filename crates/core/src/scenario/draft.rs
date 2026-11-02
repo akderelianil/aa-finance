@@ -54,12 +54,55 @@ pub struct DraftInput {
     pub inputs: Map<String, Value>,
 }
 
-/// A draft: an entry and its preview, or the errors that keep it from being one.
-#[derive(Debug, Clone, Serialize)]
-pub struct Draft {
-    pub entry: Option<EntryInput>,
-    pub preview: Option<Preview>,
-    pub errors: Vec<FieldError>,
+/// A draft: an entry with its preview, or the errors that keep it from being one, never both.
+/// On the wire it is one object with `entry`, `preview` and `errors` (the contract's `Draft`).
+#[derive(Debug, Clone)]
+pub enum Draft {
+    Ready {
+        entry: EntryInput,
+        preview: Preview,
+    },
+    /// At least one error.
+    Refused {
+        errors: Vec<FieldError>,
+    },
+}
+
+impl Draft {
+    pub fn entry(&self) -> Option<&EntryInput> {
+        match self {
+            Draft::Ready { entry, .. } => Some(entry),
+            Draft::Refused { .. } => None,
+        }
+    }
+
+    pub fn preview(&self) -> Option<&Preview> {
+        match self {
+            Draft::Ready { preview, .. } => Some(preview),
+            Draft::Refused { .. } => None,
+        }
+    }
+
+    pub fn errors(&self) -> &[FieldError] {
+        match self {
+            Draft::Ready { .. } => &[],
+            Draft::Refused { errors } => errors,
+        }
+    }
+}
+
+impl Serialize for Draft {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut out = serializer.serialize_struct("Draft", 3)?;
+        out.serialize_field("entry", &self.entry())?;
+        out.serialize_field("preview", &self.preview())?;
+        out.serialize_field("errors", self.errors())?;
+        out.end()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -176,9 +219,7 @@ pub fn draft(pack: &Pack, books: &dyn Books, input: &DraftInput) -> Result<Draft
                 kind: "scenario",
                 what: input.scenario.clone(),
             })?;
-    let refused = |refusals: Vec<Refusal>| Draft {
-        entry: None,
-        preview: None,
+    let refused = |refusals: Vec<Refusal>| Draft::Refused {
         errors: refusals
             .into_iter()
             .map(|(field, code)| FieldError {
@@ -193,7 +234,7 @@ pub fn draft(pack: &Pack, books: &dyn Books, input: &DraftInput) -> Result<Draft
     if !reader.refusals.is_empty() {
         return Ok(refused(std::mem::take(&mut reader.refusals)));
     }
-    let refusals = build::checks(scenario, &values);
+    let refusals = build::checks(scenario, &values)?;
     if !refusals.is_empty() {
         return Ok(refused(refusals));
     }
@@ -202,9 +243,5 @@ pub fn draft(pack: &Pack, books: &dyn Books, input: &DraftInput) -> Result<Draft
         Err(refusals) => return Ok(refused(refusals)),
     };
     let preview = preview::preview(pack, scenario, &values, input.language);
-    Ok(Draft {
-        entry: Some(entry),
-        preview: Some(preview),
-        errors: Vec::new(),
-    })
+    Ok(Draft::Ready { entry, preview })
 }

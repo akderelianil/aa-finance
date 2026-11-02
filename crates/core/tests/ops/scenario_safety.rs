@@ -48,7 +48,7 @@ fn missing_bad_and_unknown_values_are_field_errors() {
             vec![(Some(field.into()), code.into())],
             "{key}"
         );
-        assert!(draft.entry.is_none() && draft.preview.is_none());
+        assert!(draft.entry().is_none() && draft.preview().is_none());
     }
 }
 
@@ -91,8 +91,11 @@ fn errors_and_the_preview_come_in_the_language_asked_for() {
         .scenario_draft(english(with(expense(&b, market), "amount", Value::Null)))
         .unwrap();
     // Assert
-    assert_eq!(good.preview.unwrap().text, "Cash −5.00 TRY → Market");
-    assert_eq!(bad.errors[0].text, "This field is required.");
+    assert_eq!(
+        good.preview().cloned().unwrap().text,
+        "Cash −5.00 TRY → Market"
+    );
+    assert_eq!(bad.errors()[0].text, "This field is required.");
 }
 
 #[test]
@@ -150,7 +153,7 @@ fn drafting_writes_nothing() {
     // Act
     let draft = draft(&b, "expense", inputs);
     // Assert
-    let new = draft.entry.unwrap().create_accounts[0].id;
+    let new = draft.entry().cloned().unwrap().create_accounts[0].id;
     assert!(matches!(
         b.ledger.account(new),
         Err(Error::MissingReference { .. })
@@ -194,7 +197,7 @@ fn a_faulty_scenario_cannot_corrupt_the_books() {
     };
     // Act
     let draft = draft_with(&pack, &b.ledger, &input).unwrap();
-    let posted = b.ledger.post_entry(draft.entry.unwrap());
+    let posted = b.ledger.post_entry(draft.entry().cloned().unwrap());
     // Assert
     assert!(matches!(
         posted,

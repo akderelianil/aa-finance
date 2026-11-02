@@ -42,24 +42,28 @@ impl Env for Scope<'_> {
     }
 }
 
-/// The pack's checks that fail, each on its field.
-pub(super) fn checks(scenario: &Scenario, values: &Values) -> Vec<Refusal> {
+/// The pack's checks that fail, each on its field. A check that gives no boolean is a fault of
+/// the core's loader, not of the user.
+pub(super) fn checks(scenario: &Scenario, values: &Values) -> Result<Vec<Refusal>> {
     let scope = Scope { values, row: None };
     let mut refusals: Vec<Refusal> = Vec::new();
     for check in &scenario.checks {
         let refusal = match check.rule.eval(&scope) {
             Ok(Value::Bool(true)) => continue,
-            Ok(_) => (
+            Ok(Value::Bool(false)) => (
                 Some(check.field.clone()),
                 Code::Check(check.message.clone()),
             ),
+            Ok(Value::Amount(_)) => {
+                return Err(crate::Error::Internal("a scenario check gave an amount"));
+            }
             Err(_) => (None, Code::Calculation),
         };
         if !refusals.contains(&refusal) {
             refusals.push(refusal);
         }
     }
-    refusals
+    Ok(refusals)
 }
 
 /// A line before its base value is known.
@@ -325,9 +329,16 @@ fn commodity_rates(
         };
         let commodity = commodity_of(values, of)?;
         if let (Some(commodity), Some(rate)) = (commodity, values.rates.get(&input.name)) {
-            rates
-                .entry(commodity)
-                .or_insert_with(|| (*rate, input.name.clone()));
+            match rates.get(&commodity) {
+                // Two rates for one currency must agree; the draft cannot pick one.
+                Some((first, _)) if first != rate => {
+                    return Err((Some(input.name.clone()), Code::Invalid));
+                }
+                Some(_) => {}
+                None => {
+                    rates.insert(commodity, (*rate, input.name.clone()));
+                }
+            }
         }
     }
     Ok(rates)

@@ -10,6 +10,7 @@ mod history;
 mod new_documents;
 mod scenario_edges;
 mod scenario_moving;
+mod scenario_rates;
 mod scenario_safety;
 mod scenario_spending;
 mod settings;

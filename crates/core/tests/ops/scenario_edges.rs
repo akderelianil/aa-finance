@@ -7,32 +7,6 @@ use aa_core::body::AccountKind::{Asset, Expense};
 use aa_core::scenario::draft::{draft as draft_with, DraftInput, Language};
 use serde_json::{json, Value};
 
-fn expense(b: &Book, market: DocId) -> Value {
-    json!({
-        "amount": "5.00", "payment": pick(b.cash), "date": "2026-11-02",
-        "items": [{ "expense": pick(market), "part": "5.00" }],
-    })
-}
-
-fn debt(b: &Book) -> Value {
-    json!({
-        "direction": "lend", "person": { "new": "Ayşe" }, "money": pick(b.cash),
-        "amount": "5.00", "date": "2026-11-02",
-    })
-}
-
-fn set(mut inputs: Value, key: &str, value: Value) -> Value {
-    inputs[key] = value;
-    inputs
-}
-
-fn only_error(b: &Book, scenario: &str, inputs: Value) -> (Option<String>, String) {
-    let draft = draft(b, scenario, inputs);
-    let errors = errors(&draft);
-    assert_eq!(errors.len(), 1, "{errors:?}");
-    errors[0].clone()
-}
-
 #[test]
 fn every_input_type_refuses_a_value_of_the_wrong_shape() {
     // Arrange
@@ -139,96 +113,9 @@ fn an_archived_account_is_refused_and_a_typed_contact_name_is_reused() {
         archived,
         (Some("payment".into()), "account_archived".into())
     );
-    let entry = reused.entry.unwrap();
+    let entry = reused.entry().cloned().unwrap();
     assert!(entry.create_contacts.is_empty());
     assert_eq!(entry.lines[1].contact, Some(ayse));
-}
-
-#[test]
-fn split_rows_in_two_currencies_are_refused() {
-    // Arrange
-    let mut b = book();
-    let market = open(&mut b.ledger, "Market", Expense, b.try_id);
-    let travel = open(&mut b.ledger, "Travel", Expense, b.usd_id);
-    let items = json!([
-        { "expense": pick(market), "part": "3.00" },
-        { "expense": pick(travel), "part": "2.00" },
-    ]);
-    // Act
-    let error = only_error(&b, "expense", set(expense(&b, market), "items", items));
-    // Assert
-    assert_eq!(error, (Some("items".into()), "mixed_commodities".into()));
-}
-
-#[test]
-fn a_foreign_expense_account_asks_for_its_own_rate_and_then_takes_it() {
-    // Arrange
-    let mut b = book();
-    let travel = open(&mut b.ledger, "Travel", Expense, b.usd_id);
-    let inputs = expense(&b, travel);
-    // Act
-    let without = only_error(&b, "expense", inputs.clone());
-    let with = draft(&b, "expense", set(inputs, "expense_rate", json!("25")));
-    // Assert
-    assert_eq!(without, (Some("expense_rate".into()), "rate_needed".into()));
-    assert_eq!(
-        post_draft(&mut b, &with),
-        vec![
-            (travel, "0.20".into(), "5.00".into()),
-            (b.cash, "-5.00".into(), "-5.00".into()),
-        ]
-    );
-}
-
-#[test]
-fn a_transfer_between_two_foreign_currencies_asks_for_the_source_rate() {
-    // Arrange
-    let mut b = book();
-    let eur = b.ledger.create_commodity("EUR", 2).unwrap().doc_id;
-    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
-    let euros = open(&mut b.ledger, "Euros", Asset, eur);
-    // Act
-    let draft = draft(
-        &b,
-        "transfer",
-        json!({
-            "amount": "10.00", "from": pick(dollars), "to": pick(euros),
-            "amount_in": "9.00", "date": "2026-11-02",
-        }),
-    );
-    // Assert
-    assert_eq!(
-        errors(&draft),
-        vec![(Some("from_rate".into()), "rate_needed".into())]
-    );
-}
-
-#[test]
-fn a_fee_in_dollars_is_charged_to_the_fee_account_in_lira() {
-    // Arrange
-    let mut b = book();
-    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
-    let other = open(&mut b.ledger, "Other dollars", Asset, b.usd_id);
-    let fees = b.ledger.system_account("bank_fee").unwrap();
-    // Act
-    let draft = draft(
-        &b,
-        "transfer",
-        json!({
-            "amount": "100.00", "from": pick(dollars), "to": pick(other), "fee": "1.00",
-            "from_rate": "35", "date": "2026-11-02", "memo": "wire",
-        }),
-    );
-    // Assert
-    assert_eq!(
-        post_draft(&mut b, &draft),
-        vec![
-            (dollars, "-100.00".into(), "-3500.00".into()),
-            (other, "100.00".into(), "3500.00".into()),
-            (dollars, "-1.00".into(), "-35.00".into()),
-            (fees, "35.00".into(), "35.00".into()),
-        ]
-    );
 }
 
 /// A pack with one scenario and the given lines over an amount and two accounts.
@@ -299,30 +186,8 @@ fn a_fixed_system_account_and_an_unclosed_brace_in_the_preview_are_handled() {
     // Act
     let draft = run(&b, &pack, b.food);
     // Assert
-    assert_eq!(draft.entry.unwrap().lines[0].account, fees);
-    assert_eq!(draft.preview.unwrap().text, "5,00 TRY {here");
-}
-
-#[test]
-fn borrowing_dollars_gives_the_payable_line_a_negative_base_value() {
-    // Arrange
-    let mut b = book();
-    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
-    let inputs = json!({
-        "direction": "borrow", "person": { "new": "Ahmet" }, "money": pick(dollars),
-        "money_rate": "35", "amount": "100.00", "date": "2026-11-02",
-    });
-    // Act
-    let draft = draft(&b, "debt", inputs);
-    // Assert
-    let child = draft.entry.as_ref().unwrap().create_accounts[0].id;
-    assert_eq!(
-        post_draft(&mut b, &draft),
-        vec![
-            (dollars, "100.00".into(), "3500.00".into()),
-            (child, "-100.00".into(), "-3500.00".into()),
-        ]
-    );
+    assert_eq!(draft.entry().cloned().unwrap().lines[0].account, fees);
+    assert_eq!(draft.preview().cloned().unwrap().text, "5,00 TRY {here");
 }
 
 #[test]
@@ -363,7 +228,7 @@ fn a_date_must_exist_in_the_calendar() {
     // Act / Assert
     for date in valid {
         let draft = draft(&b, "expense", set(expense(&b, market), "date", json!(date)));
-        assert!(draft.errors.is_empty(), "{date}");
+        assert!(draft.errors().is_empty(), "{date}");
     }
     for date in invalid {
         let error = only_error(&b, "expense", set(expense(&b, market), "date", json!(date)));
@@ -383,54 +248,11 @@ fn a_split_row_of_zero_adds_no_line() {
     // Act
     let draft = draft(&b, "expense", set(expense(&b, market), "items", items));
     // Assert
-    let entry = draft.entry.unwrap();
+    let entry = draft.entry().cloned().unwrap();
     assert_eq!(entry.lines.len(), 2);
     assert!(
         entry.create_accounts.is_empty(),
         "no account opens for a line that is left out"
-    );
-}
-
-#[test]
-fn a_same_currency_transfer_refuses_an_amount_in_that_differs() {
-    // Arrange
-    let mut b = book();
-    let bank = open(&mut b.ledger, "Bank", Asset, b.try_id);
-    let inputs = json!({
-        "amount": "100.00", "from": pick(bank), "to": pick(b.cash),
-        "amount_in": "90.00", "date": "2026-11-02",
-    });
-    // Act
-    let differs = only_error(&b, "transfer", inputs.clone());
-    let same = draft(&b, "transfer", set(inputs, "amount_in", json!("100.00")));
-    // Assert
-    assert_eq!(differs, (Some("amount_in".into()), "invalid".into()));
-    assert!(same.errors.is_empty());
-}
-
-#[test]
-fn a_transfer_between_two_foreign_currencies_values_both_sides_at_the_rate_given_for_the_source() {
-    // Arrange
-    let mut b = book();
-    let eur = b.ledger.create_commodity("EUR", 2).unwrap().doc_id;
-    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
-    let euros = open(&mut b.ledger, "Euros", Asset, eur);
-    // Act
-    let draft = draft(
-        &b,
-        "transfer",
-        json!({
-            "amount": "10.00", "from": pick(dollars), "to": pick(euros), "amount_in": "9.00",
-            "from_rate": "35", "date": "2026-11-02",
-        }),
-    );
-    // Assert
-    assert_eq!(
-        post_draft(&mut b, &draft),
-        vec![
-            (dollars, "-10.00".into(), "-350.00".into()),
-            (euros, "9.00".into(), "350.00".into()),
-        ]
     );
 }
 
@@ -468,12 +290,65 @@ fn a_fault_in_a_row_after_a_broken_row_names_its_own_index() {
 }
 
 #[test]
-fn a_missing_rate_on_a_dollar_debt_is_one_error_on_the_rate() {
+fn an_amount_for_an_optional_account_left_empty_is_refused_not_dropped() {
     // Arrange
-    let mut b = book();
-    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
+    let b = book();
+    let text = json!({
+        "schema": 1, "id": "optional",
+        "scenarios": [{
+            "id": "s", "title": "t", "date": "date",
+            "inputs": [
+                { "name": "tip", "type": "amount", "of": "jar", "required": false, "label": "t" },
+                { "name": "jar", "type": "account", "kinds": ["asset"], "required": false, "label": "t" },
+                { "name": "date", "type": "date", "label": "t" }
+            ],
+            "lines": [
+                { "id": "a", "account": "jar", "amount": "tip" },
+                { "id": "b", "account": "jar", "amount": "tip", "sign": "-" }
+            ],
+            "preview": "t"
+        }],
+        "strings": { "tr": { "t": "t" }, "en": { "t": "t" } }
+    });
+    let pack = aa_core::scenario::pack::load(&text.to_string()).unwrap();
+    let input = DraftInput {
+        scenario: "s".into(),
+        language: Language::Tr,
+        inputs: json!({ "tip": "5.00", "date": "2026-11-02" })
+            .as_object()
+            .unwrap()
+            .clone(),
+    };
     // Act
-    let error = only_error(&b, "debt", set(debt(&b), "money", pick(dollars)));
+    let draft = draft_with(&pack, &b.ledger, &input).unwrap();
     // Assert
-    assert_eq!(error, (Some("money_rate".into()), "rate_needed".into()));
+    assert_eq!(
+        errors(&draft),
+        vec![(Some("jar".into()), "required".into())]
+    );
+}
+
+#[test]
+fn an_overflow_in_a_line_amount_is_an_error_not_an_entry() {
+    // Arrange
+    let b = book();
+    let pack = pack_with(json!([
+        { "id": "a", "account": "here", "amount": "amount + amount + amount" },
+        { "id": "b", "account": "there", "amount": "amount", "sign": "-" }
+    ]));
+    let input = DraftInput {
+        scenario: "s".into(),
+        language: Language::Tr,
+        inputs: json!({
+            "amount": "40000000000000000.00", "here": pick(b.cash), "there": pick(b.food),
+            "date": "2026-11-02",
+        })
+        .as_object()
+        .unwrap()
+        .clone(),
+    };
+    // Act
+    let draft = draft_with(&pack, &b.ledger, &input).unwrap();
+    // Assert
+    assert_eq!(errors(&draft), vec![(None, "calculation".into())]);
 }
