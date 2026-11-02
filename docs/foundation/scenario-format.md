@@ -104,7 +104,7 @@ Input: `{ "scenario": "expense", "inputs": { ... } }`. Output:
 
 ## The form (`scenario_describe`)
 
-`scenario_describe(id, language)` returns the inputs in pack order with resolved labels, types, `required`, `kinds`, `of`, options with labels, `columns`, `default` and `show_if_commodity_differs`. It holds no expressions. This shape is part of the API contract (`api/v1/api.json`), so every platform renders the same form.
+`scenario_describe(id, language)` returns the inputs in pack order with resolved labels, types, `required`, `kinds`, `of`, options with labels, `columns`, `default` and `show_if_commodity_differs`. It holds no expressions. This shape is part of the API contract (`api/v1/api.json`: `ScenarioForm`, `FormInput`; the draft is `DraftInput` and `Draft`), so every platform renders the same form. `scenario_list(language)` gives the scenarios with their titles and the pack hash.
 
 ## Example: Gider
 

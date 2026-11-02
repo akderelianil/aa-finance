@@ -456,6 +456,62 @@
         "missing_reference"
       ]
     },
+    "scenario_list": {
+      "summary": "Lists the built-in scenarios with their titles and the pack hash.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "$ref": "#/$defs/Language"
+          }
+        },
+        "required": [
+          "language"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/ScenarioList"
+      },
+      "errors": []
+    },
+    "scenario_describe": {
+      "summary": "The form of a scenario: its inputs in order with labels, for every platform to render. It holds no expressions.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "scenario": {
+            "type": "string"
+          },
+          "language": {
+            "$ref": "#/$defs/Language"
+          }
+        },
+        "required": [
+          "scenario",
+          "language"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/ScenarioForm"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
+    "scenario_draft": {
+      "summary": "Turns a scenario and the user's values into an entry input, a preview and field errors. Writes nothing; save the entry with post_entry.",
+      "input": {
+        "$ref": "#/$defs/DraftInput"
+      },
+      "output": {
+        "$ref": "#/$defs/Draft"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
     "api_version": {
       "summary": "The version of this contract.",
       "input": {
@@ -1023,6 +1079,280 @@
       "required": [
         "id",
         "contact"
+      ],
+      "additionalProperties": false
+    },
+    "Language": {
+      "description": "The language of texts a scenario returns.",
+      "enum": [
+        "tr",
+        "en"
+      ]
+    },
+    "ScenarioSummary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioList": {
+      "type": "object",
+      "properties": {
+        "pack": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string",
+          "description": "SHA-256 of the pack text, lower-case hex.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scenarios": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ScenarioSummary"
+          }
+        }
+      },
+      "required": [
+        "pack",
+        "hash",
+        "scenarios"
+      ],
+      "additionalProperties": false
+    },
+    "FormOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "additionalProperties": false
+    },
+    "FormInput": {
+      "description": "One input of a scenario form (docs/foundation/scenario-format.md). Only the fields of its type are present.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "amount",
+            "account",
+            "rate",
+            "contact",
+            "choice",
+            "lines",
+            "date",
+            "text"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "of": {
+          "type": "string",
+          "description": "amount: the account input of its commodity; rate: the account input or list.column it values."
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccountKind"
+          }
+        },
+        "new": {
+          "type": "boolean",
+          "description": "account: a typed new name is allowed."
+        },
+        "default_system": {
+          "type": "string",
+          "description": "account: the system account used when the input is empty."
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FormOption"
+          }
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FormInput"
+          }
+        },
+        "default": {
+          "type": "string",
+          "description": "amount: the amount input it copies when not given."
+        },
+        "show_if_commodity_differs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "label",
+        "required"
+      ],
+      "additionalProperties": false
+    },
+    "ScenarioForm": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FormInput"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+    "DraftInput": {
+      "type": "object",
+      "properties": {
+        "scenario": {
+          "type": "string"
+        },
+        "language": {
+          "$ref": "#/$defs/Language"
+        },
+        "inputs": {
+          "type": "object",
+          "description": "Input name to value, in the shapes of docs/foundation/scenario-format.md: amounts and rates as canonical text, accounts and contacts as {\"id\": ...} or {\"new\": \"name\"}, a choice as its option id, lines as a list of rows."
+        }
+      },
+      "required": [
+        "scenario",
+        "language",
+        "inputs"
+      ],
+      "additionalProperties": false
+    },
+    "Preview": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "vars": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "vars",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "FieldError": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "An input name, list.row.column for a row, or null for the draft as a whole."
+        },
+        "code": {
+          "type": "string",
+          "description": "required, invalid, unknown, unknown_field, account_kind, account_archived, same_account, rate_needed, too_long, calculation, too_few_lines, mixed_commodities, or the message key of a failed pack check."
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "code",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "Draft": {
+      "description": "Either an entry with its preview and no errors, or errors with a null entry and preview. The entry goes unchanged to post_entry.",
+      "type": "object",
+      "properties": {
+        "entry": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/EntryInput"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preview": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Preview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldError"
+          }
+        }
+      },
+      "required": [
+        "entry",
+        "preview",
+        "errors"
       ],
       "additionalProperties": false
     }

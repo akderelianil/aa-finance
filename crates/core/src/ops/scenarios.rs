@@ -5,9 +5,20 @@ use super::{AccountView, ContactView, Ledger};
 use crate::error::{Error, Result};
 use crate::ids::DocId;
 use crate::scenario::builtin::builtin;
-use crate::scenario::draft::{draft, Books, Draft, DraftInput};
+use crate::scenario::describe::{describe, list, ScenarioForm, ScenarioList};
+use crate::scenario::draft::{draft, Books, Draft, DraftInput, Language};
 
 impl Ledger {
+    /// The built-in scenarios with their titles in `language`.
+    pub fn scenario_list(&self, language: Language) -> Result<ScenarioList> {
+        Ok(list(builtin()?, language))
+    }
+
+    /// The form of a built-in scenario, for every platform to render.
+    pub fn scenario_describe(&self, scenario: &str, language: Language) -> Result<ScenarioForm> {
+        describe(builtin()?, scenario, language)
+    }
+
     /// Drafts a built-in scenario with the user's values. Nothing is written.
     pub fn scenario_draft(&self, input: DraftInput) -> Result<Draft> {
         draft(builtin()?, self, &input)

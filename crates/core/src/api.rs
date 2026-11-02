@@ -4,6 +4,7 @@
 use crate::error::{Error, Lang, Result};
 use crate::ids::DocId;
 use crate::ops::{AccountInput, ContactInput, EntryInput, Ledger};
+use crate::scenario::draft::{DraftInput, Language};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -12,7 +13,7 @@ use serde_json::{json, Value};
 pub const API_VERSION: &str = "1";
 
 /// Every operation of the contract, in the order of the contract file.
-pub const OPERATIONS: [&str; 19] = [
+pub const OPERATIONS: [&str; 22] = [
     "open_book",
     "settings",
     "set_base_currency",
@@ -31,6 +32,9 @@ pub const OPERATIONS: [&str; 19] = [
     "account",
     "contact",
     "entry",
+    "scenario_list",
+    "scenario_describe",
+    "scenario_draft",
     "api_version",
 ];
 
@@ -105,6 +109,19 @@ struct DocRefInput {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct InLanguage {
+    language: Language,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DescribeScenario {
+    scenario: String,
+    language: Language,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct SystemKey {
     key: String,
 }
@@ -166,6 +183,12 @@ impl Ledger {
             "create_contact" => output(self.create_contact(parse::<ContactInput>(input)?)?),
             "contact" => output(self.contact(parse::<ContactRef>(input)?.contact)?),
             "entry" => output(self.entry(parse::<EntryRef>(input)?.entry)?),
+            "scenario_list" => output(self.scenario_list(parse::<InLanguage>(input)?.language)?),
+            "scenario_describe" => {
+                let i: DescribeScenario = parse(input)?;
+                output(self.scenario_describe(&i.scenario, i.language)?)
+            }
+            "scenario_draft" => output(self.scenario_draft(parse::<DraftInput>(input)?)?),
             "api_version" => {
                 parse::<Empty>(input)?;
                 Ok(json!({ "version": API_VERSION }))

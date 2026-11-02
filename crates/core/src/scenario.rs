@@ -3,6 +3,7 @@
 
 pub mod builtin;
 pub mod calc;
+pub mod describe;
 pub mod expr;
 
 pub mod draft;

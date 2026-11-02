@@ -13,8 +13,8 @@ Scenarios as data (ADR-0016): schema, safe expressions, official calculators, pr
 ## Acceptance Criteria
 
 - [x] Expression crate verified (licence, releases) or a minimal grammar chosen, recorded in an ADR note (ADR-0024)
-- [ ] Golden tests for each scenario including foreign currency and card payment; a faulty scenario cannot corrupt the books
-- [ ] Form description is stable and documented for all platforms to render
+- [x] Golden tests for each scenario including foreign currency and card payment; a faulty scenario cannot corrupt the books
+- [x] Form description is stable and documented for all platforms to render
 
 ## Technical Notes
 
@@ -29,7 +29,8 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 - Done: pack format accepted (docs/foundation/scenario-format.md; owner decisions: one payment account per split, `convert: true` on a line, system account `bank_fee`). Loader `scenario::pack` (raw shapes, checker, SHA-256 content hash via `sha2`, MIT/Apache): names, references, field sets per type, choice values, strings in tr and en, preview placeholders and typed expressions are checked at load. 21 unit tests; lines 100, 99.6 and 100 percent; five mutations caught.
 - Done: calculators `convert` and `cross_rate` (`scenario::calc`); built-in pack (`scenario/builtin.json`, loaded once); `default_system` on account inputs (Transfer fee defaults to `bank_fee`).
 - Done: draft engine `scenario::draft` (reader, builder, preview) behind a `Books` trait; `Ledger::scenario_draft`. Golden tests for Gider (cash, card, split with a new account, dollar card with rate), Gelir (split, new account), Transfer (ATM with fee, card payment, lira to dollars, dollar fee), Borç (four actions, new contact, dollar child under the group, borrow with a negative base) and edges; a faulty pack yields an entry the ledger refuses. A left-out line opens no account. 38 tests; draft lines 95 to 99 percent; mutations on sign, base sign, kind, distinct and default caught.
-- Next: `scenario_list`, `scenario_describe`, `scenario_draft` in the API contract and docs; then the reviewer agents.
+- Done: `scenario_list`, `scenario_describe` (`scenario::describe`, form without expressions) and `scenario_draft` in the API contract (22 operations) and docs/api/v1.md; a session test drafts, posts and checks every answer against the contract.
+- Next: reviewer agents (rust-reviewer, silent-failure-hunter, type-design-analyzer, pr-test-analyzer), fixes, then the story goes to review.
 
 ## Definition of Done
 

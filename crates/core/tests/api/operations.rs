@@ -216,3 +216,76 @@ fn an_entry_that_opens_an_account_and_a_contact_fits_the_contract() {
     assert_eq!(friends["parent"], receivable);
     assert_eq!(again.unwrap_err(), "account_name_taken");
 }
+
+#[test]
+fn scenarios_are_listed_described_and_drafted_through_the_contract() {
+    // Arrange
+    let mut l = ledger();
+    let book = run(
+        &mut l,
+        "open_book",
+        json!({"base_code": "TRY", "base_scale": 2}),
+    )
+    .unwrap();
+    let cash = run(
+        &mut l,
+        "create_account",
+        json!({"name": "Cash", "parent": null, "kind": "asset", "commodity": book["doc_id"]}),
+    )
+    .unwrap();
+    // Act
+    let list = run(&mut l, "scenario_list", json!({"language": "tr"})).unwrap();
+    let form = run(
+        &mut l,
+        "scenario_describe",
+        json!({"scenario": "expense", "language": "en"}),
+    )
+    .unwrap();
+    let debt_form = run(
+        &mut l,
+        "scenario_describe",
+        json!({"scenario": "debt", "language": "tr"}),
+    )
+    .unwrap();
+    let missing = run(
+        &mut l,
+        "scenario_describe",
+        json!({"scenario": "lottery", "language": "tr"}),
+    );
+    let draft = run(
+        &mut l,
+        "scenario_draft",
+        json!({"scenario": "expense", "language": "tr", "inputs": {
+            "amount": "5.00", "payment": {"id": cash["doc_id"]}, "date": "2026-11-02",
+            "items": [{"expense": {"new": "Market"}, "part": "5.00"}],
+        }}),
+    )
+    .unwrap();
+    let refused = run(
+        &mut l,
+        "scenario_draft",
+        json!({"scenario": "expense", "language": "en", "inputs": {}}),
+    )
+    .unwrap();
+    let posted = run(&mut l, "post_entry", draft["entry"].clone()).unwrap();
+    // Assert
+    let titles: Vec<&str> = list["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["title"].as_str().unwrap())
+        .collect();
+    assert_eq!(titles, ["Gider", "Gelir", "Transfer", "Borç"]);
+    assert_eq!(list["hash"].as_str().unwrap().len(), 64);
+    assert_eq!(form["title"], "Expense");
+    assert_eq!(form["inputs"][0]["type"], "amount");
+    assert_eq!(form["inputs"][0]["of"], "payment");
+    assert_eq!(form["inputs"][3]["columns"][0]["new"], true);
+    assert_eq!(form["inputs"][4]["of"], "items.expense");
+    assert_eq!(debt_form["inputs"][0]["options"][3]["label"], "Ödeme");
+    assert_eq!(missing.unwrap_err(), "missing_reference");
+    assert_eq!(draft["preview"]["text"], "Cash −5,00 TRY → Market");
+    assert_eq!(refused["entry"], Value::Null);
+    assert_eq!(refused["errors"][0]["text"], "This field is required.");
+    assert!(posted["doc_id"].is_string());
+}

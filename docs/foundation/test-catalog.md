@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 368 tests.
+Total: 369 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -22,12 +22,13 @@ Bad calls fail with a stable code in the error envelope, never with internal tex
 - An input the contract rejects is refused by the dispatcher too
 - An error message does not repeat what the caller sent
 
-### api/operations.rs (3)
+### api/operations.rs (4)
 A whole session through the named operations, every answer held to the contract.
 
 - A session through every operation fits the contract
 - Rule failures come back with codes the contract lists
 - An entry that opens an account and a contact fits the contract
+- Scenarios are listed described and drafted through the contract
 
 ### ops/accounts.rs (20)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
