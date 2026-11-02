@@ -7,10 +7,10 @@ use super::{name_key, non_empty, AccountInput, ContactInput, DocRef, Ledger};
 use crate::body::{AccountBody, Body, ContactBody};
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, RevisionId};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// An account to open with an entry, under an id the caller chose.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NewAccount {
     pub id: DocId,
@@ -18,7 +18,7 @@ pub struct NewAccount {
 }
 
 /// A contact to open with an entry, under an id the caller chose.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NewContact {
     pub id: DocId,

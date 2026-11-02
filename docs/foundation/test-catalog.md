@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 331 tests.
+Total: 368 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -109,6 +109,59 @@ An entry that opens its own accounts and contacts (ADR-0024): a scenario draft n
 - A foreign currency account opens under the receivable group and takes a rated line
 - A new document cannot take an id that is already used
 - Editing an entry can open an account too
+
+### ops/scenario_edges.rs (13)
+Edges of scenario drafts (ADR-0024): every input type refuses a value of the wrong shape, rows name their faults, typed names are reused or refused by kind, rates are asked for exactly where a conversion or a base value needs one, and a pack's own faults come back as errors.
+
+- Every input type refuses a value of the wrong shape
+- A row names its own faults
+- An archived account is refused and a typed contact name is reused
+- Split rows in two currencies are refused
+- A foreign expense account asks for its own rate and then takes it
+- A transfer between two foreign currencies asks for both rates
+- A fee in dollars is charged to the fee account in lira
+- A pack with one line or an unconverted mix gets an error not an entry
+- A fixed system account and an unclosed brace in the preview are handled
+- Borrowing dollars gives the payable line a negative base value
+- An empty required input of any type is required
+- A date must exist in the calendar
+- A split row of zero adds no line
+
+### ops/scenario_moving.rs (8)
+Golden drafts of Transfer and Borç (ux/transfer.md, ux/borc.md, ADR-0024): a transfer with a fee, a card payment, a transfer between two currencies, and the four debt actions with a contact on the debt line, a new contact and a currency child under the debt group.
+
+- An atm withdrawal with a fee credits the bank twice and charges the fee account
+- A card payment without a fee lowers the card debt
+- Buying dollars takes both amounts and values the dollars at the lira paid
+- A transfer between two currencies needs the amount in
+- A transfer to the same account is refused
+- Lending to a new person opens the contact and raises what they owe
+- The four debt actions move money and the debt group in opposite directions
+- A dollar loan opens a dollar account under the receivable group
+
+### ops/scenario_safety.rs (7)
+What a scenario draft refuses and what it can never do (ADR-0024): bad or missing values come back as field errors in the user's language, a draft writes nothing, and a faulty pack yields at worst an entry the ledger refuses, so it cannot corrupt the books.
+
+- Missing bad and unknown values are field errors
+- A row error names the row and the column
+- Errors and the preview come in the language asked for
+- An unknown scenario is a missing reference
+- An overflow while drafting is an error not a crash
+- Drafting writes nothing
+- A faulty scenario cannot corrupt the books
+
+### ops/scenario_spending.rs (9)
+Golden drafts of Gider and Gelir (ux/gider.md, ux/gelir.md, ADR-0024): the built-in scenario turns the form into the lines the UX documents, a new account name opens with the entry, a split must add up, a foreign payment needs its rate, and the draft posts as it is.
+
+- A cash expense debits the expense and credits the cash
+- A card expense raises the card debt
+- A split expense opens a new expense account with the entry
+- A new name that matches an existing account uses that account
+- A split that does not add up is a field error
+- A dollar card expense converts the expense into lira with the rate
+- A foreign payment without a rate asks for the rate
+- Income split into salary and a new bonus account credits both
+- An account of a kind the input does not take is a field error
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).

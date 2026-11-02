@@ -86,3 +86,63 @@ pub fn entry(lines: Vec<LineInput>) -> EntryInput {
         create_contacts: Vec::new(),
     }
 }
+
+/// An account of the given kind in the given commodity, at the top of the chart.
+pub fn open(
+    ledger: &mut Ledger,
+    name: &str,
+    kind: aa_core::body::AccountKind,
+    commodity: DocId,
+) -> DocId {
+    let mut input = account(name, commodity);
+    input.kind = kind;
+    ledger.create_account(input).unwrap().doc_id
+}
+
+/// `{"id": ...}`, the value of an account or contact input that names an existing document.
+pub fn pick(id: DocId) -> serde_json::Value {
+    serde_json::json!({ "id": id.to_string() })
+}
+
+/// The draft of a built-in scenario, in Turkish.
+pub fn draft(
+    b: &Book,
+    scenario: &str,
+    inputs: serde_json::Value,
+) -> aa_core::scenario::draft::Draft {
+    let input = aa_core::scenario::draft::DraftInput {
+        scenario: scenario.to_string(),
+        language: aa_core::scenario::draft::Language::Tr,
+        inputs: inputs.as_object().unwrap().clone(),
+    };
+    b.ledger.scenario_draft(input).unwrap()
+}
+
+/// Posts a draft that has no errors and returns the stored lines as (account, amount, base).
+pub fn post_draft(
+    b: &mut Book,
+    draft: &aa_core::scenario::draft::Draft,
+) -> Vec<(DocId, String, String)> {
+    assert!(draft.errors.is_empty(), "{:?}", draft.errors);
+    let entry = draft
+        .entry
+        .clone()
+        .expect("a draft without errors has an entry");
+    let posted = b.ledger.post_entry(entry).unwrap();
+    b.ledger
+        .entry(posted.doc_id)
+        .unwrap()
+        .lines
+        .into_iter()
+        .map(|line| (line.account, line.amount, line.base))
+        .collect()
+}
+
+/// The (field, code) pairs of a draft's errors.
+pub fn errors(draft: &aa_core::scenario::draft::Draft) -> Vec<(Option<String>, String)> {
+    draft
+        .errors
+        .iter()
+        .map(|error| (error.field.clone(), error.code.clone()))
+        .collect()
+}

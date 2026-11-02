@@ -6,9 +6,9 @@ use crate::body::{Body, ContactBody, ContactKind};
 use crate::error::Result;
 use crate::ids::DocId;
 use crate::ops::ContactView;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ContactInput {
     pub name: String,

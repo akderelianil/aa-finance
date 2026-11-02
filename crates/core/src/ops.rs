@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 mod contacts;
 mod new_documents;
+mod scenarios;
 mod views;
 
 /// The system key and the name of the account that takes the rounding differences of conversions.
@@ -61,7 +62,7 @@ pub struct DocRef {
     pub revision_id: RevisionId,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AccountInput {
     pub name: String,
@@ -72,7 +73,7 @@ pub struct AccountInput {
 
 /// One line as the user gave it. `amount` is a canonical string in the scale of the account's
 /// commodity. For a commodity other than the base, give `rate` or `base` (or both, when they agree).
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LineInput {
     pub account: DocId,
@@ -84,7 +85,7 @@ pub struct LineInput {
     pub contact: Option<DocId>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EntryInput {
     pub date: String,
