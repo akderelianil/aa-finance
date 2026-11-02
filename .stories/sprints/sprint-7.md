@@ -10,6 +10,6 @@
 | ID | Title | Points | Status |
 | --- | --- | --- | --- |
 | core-rebuild-4 | CR-3 Accounts, entries and the named-operation API | 8 | done |
-| core-rebuild-5 | CR-4 Scenario engine and the four v1 scenarios | 8 | in-progress |
+| core-rebuild-5 | CR-4 Scenario engine and the four v1 scenarios | 8 | review |
 
 ## Total Points: 16
