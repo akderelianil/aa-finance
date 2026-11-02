@@ -8,6 +8,8 @@ metadata:
   modified: 2026-10-17T12:32:25.892Z
 ---
 
+State on 2026-11-02: core-rebuild-5 in progress. Done and pushed: ADR-0024 (dc98c3e), expression language `scenario::expr` (ee9ac05), minimal contact document with `line.contact_id` and K25 (dc8c830). Next: scenario document format and loader, then scenario_list/describe/draft and the four built-in scenarios with golden tests. Decisions: [[core-rebuild-5-decisions]].
+
 State on 2026-10-17 (latest): core-rebuild-4 is DONE (closed after reviewers and verify; spec-to-test mapping moved to core-rebuild-9, needs-attention is core-rebuild-11). `npm run verify` now also runs the API docs check and the test-support guard. Next story: core-rebuild-5 (scenario engine: Gider, Gelir, Transfer, Borç; scenarios are JSON data with a safe expression language, ADR-0016). Start with `npm run story -- status`; the ask-many-questions rule applies before designing.
 
 State on 2026-10-17 (later): repeated undo and redo are done (K24, `restored_from`/`restore_kind` on the revision, `nothing_to_redo`); counts 77 unit, 61 operation, 95 store. API contract done (ADR-0023, `api/v1/api.json` is the authority, `Ledger::call`, docs/api/v1.md generated, 9 api tests). History head/conflict marks done and reviewed (rust-reviewer, silent-failure-hunter). Next: test-support guard for shipped crates, then decide with the owner whether core-rebuild-4 closes (spec-to-test mapping is core-rebuild-9).
