@@ -19,6 +19,7 @@ Read only what the task needs. Start at the folder of your role. Shared files si
 | [adr/](adr/README.md) | Architecture decision records | EN |
 | [ROADMAP](ROADMAP.md) | Done, now, later | EN |
 | [foundation/ci](foundation/ci.md) | Continuous integration policy: what runs when, and when to widen it | EN |
+| [foundation/scenario-format](foundation/scenario-format.md) | Scenario pack format v1: inputs, checks, lines, draft and form description (ADR-0024) | EN |
 | [foundation/test-catalog](foundation/test-catalog.md) | Every Rust test by topic, generated from the sources (`npm run test:catalog`) | EN |
 
 Project rules live in `.claude/rules/` (ECC common, typescript and react subsets). Agents, skills and hooks come from the ECC plugin; which tool to use when is in [foundation/ecc-usage.md](foundation/ecc-usage.md).
