@@ -2,3 +2,5 @@
 //! lines that become a draft entry. A draft writes nothing; saving goes through `post_entry`.
 
 pub mod expr;
+
+pub mod pack;

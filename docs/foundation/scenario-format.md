@@ -25,6 +25,9 @@ A pack is one JSON document. The core loads it, checks every name, type and expr
 {
   "id": "expense",
   "title": "expense.title",
+  "date": "date",
+  "memo": "memo",
+  "distinct": [],
   "inputs": [ ... ],
   "checks": [ ... ],
   "lines": [ ... ],
@@ -32,7 +35,7 @@ A pack is one JSON document. The core loads it, checks every name, type and expr
 }
 ```
 
-Names (`id`, input names, line ids) follow the grammar's `name` rule: `[a-z][a-z0-9_]*`.
+Names (`id`, input names, column names, line ids) follow the grammar's `name` rule: `[a-z][a-z0-9_]*`, and are unique in their scenario; a column name may not repeat an input name. `date` names the date input of the entry, `memo` the optional text input that becomes its memo, and `distinct` lists pairs of account inputs that may not be the same account.
 
 ## Inputs
 
@@ -59,7 +62,7 @@ Every input has `name`, `type`, `label` (a string key) and `required` (default `
 { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" }
 ```
 
-`rule` is a boolean expression. When it is false, the draft returns a field error on `field` with that message. The engine adds these checks by itself, so packs do not repeat them: a required input is empty (`required`), a `rate` is missing for a foreign line (`rate_needed`), and two account inputs marked `distinct` are the same account (`same_account`).
+`rule` is a boolean expression. When it is false, the draft returns a field error on `field` with that message. The engine adds these checks by itself, so packs do not repeat them: a required input is empty (`required`), a `rate` is missing for a foreign line (`rate_needed`), and a `distinct` pair names one account (`same_account`), and an account does not fit the input's `kinds` (`account_kind`).
 
 ## Lines
 
@@ -69,7 +72,8 @@ Every input has `name`, `type`, `label` (a string key) and `required` (default `
 
 | Field | Meaning |
 |---|---|
-| `account` | an account input, a `lines` column (`items.account`, one line per row), or `{"system": "<choice>.<value>", "commodity_of": "<account input>"}` |
+| `each` | a `lines` input: the line repeats for each row, and the row's columns are names in `account`, `amount` and `when` |
+| `account` | an account input or column, or `{"system": "<choice>.<value>" or "<key>", "commodity_of": "<account input>"}` |
 | `amount` | an amount expression; the line takes it as is |
 | `sign` | `"+"` (debit, the default), `"-"` (credit) or a choice value |
 | `convert` | `true`: if the amount is in another commodity than the account, the official `convert` calculator turns it into the account's commodity with the given rates. Without `convert`, a commodity mismatch is a draft error |
@@ -113,18 +117,18 @@ Input: `{ "scenario": "expense", "inputs": { ... } }`. Output:
     { "name": "payment", "type": "account", "kinds": ["asset", "liability"], "label": "field.payment" },
     { "name": "payment_rate", "type": "rate", "of": "payment", "label": "field.rate" },
     { "name": "items", "type": "lines", "label": "field.expense", "columns": [
-      { "name": "account", "type": "account", "kinds": ["expense"], "label": "field.expense" },
-      { "name": "amount", "type": "amount", "of": "payment", "label": "field.amount" } ] },
-    { "name": "expense_rate", "type": "rate", "of": "items.account", "label": "field.rate" },
+      { "name": "expense", "type": "account", "kinds": ["expense"], "label": "field.expense" },
+      { "name": "part", "type": "amount", "of": "payment", "label": "field.amount" } ] },
+    { "name": "expense_rate", "type": "rate", "of": "items.expense", "label": "field.rate" },
     { "name": "date", "type": "date", "label": "field.date" },
     { "name": "memo", "type": "text", "required": false, "max": 200, "label": "field.memo" }
   ],
   "checks": [
     { "rule": "amount > 0", "field": "amount", "message": "check.amount_positive" },
-    { "rule": "sum(items.amount) = amount", "field": "items", "message": "check.split_remaining" }
+    { "rule": "sum(items.part) = amount", "field": "items", "message": "check.split_remaining" }
   ],
   "lines": [
-    { "id": "spend", "account": "items.account", "amount": "items.amount", "convert": true, "rate": "expense_rate" },
+    { "id": "spend", "each": "items", "account": "expense", "amount": "part", "convert": true, "rate": "expense_rate" },
     { "id": "pay", "account": "payment", "amount": "amount", "sign": "-", "rate": "payment_rate" }
   ],
   "preview": "expense.preview"

@@ -26,7 +26,8 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 - Done: expression module `scenario::expr` (lexer and parser in `expr/parse.rs`, separate amount and boolean trees, checked evaluation); 29 unit tests incl. 3 properties; lines 100 and 98.8 percent; mutations on the commodity check and the depth limit caught.
 - Done: minimal contact document (name, fixed kind; `create_contact`, `contact`; `line.contact_id` checked by the database and verify; K25 in ADR-0021; `contact_name_taken`, `contact_kind_fixed`). Names compare with `name_key` (case and the Turkish i ignored), accounts too. Mutations on the kind trigger and the i fold caught; total lines 98.2 percent.
 - Done: `post_entry` and `edit_entry` take `create_accounts` and `create_contacts` (ids chosen by the caller), checked under the rules of `create_account` and `create_contact` and written with the entry in one transaction; a reused id is a `conflict`. `open_book` also opens the locked system groups `receivable` and `payable` (Borç). Mutations on the pending name check and the pending contact lookup caught.
-- Next: the scenario document format and loader (`scenario::pack`), then `scenario_list`/`describe`/`draft` and the four built-in scenarios with golden tests.
+- Done: pack format accepted (docs/foundation/scenario-format.md; owner decisions: one payment account per split, `convert: true` on a line, system account `bank_fee`). Loader `scenario::pack` (raw shapes, checker, SHA-256 content hash via `sha2`, MIT/Apache): names, references, field sets per type, choice values, strings in tr and en, preview placeholders and typed expressions are checked at load. 21 unit tests; lines 100, 99.6 and 100 percent; five mutations caught.
+- Next: the draft engine (`scenario_draft`), then `scenario_list`/`describe`, the built-in pack with Gider, Gelir, Transfer and Borç, and golden tests.
 
 ## Definition of Done
 

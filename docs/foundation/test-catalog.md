@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 301 tests.
+Total: 320 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -425,3 +425,26 @@ The scenario expression language (ADR-0024): what loads, what is refused at load
 - Loading arbitrary text never panics
 - Loading token soup never panics
 - Arithmetic matches wide integers or reports overflow
+
+### scenario/pack/tests.rs (19)
+Loading a scenario pack (ADR-0024, docs/foundation/scenario-format.md): a pack loads whole or not at all, every name, reference, string and expression is checked at load, and its hash is stable.
+
+- A valid pack loads with its scenarios inputs and lines
+- The hash is the sha256 of the text and changes with it
+- A pack that is not the format is refused
+- An unknown schema version is refused
+- A pack larger than the limit is refused before it is read
+- Names must follow the grammar and be unique
+- Every reference must name an input of the right type
+- Every line reference must name the right thing
+- A system account may be named by its key
+- An input takes only the fields of its type
+- Account choice and text inputs are checked
+- A string missing in either language is refused
+- A preview placeholder must name an input
+- Expressions are compiled and typed at load
+- The fault says where it is
+- Defaults and conditions of an amount must name inputs of the right type
+- A scenario without a memo loads
+- Columns are accounts or amounts and are named by their list
+- Every fault has its own text
