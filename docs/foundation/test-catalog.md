@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 320 tests.
+Total: 328 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -392,6 +392,18 @@ Rates and base values: the rounding rule checked against an independent calculat
 - Parsing a rate never panics
 - The rounding line always balances the entry
 - Large sums never wrap
+
+### scenario/calc/tests.rs (8)
+The official calculators (ADR-0024): converting an amount between two commodities through the book currency, and the cross rate of two rates; exact, rounded half away from zero, never float.
+
+- A foreign amount converts into the book currency with its rate
+- A book currency amount converts into a foreign one with its rate
+- Two foreign currencies convert through the book currency
+- Scales of both sides are respected
+- The same side on both ends keeps the amount
+- A result beyond the stored range is refused
+- The cross rate is one rate divided by the other
+- A cross rate that cannot be written is refused
 
 ### scenario/expr/tests.rs (29)
 The scenario expression language (ADR-0024): what loads, what is refused at load, and exact, checked evaluation over amounts of one commodity.

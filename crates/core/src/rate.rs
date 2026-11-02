@@ -18,7 +18,7 @@ pub struct Rate {
 }
 
 /// Decimals kept when a rate is derived from an amount and a base.
-const IMPLIED_RATE_DECIMALS: u32 = 12;
+pub(crate) const IMPLIED_RATE_DECIMALS: u32 = 12;
 const MAX_DECIMALS: usize = 18;
 const MAX_DIGITS: usize = 19;
 
@@ -27,7 +27,7 @@ fn out_of_range() -> Error {
 }
 
 /// n / d rounded half away from zero; `d` is positive.
-fn div_round(n: i128, d: i128) -> i128 {
+pub(crate) fn div_round(n: i128, d: i128) -> i128 {
     let quotient = n / d;
     if 2 * (n % d).abs() >= d {
         quotient + n.signum()
@@ -40,7 +40,7 @@ fn same_sign_nonzero(a: i64, b: i64) -> bool {
     a != 0 && b != 0 && (a > 0) == (b > 0)
 }
 
-fn in_stored_bounds(value: i128) -> Result<i64> {
+pub(crate) fn in_stored_bounds(value: i128) -> Result<i64> {
     i64::try_from(value)
         .ok()
         .filter(|v| v.unsigned_abs() <= MAX_STORED_MAGNITUDE)
@@ -48,6 +48,32 @@ fn in_stored_bounds(value: i128) -> Result<i64> {
 }
 
 impl Rate {
+    /// The digits and the number of decimals: the rate is `mantissa / 10^decimals`.
+    pub(crate) fn parts(&self) -> (u64, u8) {
+        (self.mantissa, self.decimals)
+    }
+
+    /// A rate from at most 19 significant digits and at most 18 decimals, trailing zeros cut.
+    pub(crate) fn from_parts(mantissa: i128, decimals: u32) -> Result<Rate> {
+        let invalid = || Error::Rule(RuleCode::RateInvalid);
+        let (mut mantissa, mut decimals) = (mantissa, decimals);
+        while decimals > 0 && mantissa % 10 == 0 {
+            mantissa /= 10;
+            decimals -= 1;
+        }
+        let mantissa = u64::try_from(mantissa).map_err(|_| invalid())?;
+        if mantissa == 0
+            || mantissa.to_string().len() > MAX_DIGITS
+            || decimals > MAX_DECIMALS as u32
+        {
+            return Err(invalid());
+        }
+        Ok(Rate {
+            mantissa,
+            decimals: decimals as u8,
+        })
+    }
+
     /// Reads the canonical text of a rate: digits with an optional single `.`, above zero.
     pub fn parse(text: &str) -> Result<Rate> {
         let invalid = || Error::Rule(RuleCode::RateInvalid);
@@ -138,20 +164,7 @@ pub fn implied_rate(quantity: i64, quantity_scale: u8, base: i64, base_scale: u8
     // |quantity| <= 2^62 and the power is at most 10^18, so this fits an i128.
     let denominator =
         i128::from(quantity.unsigned_abs()) * pow10((-scale_gap).max(0).unsigned_abs());
-    let mut mantissa = div_round(numerator, denominator);
-    if mantissa == 0 {
-        return Err(invalid());
-    }
-    let mut decimals = IMPLIED_RATE_DECIMALS as u8;
-    while decimals > 0 && mantissa % 10 == 0 {
-        mantissa /= 10;
-        decimals -= 1;
-    }
-    let mantissa = u64::try_from(mantissa).map_err(|_| invalid())?;
-    if mantissa.to_string().len() > MAX_DIGITS {
-        return Err(invalid());
-    }
-    Ok(Rate { mantissa, decimals })
+    Rate::from_parts(div_round(numerator, denominator), IMPLIED_RATE_DECIMALS)
 }
 
 /// A line in a commodity other than the book currency, as the user gave it.
