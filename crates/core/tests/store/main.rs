@@ -5,6 +5,7 @@
 mod accounts;
 mod common;
 mod conflicts;
+mod contacts;
 mod entries;
 mod failures;
 mod rebuild;

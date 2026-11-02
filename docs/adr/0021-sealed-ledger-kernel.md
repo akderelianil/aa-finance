@@ -1,7 +1,7 @@
 # ADR-0021: Sealed ledger kernel, the invariants that never bend
 
 **Date**: 2026-10-17
-**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17; K22 was added the same day with the settings document, [ADR-0022](0022-book-settings-document.md); K19 and K20 were built and K23 added on 2026-10-17; K24 added with repeated undo and redo)
+**Status**: accepted (owner confirmed the list K1 to K21 on 2026-10-17; K22 was added the same day with the settings document, [ADR-0022](0022-book-settings-document.md); K19 and K20 were built and K23 added on 2026-10-17; K24 added with repeated undo and redo; K25 added on 2026-11-02 with the contact document, [ADR-0024](0024-scenario-format-and-expression-grammar.md))
 **Deciders**: product owner (core-rebuild-4 talk)
 
 **Relation**: Collects rules that [ADR-0004](0004-balance-by-base-amount-trigger.md), [ADR-0010](0010-amounts-commodities-balancing.md) and [ADR-0012](0012-revisions-as-truth.md) state in prose. It adds no new storage; it makes each rule one row with its enforcement and its test.
@@ -39,11 +39,12 @@ The kernel is the set of rows below. A row is only "sealed" when the database (o
 | K22 | A book has one settings document, under one fixed id; its row is written only by the projector | Rust check in the projector; `CHECK (id = 1)`; projection gate | `settings_id_fixed`, `projection_closed` | store/settings.rs: `settings_under_any_other_document_id_are_refused`, `only_the_projector_writes_the_settings_table` |
 | K23 | A system key belongs to one account | `UNIQUE` on `account.system_key` | `system_key_taken` | store/accounts.rs: `a_system_key_belongs_to_one_account` |
 | K24 | An undo or a redo names the revision it copies (both fields or neither), and that revision belongs to the same document | `CHECK`; trigger | `revision_parent_mismatch` | store/revisions.rs: `a_restore_needs_both_its_source_and_its_kind_and_a_source_in_the_same_document` |
+| K25 | A contact keeps the kind it was created with; a line's contact exists | trigger on `contact.kind`; `REFERENCES contact` and the projector's lookup | `contact_kind_fixed`, `missing_reference` | store/contacts.rs: `a_contact_can_be_renamed_but_its_kind_never_changes`, `a_line_cannot_point_to_a_contact_that_does_not_exist`, `verify_reports_a_line_whose_contact_differs_from_the_revision` |
 
 K21, K22 and K23 keep the numbers they had when they were planned, so references in the story and the notes stay valid.
 
 ### Refusals of input, not invariants
-These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo`, `nothing_to_redo`, `book_already_open` (a book is opened once), `name_empty`, `account_parent_archived`, `account_parent_kind_mismatch` and `account_name_taken` (case ignored, per parent) and `entry_deleted` (a deleted entry is neither edited nor deleted again; undo first). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
+These codes stop bad input at the boundary in Rust, before anything is stored: `amount_invalid`, `amount_too_precise`, `rate_invalid`, `rate_missing`, `nothing_to_undo`, `nothing_to_redo`, `book_already_open` (a book is opened once), `name_empty`, `account_parent_archived`, `account_parent_kind_mismatch` and `account_name_taken` (case and the Turkish i ignored, per parent), `contact_name_taken` (case and the Turkish i ignored, in the whole book) and `entry_deleted` (a deleted entry is neither edited nor deleted again; undo first). The database never sees them, so they are not rows above. They are listed so that every rule code appears in this ADR; the check below fails otherwise.
 
 ### Found while writing this table
 - **Commodities have no archived state.** ADR-0012 says "archived commodities and accounts take no new lines". Only accounts archive. A commodity is never deleted, and to stop using one the user archives its accounts; the UI can hide a commodity that has no active account. Decision (2026-10-17): correct ADR-0012 (done there); no commodity archive in v1.

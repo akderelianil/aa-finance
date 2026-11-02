@@ -3,7 +3,8 @@
 //! writers, not hostile ones: anyone holding the raw connection can open it.
 
 use crate::body::{
-    AccountBody, CommodityBody, EntryBody, EntryStatus, LineBody, SettingsBody, SETTINGS_DOC,
+    AccountBody, CommodityBody, ContactBody, EntryBody, EntryStatus, LineBody, SettingsBody,
+    SETTINGS_DOC,
 };
 use crate::error::{Error, Result, RuleCode};
 use crate::ids::{DocId, RevisionId};
@@ -101,6 +102,19 @@ fn account_id(conn: &Connection, uuid: DocId) -> Result<i64> {
     })
 }
 
+fn contact_id(conn: &Connection, uuid: DocId) -> Result<i64> {
+    conn.query_row(
+        "SELECT id FROM contact WHERE uuid = ?1",
+        params![uuid],
+        |row| row.get(0),
+    )
+    .optional()?
+    .ok_or_else(|| Error::MissingReference {
+        kind: "contact",
+        what: uuid.to_string(),
+    })
+}
+
 /// Opens the projection session for the duration of `work` and restores the previous state afterwards.
 fn with_session<T>(conn: &Connection, carry: bool, work: impl FnOnce() -> Result<T>) -> Result<T> {
     let (was_open, was_carry): (i64, i64) =
@@ -135,13 +149,14 @@ pub(crate) fn rebuild(
         DocKind::Account => write_account(conn, doc_id, revision_id, &body),
         DocKind::Entry => write_entry(conn, doc_id, revision_id, &body, carry_all),
         DocKind::Settings => write_settings(conn, doc_id, revision_id, &body),
+        DocKind::Contact => write_contact(conn, doc_id, revision_id, &body),
     })
 }
 
 /// Empties the projection and rebuilds all of it from the revisions: commodities, then accounts (parents first), then entries.
 pub(crate) fn rebuild_all(conn: &Connection) -> Result<()> {
     with_session(conn, true, || {
-        conn.execute_batch("UPDATE entry SET status = 'draft'; DELETE FROM line; DELETE FROM entry; UPDATE account SET parent_id = NULL; DELETE FROM account; DELETE FROM settings; DELETE FROM commodity;")?;
+        conn.execute_batch("UPDATE entry SET status = 'draft'; DELETE FROM line; DELETE FROM entry; DELETE FROM contact; UPDATE account SET parent_id = NULL; DELETE FROM account; DELETE FROM settings; DELETE FROM commodity;")?;
         Ok(())
     })?;
     for kind in DocKind::ALL {
@@ -252,7 +267,24 @@ fn write_account(
     Ok(())
 }
 
-type StoredLine = (i64, i64, i64, i64);
+fn write_contact(
+    conn: &Connection,
+    doc_id: DocId,
+    revision_id: RevisionId,
+    body: &str,
+) -> Result<()> {
+    let b: ContactBody = serde_json::from_str(body)?;
+    conn.execute(
+        "INSERT INTO contact (uuid, current_revision_id, name, kind) VALUES (?1, ?2, ?3, ?4)
+         ON CONFLICT (uuid) DO UPDATE SET current_revision_id = excluded.current_revision_id, name = excluded.name,
+           kind = excluded.kind",
+        params![doc_id, revision_id, b.name, b.kind.as_str()],
+    )?;
+    Ok(())
+}
+
+/// A line as the projection holds it: account, commodity, quantity, base value, contact.
+type StoredLine = (i64, i64, i64, i64, Option<i64>);
 
 /// Uses up one carried-over copy of `line`, if the previous head had one left.
 fn take_carried(previous: &mut HashMap<StoredLine, usize>, line: StoredLine) -> bool {
@@ -288,10 +320,16 @@ fn write_entry(
     let mut previous: HashMap<StoredLine, usize> = HashMap::new();
     {
         let mut stmt = conn.prepare_cached(
-            "SELECT account_id, commodity_id, quantity, base_value FROM line WHERE entry_id = ?1",
+            "SELECT account_id, commodity_id, quantity, base_value, contact_id FROM line WHERE entry_id = ?1",
         )?;
         let rows = stmt.query_map(params![entry_id], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
         })?;
         for line in rows {
             *previous.entry(line?).or_insert(0) += 1;
@@ -299,7 +337,7 @@ fn write_entry(
     }
     conn.execute("DELETE FROM line WHERE entry_id = ?1", params![entry_id])?;
     let mut insert = conn.prepare_cached(
-        "INSERT INTO line (entry_id, line_no, account_id, commodity_id, quantity, base_value) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO line (entry_id, line_no, account_id, commodity_id, quantity, base_value, contact_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
     )?;
     let mut carrying = false;
     let kept = if b.status == EntryStatus::Deleted {
@@ -310,10 +348,11 @@ fn write_entry(
     for (line_no, line) in kept.iter().enumerate() {
         let account = account_id(conn, line.account)?;
         let commodity = commodity_id(conn, line.commodity)?;
+        let contact = line.contact.map(|c| contact_id(conn, c)).transpose()?;
         let carried = carry_all
             || take_carried(
                 &mut previous,
-                (account, commodity, line.quantity, line.base_value),
+                (account, commodity, line.quantity, line.base_value, contact),
             );
         if carried != carrying {
             conn.execute("UPDATE projection_session SET carry = ?1", params![carried])?;
@@ -325,7 +364,8 @@ fn write_entry(
             account,
             commodity,
             line.quantity,
-            line.base_value
+            line.base_value,
+            contact
         ])?;
     }
     if b.status != EntryStatus::Draft {
@@ -348,12 +388,14 @@ pub(crate) fn verify(conn: &Connection) -> Result<Vec<Drift>> {
         (DocKind::Account, "account"),
         (DocKind::Entry, "entry"),
         (DocKind::Settings, "settings"),
+        (DocKind::Contact, "contact"),
     ] {
         check_pointers(conn, kind, table, &mut found)?;
     }
     check_commodities(conn, &mut found)?;
     check_settings(conn, &mut found)?;
     check_accounts(conn, &mut found)?;
+    check_contacts(conn, &mut found)?;
     check_entries(conn, &mut found)?;
     Ok(found
         .into_iter()
@@ -486,13 +528,41 @@ fn check_accounts(conn: &Connection, found: &mut Found) -> Result<()> {
     Ok(())
 }
 
+fn check_contacts(conn: &Connection, found: &mut Found) -> Result<()> {
+    let mut stmt = conn.prepare(
+        "SELECT c.uuid, c.name, c.kind, r.body FROM contact c JOIN revision r ON r.id = c.current_revision_id",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, DocId>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+        ))
+    })?;
+    for row in rows {
+        let (uuid, name, kind, body) = row?;
+        match serde_json::from_str::<ContactBody>(&body) {
+            Ok(b) if b.name == name && b.kind.as_str() == kind => {}
+            _ => note(
+                found,
+                DocKind::Contact,
+                uuid,
+                DriftReason::DiffersFromRevision,
+            ),
+        }
+    }
+    Ok(())
+}
+
 fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
     let mut entries = conn.prepare(
         "SELECT e.id, e.uuid, e.date, e.memo, e.no, e.status, r.body FROM entry e JOIN revision r ON r.id = e.current_revision_id",
     )?;
     let mut lines = conn.prepare(
-        "SELECT l.line_no, a.uuid, c.uuid, l.quantity, l.base_value FROM line l JOIN account a ON a.id = l.account_id
-         JOIN commodity c ON c.id = l.commodity_id WHERE l.entry_id = ?1 ORDER BY l.line_no",
+        "SELECT l.line_no, a.uuid, c.uuid, l.quantity, l.base_value, p.uuid FROM line l JOIN account a ON a.id = l.account_id
+         JOIN commodity c ON c.id = l.commodity_id LEFT JOIN contact p ON p.id = l.contact_id
+         WHERE l.entry_id = ?1 ORDER BY l.line_no",
     )?;
     let rows = entries.query_map([], |row| {
         Ok((
@@ -517,6 +587,7 @@ fn check_entries(conn: &Connection, found: &mut Found) -> Result<()> {
                         quantity: r.get(3)?,
                         base_value: r.get(4)?,
                         rate: None,
+                        contact: r.get(5)?,
                     },
                 ))
             })?

@@ -72,6 +72,7 @@ pub fn line(account: DocId, amount: &str) -> LineInput {
         amount: amount.to_string(),
         rate: None,
         base: None,
+        contact: None,
     }
 }
 

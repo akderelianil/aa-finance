@@ -68,6 +68,34 @@ pub struct AccountBody {
     pub system_key: Option<String>,
 }
 
+/// What a contact is (ADR-0024); fixed once the contact exists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ContactKind {
+    Individual,
+    Brand,
+    Business,
+}
+
+impl ContactKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ContactKind::Individual => "individual",
+            ContactKind::Brand => "brand",
+            ContactKind::Business => "business",
+        }
+    }
+}
+
+/// A person, brand or business a line can point to (the Rehber). Links between brands and
+/// businesses and suggested accounts come with the Rehber story.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContactBody {
+    pub name: String,
+    pub kind: ContactKind,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EntryStatus {
@@ -99,6 +127,9 @@ pub struct LineBody {
     pub base_value: i64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rate: Option<String>,
+    /// The contact the line is about (Borç binds the debt line to a person).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contact: Option<DocId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,6 +149,7 @@ pub enum Body {
     Account(AccountBody),
     Entry(EntryBody),
     Settings(SettingsBody),
+    Contact(ContactBody),
 }
 
 impl Body {
@@ -127,6 +159,7 @@ impl Body {
             Body::Account(_) => DocKind::Account,
             Body::Entry(_) => DocKind::Entry,
             Body::Settings(_) => DocKind::Settings,
+            Body::Contact(_) => DocKind::Contact,
         }
     }
 
@@ -137,6 +170,7 @@ impl Body {
             Body::Account(b) => serde_json::to_string(b)?,
             Body::Entry(b) => serde_json::to_string(b)?,
             Body::Settings(b) => serde_json::to_string(b)?,
+            Body::Contact(b) => serde_json::to_string(b)?,
         })
     }
 
@@ -147,6 +181,7 @@ impl Body {
             DocKind::Account => Body::Account(serde_json::from_str(json)?),
             DocKind::Entry => Body::Entry(serde_json::from_str(json)?),
             DocKind::Settings => Body::Settings(serde_json::from_str(json)?),
+            DocKind::Contact => Body::Contact(serde_json::from_str(json)?),
         })
     }
 }

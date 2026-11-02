@@ -4,6 +4,7 @@
 
 mod accounts;
 mod common;
+mod contacts;
 mod entries;
 mod history;
 mod settings;

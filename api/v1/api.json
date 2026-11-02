@@ -179,6 +179,19 @@
         "conflict"
       ]
     },
+    "create_contact": {
+      "summary": "Adds a contact (a person, brand or business) that a line can point to. The name is unique, ignoring case and the Turkish i.",
+      "input": {
+        "$ref": "#/$defs/ContactInput"
+      },
+      "output": {
+        "$ref": "#/$defs/DocRef"
+      },
+      "errors": [
+        "name_empty",
+        "contact_name_taken"
+      ]
+    },
     "post_entry": {
       "summary": "Posts a balanced entry (at least two lines).",
       "input": {
@@ -390,6 +403,27 @@
         "missing_reference"
       ]
     },
+    "contact": {
+      "summary": "Reads a contact.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "contact": {
+            "$ref": "#/$defs/DocId"
+          }
+        },
+        "required": [
+          "contact"
+        ],
+        "additionalProperties": false
+      },
+      "output": {
+        "$ref": "#/$defs/ContactView"
+      },
+      "errors": [
+        "missing_reference"
+      ]
+    },
     "entry": {
       "summary": "Reads an entry.",
       "input": {
@@ -511,7 +545,9 @@
         "internal",
         "newer_database",
         "unknown_operation",
-        "invalid_input"
+        "invalid_input",
+        "contact_name_taken",
+        "contact_kind_fixed"
       ],
       "description": "Every stable code the API can return."
     },
@@ -683,6 +719,16 @@
               "type": "null"
             }
           ]
+        },
+        "contact": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DocId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -746,6 +792,16 @@
               "type": "null"
             }
           ]
+        },
+        "contact": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/DocId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -753,7 +809,8 @@
         "commodity",
         "amount",
         "base",
-        "rate"
+        "rate",
+        "contact"
       ],
       "additionalProperties": false
     },
@@ -869,6 +926,45 @@
       "type": "object",
       "properties": {},
       "required": [],
+      "additionalProperties": false
+    },
+    "ContactKind": {
+      "enum": [
+        "individual",
+        "brand",
+        "business"
+      ]
+    },
+    "ContactInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ContactKind"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "ContactView": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/ContactKind"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
       "additionalProperties": false
     }
   }

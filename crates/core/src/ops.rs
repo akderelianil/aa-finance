@@ -14,13 +14,15 @@ use crate::rate::{resolve_line, rounding_line, ForeignLine, Rate};
 use crate::store::{NewRevision, Restore, RestoreKind, RevisionRecord, Store};
 use serde::{Deserialize, Serialize};
 
+mod contacts;
 mod views;
 
 /// The system key and the name of the account that takes the rounding differences of conversions.
 const ROUNDING_KEY: &str = "rounding";
 const ROUNDING_NAME: &str = "Rounding";
 
-pub use views::{AccountView, EntryView, HistoryItem, LineView, SettingsView};
+pub use contacts::ContactInput;
+pub use views::{AccountView, ContactView, EntryView, HistoryItem, LineView, SettingsView};
 
 /// The source of "now", in milliseconds since the Unix epoch. Tests move it by hand.
 pub trait Clock: Send {
@@ -65,6 +67,9 @@ pub struct LineInput {
     pub amount: String,
     pub rate: Option<String>,
     pub base: Option<String>,
+    /// The contact the line is about; it must exist.
+    #[serde(default)]
+    pub contact: Option<DocId>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -198,12 +203,12 @@ impl Ledger {
 
     /// Refuses a name that another account under the same parent already has (case ignored).
     fn check_name_free(&self, parent: Option<DocId>, name: &str, own: Option<DocId>) -> Result<()> {
-        let wanted = name.to_lowercase();
+        let wanted = name_key(name);
         let taken = self
             .store
             .child_accounts(parent)?
             .into_iter()
-            .any(|(id, other)| Some(id) != own && other.to_lowercase() == wanted);
+            .any(|(id, other)| Some(id) != own && name_key(&other) == wanted);
         if taken {
             return Err(Error::Rule(RuleCode::AccountNameTaken));
         }
@@ -388,6 +393,7 @@ impl Ledger {
                     amount: format_amount(line.quantity, scale, Separators::CANONICAL),
                     base: format_amount(line.base_value, base_scale, Separators::CANONICAL),
                     rate: line.rate.clone(),
+                    contact: line.contact,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -432,6 +438,7 @@ impl Ledger {
                 quantity: difference,
                 base_value: difference,
                 rate: None,
+                contact: None,
             });
         }
         Ok(EntryBody {
@@ -488,6 +495,10 @@ impl Ledger {
             quantity,
             base_value,
             rate,
+            contact: line
+                .contact
+                .map(|c| self.contact_body(c).map(|_| c))
+                .transpose()?,
         };
         Ok((body, converted))
     }
@@ -584,6 +595,17 @@ fn non_empty(text: &str) -> Result<String> {
         return Err(Error::Rule(RuleCode::NameEmpty));
     }
     Ok(trimmed.to_string())
+}
+
+/// The form two names are compared in: lower case, with the Turkish dotted and dotless i (İ, I, ı, i)
+/// all read as `i`, so "IŞIK", "Işık" and "ışık" are one name in a Turkish or an English book.
+pub(crate) fn name_key(name: &str) -> String {
+    name.trim()
+        .to_lowercase()
+        .chars()
+        .filter(|c| *c != '\u{307}')
+        .map(|c| if c == 'ı' { 'i' } else { c })
+        .collect()
 }
 
 fn missing(kind: &'static str, id: DocId) -> Error {

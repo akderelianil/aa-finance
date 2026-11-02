@@ -94,7 +94,33 @@ fn a_session_through_every_operation_fits_the_contract() {
     );
     let no_key = run(&mut l, "system_account", json!({"key": "nothing"}));
     let version = run(&mut l, "api_version", json!({})).unwrap();
+    let ahmet = run(
+        &mut l,
+        "create_contact",
+        json!({"name": "Ahmet", "kind": "individual"}),
+    )
+    .unwrap();
+    let ahmet_view = run(&mut l, "contact", json!({"contact": ahmet["doc_id"]})).unwrap();
+    let same_name = run(
+        &mut l,
+        "create_contact",
+        json!({"name": "AHMET", "kind": "business"}),
+    );
+    let lent = run(
+        &mut l,
+        "post_entry",
+        json!({"date": "2026-10-17", "lines": [
+            {"account": cash["doc_id"], "amount": "-5.00"},
+            {"account": cash["doc_id"], "amount": "5.00", "contact": ahmet["doc_id"]},
+        ]}),
+    )
+    .unwrap();
+    let lent_view = run(&mut l, "entry", json!({"entry": lent["doc_id"]})).unwrap();
     // Assert
+    assert_eq!(ahmet_view["kind"], "individual");
+    assert_eq!(same_name.unwrap_err(), "contact_name_taken");
+    assert_eq!(lent_view["lines"][0]["contact"], Value::Null);
+    assert_eq!(lent_view["lines"][1]["contact"], ahmet["doc_id"]);
     assert_eq!(settings["base_code"], "TRY");
     assert_eq!(archived["archived"], true);
     assert_eq!(renamed["name"], "Groceries");

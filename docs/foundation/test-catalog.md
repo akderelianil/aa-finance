@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 275 tests.
+Total: 291 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -28,7 +28,7 @@ A whole session through the named operations, every answer held to the contract.
 - A session through every operation fits the contract
 - Rule failures come back with codes the contract lists
 
-### ops/accounts.rs (17)
+### ops/accounts.rs (18)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -47,7 +47,19 @@ Commodities and accounts through the operations: the author and the time are sta
 - An account cannot sit under an archived parent
 - An account must have the kind of its parent
 - Two accounts under one parent cannot share a name
+- Account names also ignore the turkish dotted and dotless i
 - Renaming an account to its own name is allowed
+
+### ops/contacts.rs (7)
+Contacts through the operations (ADR-0024): a minimal contact (name and kind), unique names that ignore case and the Turkish dotted and dotless i, and a line that carries a contact.
+
+- A new contact reads back with its trimmed name and kind
+- A contact needs a name
+- Two contacts cannot share a name ignoring case and the turkish i
+- Reading a contact that does not exist is a missing reference
+- A line carries its contact into the entry
+- A line with an unknown contact is refused and nothing is written
+- A line cannot name an account as its contact
 
 ### ops/entries.rs (24)
 Posting and editing entries through the operations: amounts arrive as canonical strings in the scale of each account's commodity, and a foreign line needs a rate or a base value (ADR-0009, ADR-0010).
@@ -142,6 +154,18 @@ Server order and conflicts: the earliest server sequence is the head, a sibling 
 - Siblings without a server order follow creation time then arrival
 - A sequenced branch beats an unsequenced one whatever their times
 - A revision of a kind this build does not know is an internal error
+
+### store/contacts.rs (8)
+Contacts (ADR-0024): the projection of a contact document, its fixed kind, and the contact a line may carry, which must exist and is checked by `verify_projection`.
+
+- A contact is projected with its name and kind
+- A contact of an unknown kind is refused
+- A contact can be renamed but its kind never changes
+- A line keeps its contact in the projection and after a rebuild
+- A line cannot point to a contact that does not exist
+- Verify reports a line whose contact differs from the revision
+- Verify reports a contact row that differs from its revision
+- An entry body without contacts reads as before
 
 ### store/entries.rs (18)
 Posting entries: an entry balances to exactly zero, a revision replaces its lines and keeps history, and a faulty writer cannot unbalance a posted entry (ADR-0004, ADR-0010, ADR-0012).

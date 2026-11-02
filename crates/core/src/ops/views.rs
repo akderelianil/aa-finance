@@ -1,6 +1,6 @@
 //! What the operations hand back: plain data with amounts as canonical strings (ADR-0009).
 
-use crate::body::{AccountBody, AccountKind};
+use crate::body::{AccountBody, AccountKind, ContactKind};
 use crate::ids::{DocId, Id, RevisionId};
 use crate::{Restore, RevisionRecord};
 use serde::Serialize;
@@ -67,6 +67,14 @@ pub struct LineView {
     pub base: String,
     /// The rate the base value came from; none for a line in the base currency.
     pub rate: Option<String>,
+    /// The contact the line is about, if any.
+    pub contact: Option<DocId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ContactView {
+    pub name: String,
+    pub kind: ContactKind,
 }
 
 /// The settings of the book, with the base currency spelled out.

@@ -227,6 +227,22 @@ fn two_accounts_under_one_parent_cannot_share_a_name() {
 }
 
 #[test]
+fn account_names_also_ignore_the_turkish_dotted_and_dotless_i() {
+    // Arrange
+    let mut b = book();
+    b.ledger.create_account(account("Işık", b.try_id)).unwrap();
+    b.ledger.create_account(account("İpek", b.try_id)).unwrap();
+    // Act / Assert
+    for taken in ["IŞIK", "ışık", "ipek", "IPEK"] {
+        assert_eq!(
+            rule(b.ledger.create_account(account(taken, b.try_id))),
+            Some(RuleCode::AccountNameTaken),
+            "{taken}"
+        );
+    }
+}
+
+#[test]
 fn renaming_an_account_to_its_own_name_is_allowed() {
     // Arrange
     let mut b = book();

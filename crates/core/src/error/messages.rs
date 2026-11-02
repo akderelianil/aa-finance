@@ -133,6 +133,14 @@ impl RuleCode {
                 "Aynı üst hesabın altında bu adla başka bir hesap var.",
                 "Another account with this name already exists under the same parent.",
             ),
+            RuleCode::ContactNameTaken => (
+                "Rehber'de bu adla bir kayıt zaten var.",
+                "A contact with this name already exists.",
+            ),
+            RuleCode::ContactKindFixed => (
+                "Bir Rehber kaydının türü sonradan değişmez.",
+                "The kind of a contact cannot change.",
+            ),
             RuleCode::EntryDeletedHasLines => (
                 "Silinmiş bir fişin satırı olamaz.",
                 "A deleted entry cannot have lines.",

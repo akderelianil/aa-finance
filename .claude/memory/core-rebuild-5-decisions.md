@@ -23,3 +23,4 @@ Second round, 2026-11-02 (owner picked every recommended option):
 - Borç direction: a `choice` input whose options carry their own values (sign, system group); no `if` in the grammar.
 - Grammar v1: integer amounts, `+`, `-`, unary `-`, `sum(list.field)`, comparisons, `and`/`or`/`not`; no `*` or `/` (currency conversion is a calculator).
 - Foreign currency: rate or base amount is required on a foreign line; the draft returns a field error. A suggested rate comes with the price history.
+- Contact document (2026-11-02): name plus kind (individual/brand/business, fixed after creation); names unique ignoring case, with the normalized name computed by the core (Turkish İ/ı), `contact_name_taken`; a line may carry a contact on any account (the scenario decides; only Borç in v1).

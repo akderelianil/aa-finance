@@ -14,15 +14,17 @@ pub enum DocKind {
     Account,
     Entry,
     Settings,
+    Contact,
 }
 
 impl DocKind {
     /// Every kind, in the order a full rebuild replays them: settings name a commodity, so they
-    /// come after the commodities.
-    pub const ALL: [DocKind; 4] = [
+    /// come after the commodities; lines name accounts and contacts, so entries come last.
+    pub const ALL: [DocKind; 5] = [
         DocKind::Commodity,
         DocKind::Settings,
         DocKind::Account,
+        DocKind::Contact,
         DocKind::Entry,
     ];
 
@@ -38,6 +40,7 @@ impl DocKind {
             DocKind::Account => "account",
             DocKind::Entry => "entry",
             DocKind::Settings => "settings",
+            DocKind::Contact => "contact",
         }
     }
 }
@@ -324,6 +327,14 @@ impl Store {
             "SELECT uuid, name FROM account WHERE parent_id IS (SELECT id FROM account WHERE uuid = ?1)",
         )?;
         let rows = stmt.query_map(params![parent], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(Error::from)
+    }
+
+    /// Every contact as `(id, name)`.
+    pub fn contacts(&self) -> Result<Vec<(DocId, String)>> {
+        let mut stmt = self.conn.prepare("SELECT uuid, name FROM contact")?;
+        let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
         rows.collect::<std::result::Result<Vec<_>, _>>()
             .map_err(Error::from)
     }

@@ -4,7 +4,7 @@
 CREATE TABLE revision (
   seq INTEGER PRIMARY KEY,
   id BLOB NOT NULL UNIQUE CHECK (length(id) = 16),
-  doc_kind TEXT NOT NULL CHECK (doc_kind IN ('commodity', 'account', 'entry', 'settings')),
+  doc_kind TEXT NOT NULL CHECK (doc_kind IN ('commodity', 'account', 'entry', 'settings', 'contact')),
   doc_id BLOB NOT NULL CHECK (length(doc_id) = 16),
   parent_id BLOB CHECK (parent_id IS NULL OR length(parent_id) = 16),
   author_id BLOB NOT NULL CHECK (length(author_id) = 16),
@@ -90,6 +90,16 @@ CREATE TABLE account (
   system_key TEXT UNIQUE CHECK (system_key IS NULL OR system_key <> '')
 ) STRICT;
 
+-- A person, brand or business a line can point to (ADR-0024). The name is unique ignoring case; the
+-- core checks it (a unique index would make two devices that add the same name fail to merge).
+CREATE TABLE contact (
+  id INTEGER PRIMARY KEY,
+  uuid BLOB NOT NULL UNIQUE CHECK (length(uuid) = 16),
+  current_revision_id BLOB NOT NULL REFERENCES revision (id),
+  name TEXT NOT NULL CHECK (name <> ''),
+  kind TEXT NOT NULL CHECK (kind IN ('individual', 'brand', 'business'))
+) STRICT;
+
 CREATE TABLE entry (
   id INTEGER PRIMARY KEY,
   uuid BLOB NOT NULL UNIQUE CHECK (length(uuid) = 16),
@@ -110,12 +120,14 @@ CREATE TABLE line (
   commodity_id INTEGER NOT NULL REFERENCES commodity (id),
   quantity INTEGER NOT NULL CHECK (quantity BETWEEN -4611686018427387904 AND 4611686018427387904),
   base_value INTEGER NOT NULL CHECK (base_value BETWEEN -4611686018427387904 AND 4611686018427387904),
+  contact_id INTEGER REFERENCES contact (id),
   CONSTRAINT line_not_empty CHECK (quantity <> 0 OR base_value <> 0),
   CONSTRAINT line_base_sign CHECK ((quantity >= 0 AND base_value >= 0) OR (quantity <= 0 AND base_value <= 0)),
   UNIQUE (entry_id, line_no)
 ) STRICT;
 
 CREATE INDEX line_account ON line (account_id, commodity_id, quantity, base_value);
+CREATE INDEX line_contact ON line (contact_id) WHERE contact_id IS NOT NULL;
 
 CREATE TRIGGER commodity_insert_gate BEFORE INSERT ON commodity
 WHEN (SELECT open FROM projection_session) IS NOT 1
@@ -167,6 +179,23 @@ BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
 CREATE TRIGGER account_delete_gate BEFORE DELETE ON account
 WHEN (SELECT open FROM projection_session) IS NOT 1
 BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER contact_insert_gate BEFORE INSERT ON contact
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER contact_update_gate BEFORE UPDATE ON contact
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+CREATE TRIGGER contact_delete_gate BEFORE DELETE ON contact
+WHEN (SELECT open FROM projection_session) IS NOT 1
+BEGIN SELECT RAISE(ABORT, 'projection_closed'); END;
+
+-- A person stays a person: the kind of a contact never changes.
+CREATE TRIGGER contact_kind_fixed BEFORE UPDATE OF kind ON contact
+WHEN NEW.kind IS NOT OLD.kind
+BEGIN SELECT RAISE(ABORT, 'contact_kind_fixed'); END;
 
 CREATE TRIGGER entry_insert_gate BEFORE INSERT ON entry
 WHEN (SELECT open FROM projection_session) IS NOT 1

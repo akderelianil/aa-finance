@@ -3,7 +3,7 @@
 
 use crate::error::{Error, Lang, Result};
 use crate::ids::DocId;
-use crate::ops::{AccountInput, EntryInput, Ledger};
+use crate::ops::{AccountInput, ContactInput, EntryInput, Ledger};
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 pub const API_VERSION: &str = "1";
 
 /// Every operation of the contract, in the order of the contract file.
-pub const OPERATIONS: [&str; 17] = [
+pub const OPERATIONS: [&str; 19] = [
     "open_book",
     "settings",
     "set_base_currency",
@@ -20,6 +20,7 @@ pub const OPERATIONS: [&str; 17] = [
     "create_account",
     "rename_account",
     "set_account_archived",
+    "create_contact",
     "post_entry",
     "edit_entry",
     "delete_entry",
@@ -28,6 +29,7 @@ pub const OPERATIONS: [&str; 17] = [
     "history",
     "system_account",
     "account",
+    "contact",
     "entry",
     "api_version",
 ];
@@ -87,6 +89,12 @@ struct EntryRef {
 #[serde(deny_unknown_fields)]
 struct AccountRef {
     account: DocId,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContactRef {
+    contact: DocId,
 }
 
 #[derive(Deserialize)]
@@ -155,6 +163,8 @@ impl Ledger {
                 Ok(json!({ "doc_id": self.system_account(&i.key)? }))
             }
             "account" => output(self.account(parse::<AccountRef>(input)?.account)?),
+            "create_contact" => output(self.create_contact(parse::<ContactInput>(input)?)?),
+            "contact" => output(self.contact(parse::<ContactRef>(input)?.contact)?),
             "entry" => output(self.entry(parse::<EntryRef>(input)?.entry)?),
             "api_version" => {
                 parse::<Empty>(input)?;
