@@ -221,6 +221,8 @@ impl<'a> Reader<'a> {
             let at = format!("{list}.{index}");
             let Some(cells) = item.as_object() else {
                 self.refuse(&at, Code::Invalid);
+                // A placeholder keeps the indexes of the rows that follow.
+                rows.push(Row::default());
                 continue;
             };
             for key in cells.keys() {
@@ -264,24 +266,36 @@ impl<'a> Reader<'a> {
         let Some(account) = values.accounts.get(of).cloned() else {
             return;
         };
+        let differs = show_if_commodity_differs.as_ref().is_some_and(|(a, b)| {
+            match (values.accounts.get(a), values.accounts.get(b)) {
+                (Some(a), Some(b)) => a.commodity != b.commodity,
+                _ => false,
+            }
+        });
+        let hidden_copy = default
+            .as_ref()
+            .filter(|_| show_if_commodity_differs.is_some() && !differs)
+            .and_then(|source| values.amounts.get(source).copied());
         let quantity = match value {
-            Some(value) => self.quantity(value, &account, &input.name),
-            None => {
-                let differs = show_if_commodity_differs.as_ref().is_some_and(|(a, b)| {
-                    match (values.accounts.get(a), values.accounts.get(b)) {
-                        (Some(a), Some(b)) => a.commodity != b.commodity,
-                        _ => false,
-                    }
-                });
-                match default {
-                    Some(source) if !differs => values.amounts.get(source).copied(),
-                    _ if input.required => {
-                        self.refuse(&input.name, Code::Required);
+            Some(value) => {
+                let given = self.quantity(value, &account, &input.name);
+                // A hidden copy of another amount must not differ from it.
+                match (given, hidden_copy) {
+                    (Some(given), Some(copy)) if given.value != copy.value => {
+                        self.refuse(&input.name, Code::Invalid);
                         None
                     }
-                    _ => Some(Quantity::of(0, account.commodity)),
+                    _ => given,
                 }
             }
+            None => match default {
+                Some(source) if !differs => values.amounts.get(source).copied(),
+                _ if input.required => {
+                    self.refuse(&input.name, Code::Required);
+                    None
+                }
+                _ => Some(Quantity::of(0, account.commodity)),
+            },
         };
         if let Some(quantity) = quantity {
             values.amounts.insert(input.name.clone(), quantity);
@@ -300,6 +314,10 @@ impl<'a> Reader<'a> {
             return;
         };
         for (index, (row, item)) in rows.iter_mut().zip(&items).enumerate() {
+            if !item.is_object() {
+                // Refused when the rows were read; its placeholder has no amounts.
+                continue;
+            }
             for column in columns {
                 let InputKind::Amount { of, .. } = &column.kind else {
                     continue;
@@ -309,7 +327,14 @@ impl<'a> Reader<'a> {
                 };
                 let field = format!("{list}.{index}.{}", column.name);
                 let quantity = match given(item.get(&column.name)) {
-                    Some(value) => self.quantity(value, &account, &field),
+                    Some(value) => match self.quantity(value, &account, &field) {
+                        // A row is a part of a total; a negative part is not one.
+                        Some(part) if part.value < 0 => {
+                            self.refuse(&field, Code::Invalid);
+                            None
+                        }
+                        part => part,
+                    },
                     None if column.required => {
                         self.refuse(&field, Code::Required);
                         None

@@ -92,8 +92,9 @@ pub(super) fn entry(reader: &mut Reader<'_>, values: &Values) -> Result<Drafted>
                 .unwrap_or_default(),
             None => vec![None],
         };
+        let mut running = Running::default();
         for row in rows {
-            match one_line(reader, values, &rates, line, row)? {
+            match one_line(reader, values, &rates, line, row, &mut running)? {
                 Ok(Some(line)) => built.push(line),
                 Ok(None) => {}
                 Err(refusals) => return Ok(Err(refusals)),
@@ -144,12 +145,22 @@ pub(super) fn entry(reader: &mut Reader<'_>, values: &Values) -> Result<Drafted>
 
 type LineResult = std::result::Result<Option<Built>, Vec<Refusal>>;
 
+/// What the rows of one line have converted so far. Each row converts the running total and takes
+/// the step from the last one, so the rows always add up to the converted total of their amounts
+/// and rounding never splits across rows.
+#[derive(Default)]
+struct Running {
+    source: i64,
+    converted: i64,
+}
+
 fn one_line(
     reader: &mut Reader<'_>,
     values: &Values,
     rates: &HashMap<DocId, (Rate, String)>,
     line: &Line,
     row: Option<&Row>,
+    running: &mut Running,
 ) -> Result<LineResult> {
     let scope = Scope { values, row };
     if let Some(when) = &line.when {
@@ -178,10 +189,19 @@ fn one_line(
                 Ok(side) => side,
                 Err(refusal) => return Ok(Err(vec![refusal])),
             };
-            match convert(quantity.value, from, to, reader.base_scale) {
-                Ok(value) => value,
-                Err(_) => return Ok(Err(vec![(None, Code::Calculation)])),
-            }
+            let source = running.source.checked_add(quantity.value);
+            let total = source.and_then(|source| convert(source, from, to, reader.base_scale).ok());
+            let (Some(source), Some(total)) = (source, total) else {
+                return Ok(Err(vec![(None, Code::Calculation)]));
+            };
+            let Some(step) = total.checked_sub(running.converted) else {
+                return Ok(Err(vec![(None, Code::Calculation)]));
+            };
+            *running = Running {
+                source,
+                converted: total,
+            };
+            step
         }
         _ => quantity.value,
     };
@@ -379,8 +399,18 @@ fn bases(reader: &Reader<'_>, built: &[Built]) -> std::result::Result<Vec<i64>, 
             bases[index] = Some(total * line.value.signum());
         }
     }
+    let unresolved = |id: &String| {
+        built
+            .iter()
+            .zip(&bases)
+            .any(|(other, base)| &other.id == id && base.is_none())
+    };
     let mut refusals: Vec<Refusal> = Vec::new();
     for (line, base) in built.iter().zip(&bases) {
+        // A line that takes its base from an unresolved line adds nothing to that line's refusal.
+        if line.base_of.as_ref().is_some_and(unresolved) {
+            continue;
+        }
         let refusal = (line.rate_field.clone(), Code::RateNeeded);
         if base.is_none() && !refusals.contains(&refusal) {
             refusals.push(refusal);

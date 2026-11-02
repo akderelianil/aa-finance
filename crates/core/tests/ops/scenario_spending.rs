@@ -250,3 +250,62 @@ fn an_account_of_a_kind_the_input_does_not_take_is_a_field_error() {
         vec![(Some("receiving".into()), "account_kind".into())]
     );
 }
+
+#[test]
+fn split_rows_converted_at_an_awkward_rate_still_add_up_to_the_payment() {
+    // Arrange
+    let mut b = book();
+    let market = open(&mut b.ledger, "Market", Expense, b.try_id);
+    let card = open(&mut b.ledger, "Dollar card", Liability, b.usd_id);
+    let row = json!({ "expense": pick(market), "part": "0.01" });
+    // Act
+    let draft = draft(
+        &b,
+        "expense",
+        json!({
+            "amount": "0.03", "payment": pick(card), "payment_rate": "35.5",
+            "date": "2026-11-02", "items": [row.clone(), row.clone(), row],
+        }),
+    );
+    // Assert
+    assert_eq!(
+        post_draft(&mut b, &draft),
+        vec![
+            (market, "0.36".into(), "0.36".into()),
+            (market, "0.35".into(), "0.35".into()),
+            (market, "0.36".into(), "0.36".into()),
+            (card, "-0.03".into(), "-1.07".into()),
+        ],
+        "0.01, 0.02 and 0.03 dollars are 0.36, 0.71 and 1.07 lira; each row takes its step"
+    );
+}
+
+#[test]
+fn a_foreign_split_of_many_rows_posts_without_a_rounding_line_at_any_rate() {
+    // Arrange
+    let mut b = book();
+    let market = open(&mut b.ledger, "Market", Expense, b.try_id);
+    let card = open(&mut b.ledger, "Dollar card", Liability, b.usd_id);
+    let rounding = b.ledger.system_account("rounding").unwrap();
+    for rate in ["35.5", "0.333", "1.005", "38.123456"] {
+        let rows: Vec<_> = (0..10)
+            .map(|_| json!({ "expense": pick(market), "part": "0.07" }))
+            .collect();
+        // Act
+        let draft = draft(
+            &b,
+            "expense",
+            json!({
+                "amount": "0.70", "payment": pick(card), "payment_rate": rate,
+                "date": "2026-11-02", "items": rows,
+            }),
+        );
+        // Assert
+        let lines = post_draft(&mut b, &draft);
+        assert_eq!(lines.len(), 11, "{rate}");
+        assert!(
+            lines.iter().all(|(account, ..)| *account != rounding),
+            "{rate}"
+        );
+    }
+}

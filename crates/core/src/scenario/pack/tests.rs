@@ -569,3 +569,17 @@ fn pack_with_default(key: &str) -> Value {
     value["scenarios"][0]["inputs"][2]["default_system"] = json!(key);
     value
 }
+
+#[test]
+fn a_line_that_takes_its_base_from_another_line_takes_no_rate() {
+    // Arrange
+    let mut value = pack();
+    value["scenarios"][0]["lines"][2]["rate"] = json!("from_rate");
+    // Act
+    let result = load_value(&value);
+    // Assert
+    assert!(matches!(
+        result,
+        Err(PackError::Fault { at, fault: Fault::FieldNotAllowed("rate") }) if at == "move.lines.debt.rate"
+    ));
+}

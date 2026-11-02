@@ -82,9 +82,12 @@ Every input has `name`, `type`, `label` (a string key) and `required` (default `
 | `contact` | a contact input; the line carries that contact |
 | `when` | a boolean expression; the line is left out when it is false (Transfer's optional fee: `fee > 0`) |
 
-- A line whose amount is zero is left out; a draft with fewer than two lines is an error.
+- A line whose amount is zero is left out; a draft with fewer than two lines is an error. A line left out opens no account or contact.
+- A line with `base_of` takes no `rate`: its base value is always the one of the line it names (the loader refuses both together).
+- A `lines` row may not hold a negative amount. Rows of a converted line convert their running total, so they always add up to the converted total and the rounding stays in one place.
+- An amount with `show_if_commodity_differs` that is hidden (same commodity) must, when given, equal the amount it copies.
 - A `system` account with `commodity_of` resolves to the group itself when the commodities match, otherwise to the group's child in that commodity, or to a new child named by the currency code (for example `USD`).
-- A foreign line takes its base value from, in order: its `rate` input, then `base_of`. If neither gives one, the draft returns `rate_needed` on the rate input. The ledger then checks the entry as it checks any entry; rounding differences go to the Rounding line as usual.
+- A foreign line takes its base value from its `rate` input, or from `base_of`. If neither gives one, the draft returns `rate_needed` on the rate input. The ledger then checks the entry as it checks any entry; rounding differences go to the Rounding line as usual.
 
 ## The draft (`scenario_draft`)
 

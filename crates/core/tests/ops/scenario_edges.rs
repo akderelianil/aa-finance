@@ -181,7 +181,7 @@ fn a_foreign_expense_account_asks_for_its_own_rate_and_then_takes_it() {
 }
 
 #[test]
-fn a_transfer_between_two_foreign_currencies_asks_for_both_rates() {
+fn a_transfer_between_two_foreign_currencies_asks_for_the_source_rate() {
     // Arrange
     let mut b = book();
     let eur = b.ledger.create_commodity("EUR", 2).unwrap().doc_id;
@@ -199,10 +199,7 @@ fn a_transfer_between_two_foreign_currencies_asks_for_both_rates() {
     // Assert
     assert_eq!(
         errors(&draft),
-        vec![
-            (Some("from_rate".into()), "rate_needed".into()),
-            (Some("to_rate".into()), "rate_needed".into()),
-        ]
+        vec![(Some("from_rate".into()), "rate_needed".into())]
     );
 }
 
@@ -392,4 +389,91 @@ fn a_split_row_of_zero_adds_no_line() {
         entry.create_accounts.is_empty(),
         "no account opens for a line that is left out"
     );
+}
+
+#[test]
+fn a_same_currency_transfer_refuses_an_amount_in_that_differs() {
+    // Arrange
+    let mut b = book();
+    let bank = open(&mut b.ledger, "Bank", Asset, b.try_id);
+    let inputs = json!({
+        "amount": "100.00", "from": pick(bank), "to": pick(b.cash),
+        "amount_in": "90.00", "date": "2026-11-02",
+    });
+    // Act
+    let differs = only_error(&b, "transfer", inputs.clone());
+    let same = draft(&b, "transfer", set(inputs, "amount_in", json!("100.00")));
+    // Assert
+    assert_eq!(differs, (Some("amount_in".into()), "invalid".into()));
+    assert!(same.errors.is_empty());
+}
+
+#[test]
+fn a_transfer_between_two_foreign_currencies_values_both_sides_at_the_rate_given_for_the_source() {
+    // Arrange
+    let mut b = book();
+    let eur = b.ledger.create_commodity("EUR", 2).unwrap().doc_id;
+    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
+    let euros = open(&mut b.ledger, "Euros", Asset, eur);
+    // Act
+    let draft = draft(
+        &b,
+        "transfer",
+        json!({
+            "amount": "10.00", "from": pick(dollars), "to": pick(euros), "amount_in": "9.00",
+            "from_rate": "35", "date": "2026-11-02",
+        }),
+    );
+    // Assert
+    assert_eq!(
+        post_draft(&mut b, &draft),
+        vec![
+            (dollars, "-10.00".into(), "-350.00".into()),
+            (euros, "9.00".into(), "350.00".into()),
+        ]
+    );
+}
+
+#[test]
+fn a_negative_split_row_is_refused() {
+    // Arrange
+    let mut b = book();
+    let market = open(&mut b.ledger, "Market", Expense, b.try_id);
+    let items = json!([
+        { "expense": pick(market), "part": "7.00" },
+        { "expense": pick(market), "part": "-2.00" },
+    ]);
+    // Act
+    let error = only_error(&b, "expense", set(expense(&b, market), "items", items));
+    // Assert
+    assert_eq!(error, (Some("items.1.part".into()), "invalid".into()));
+}
+
+#[test]
+fn a_fault_in_a_row_after_a_broken_row_names_its_own_index() {
+    // Arrange
+    let mut b = book();
+    let market = open(&mut b.ledger, "Market", Expense, b.try_id);
+    let items = json!(["broken", { "expense": pick(market), "part": "five" }]);
+    // Act
+    let draft = draft(&b, "expense", set(expense(&b, market), "items", items));
+    // Assert
+    assert_eq!(
+        errors(&draft),
+        vec![
+            (Some("items.0".into()), "invalid".into()),
+            (Some("items.1.part".into()), "invalid".into()),
+        ]
+    );
+}
+
+#[test]
+fn a_missing_rate_on_a_dollar_debt_is_one_error_on_the_rate() {
+    // Arrange
+    let mut b = book();
+    let dollars = open(&mut b.ledger, "Dollars", Asset, b.usd_id);
+    // Act
+    let error = only_error(&b, "debt", set(debt(&b), "money", pick(dollars)));
+    // Assert
+    assert_eq!(error, (Some("money_rate".into()), "rate_needed".into()));
 }

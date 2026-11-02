@@ -395,6 +395,10 @@ impl Builder {
                 .map_err(on("contact"))?;
         }
         if let Some(other) = &raw.base_of {
+            if raw.rate.is_some() {
+                // The base comes from the other line; a rate here would never be used.
+                return Err(fault(&at("rate"), Fault::FieldNotAllowed("rate")));
+            }
             if !ids.contains(other) {
                 return Err(fault(&at("base_of"), Fault::UnknownName(other.clone())));
             }

@@ -68,7 +68,6 @@
         { "name": "to", "type": "account", "kinds": ["asset", "liability"], "label": "field.to" },
         { "name": "amount_in", "type": "amount", "of": "to", "default": "amount", "show_if_commodity_differs": ["from", "to"], "label": "field.amount_in" },
         { "name": "from_rate", "type": "rate", "of": "from", "required": false, "label": "field.rate" },
-        { "name": "to_rate", "type": "rate", "of": "to", "required": false, "label": "field.rate" },
         { "name": "fee", "type": "amount", "of": "from", "required": false, "label": "field.fee" },
         { "name": "fee_account", "type": "account", "kinds": ["expense"], "default_system": "bank_fee", "required": false, "label": "field.fee_account" },
         { "name": "date", "type": "date", "label": "field.date" },
@@ -81,7 +80,7 @@
       ],
       "lines": [
         { "id": "out", "account": "from", "amount": "amount", "sign": "-", "rate": "from_rate" },
-        { "id": "in", "account": "to", "amount": "amount_in", "rate": "to_rate", "base_of": "out" },
+        { "id": "in", "account": "to", "amount": "amount_in", "base_of": "out" },
         { "id": "fee_out", "account": "from", "amount": "fee", "sign": "-", "rate": "from_rate", "when": "fee > 0" },
         { "id": "fee", "account": "fee_account", "amount": "fee", "convert": true, "when": "fee > 0" }
       ],

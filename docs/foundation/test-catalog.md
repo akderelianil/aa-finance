@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 369 tests.
+Total: 377 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -111,7 +111,7 @@ An entry that opens its own accounts and contacts (ADR-0024): a scenario draft n
 - A new document cannot take an id that is already used
 - Editing an entry can open an account too
 
-### ops/scenario_edges.rs (13)
+### ops/scenario_edges.rs (18)
 Edges of scenario drafts (ADR-0024): every input type refuses a value of the wrong shape, rows name their faults, typed names are reused or refused by kind, rates are asked for exactly where a conversion or a base value needs one, and a pack's own faults come back as errors.
 
 - Every input type refuses a value of the wrong shape
@@ -119,7 +119,7 @@ Edges of scenario drafts (ADR-0024): every input type refuses a value of the wro
 - An archived account is refused and a typed contact name is reused
 - Split rows in two currencies are refused
 - A foreign expense account asks for its own rate and then takes it
-- A transfer between two foreign currencies asks for both rates
+- A transfer between two foreign currencies asks for the source rate
 - A fee in dollars is charged to the fee account in lira
 - A pack with one line or an unconverted mix gets an error not an entry
 - A fixed system account and an unclosed brace in the preview are handled
@@ -127,6 +127,11 @@ Edges of scenario drafts (ADR-0024): every input type refuses a value of the wro
 - An empty required input of any type is required
 - A date must exist in the calendar
 - A split row of zero adds no line
+- A same currency transfer refuses an amount in that differs
+- A transfer between two foreign currencies values both sides at the rate given for the source
+- A negative split row is refused
+- A fault in a row after a broken row names its own index
+- A missing rate on a dollar debt is one error on the rate
 
 ### ops/scenario_moving.rs (8)
 Golden drafts of Transfer and Borç (ux/transfer.md, ux/borc.md, ADR-0024): a transfer with a fee, a card payment, a transfer between two currencies, and the four debt actions with a contact on the debt line, a new contact and a currency child under the debt group.
@@ -151,7 +156,7 @@ What a scenario draft refuses and what it can never do (ADR-0024): bad or missin
 - Drafting writes nothing
 - A faulty scenario cannot corrupt the books
 
-### ops/scenario_spending.rs (9)
+### ops/scenario_spending.rs (11)
 Golden drafts of Gider and Gelir (ux/gider.md, ux/gelir.md, ADR-0024): the built-in scenario turns the form into the lines the UX documents, a new account name opens with the entry, a split must add up, a foreign payment needs its rate, and the draft posts as it is.
 
 - A cash expense debits the expense and credits the cash
@@ -163,6 +168,8 @@ Golden drafts of Gider and Gelir (ux/gider.md, ux/gelir.md, ADR-0024): the built
 - A foreign payment without a rate asks for the rate
 - Income split into salary and a new bonus account credits both
 - An account of a kind the input does not take is a field error
+- Split rows converted at an awkward rate still add up to the payment
+- A foreign split of many rows posts without a rounding line at any rate
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).
@@ -498,7 +505,7 @@ The scenario expression language (ADR-0024): what loads, what is refused at load
 - Loading token soup never panics
 - Arithmetic matches wide integers or reports overflow
 
-### scenario/pack/tests.rs (20)
+### scenario/pack/tests.rs (21)
 Loading a scenario pack (ADR-0024, docs/foundation/scenario-format.md): a pack loads whole or not at all, every name, reference, string and expression is checked at load, and its hash is stable.
 
 - A valid pack loads with its scenarios inputs and lines
@@ -521,3 +528,4 @@ Loading a scenario pack (ADR-0024, docs/foundation/scenario-format.md): a pack l
 - Columns are accounts or amounts and are named by their list
 - Every fault has its own text
 - An account input may default to a system account
+- A line that takes its base from another line takes no rate
