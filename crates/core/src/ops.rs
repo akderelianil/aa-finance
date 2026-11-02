@@ -27,6 +27,9 @@ const RECEIVABLE_KEY: &str = "receivable";
 const RECEIVABLE_NAME: &str = "Receivables";
 const PAYABLE_KEY: &str = "payable";
 const PAYABLE_NAME: &str = "Payables";
+/// The expense account a transfer fee goes to by default.
+const BANK_FEE_KEY: &str = "bank_fee";
+const BANK_FEE_NAME: &str = "Bank fees";
 
 pub use contacts::ContactInput;
 use new_documents::Pending;
@@ -131,6 +134,7 @@ impl Ledger {
             (ROUNDING_KEY, ROUNDING_NAME, AccountKind::Expense),
             (RECEIVABLE_KEY, RECEIVABLE_NAME, AccountKind::Asset),
             (PAYABLE_KEY, PAYABLE_NAME, AccountKind::Liability),
+            (BANK_FEE_KEY, BANK_FEE_NAME, AccountKind::Expense),
         ];
         let mut revisions = vec![
             self.revision(base, None, &commodity)?,

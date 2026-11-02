@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 300 tests.
+Total: 301 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -29,7 +29,7 @@ A whole session through the named operations, every answer held to the contract.
 - Rule failures come back with codes the contract lists
 - An entry that opens an account and a contact fits the contract
 
-### ops/accounts.rs (19)
+### ops/accounts.rs (20)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -42,6 +42,7 @@ Commodities and accounts through the operations: the author and the time are sta
 - Naming a wrong kind of document as an account is a missing reference
 - Opening a book opens a locked rounding account
 - Opening a book opens locked debt groups for receivables and payables
+- Opening a book opens a locked bank fee expense account
 - A locked account is refused a rename an archive and an undo
 - An ordinary account has no system key and is not locked
 - An account name and a commodity code cannot be empty

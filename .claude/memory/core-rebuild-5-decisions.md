@@ -30,3 +30,8 @@ Third round, 2026-11-02 (owner picked every recommended option):
 - Borç groups: `open_book` opens two locked system accounts, keys `receivable` ("Kişilerden Alacaklar", asset) and `payable` ("Kişilere Borçlar", liability); scenarios find them by key. A missing currency child (e.g. USD) is a "create account" output under the group, named by the currency code.
 - Foreign Gider: the expense line is in the expense account's own commodity; the pack declares derived values that call the `convert` calculator. The grammar stays without `*`.
 - Borç contact input: a new typed name becomes a "create contact" output (kind individual), written with the entry (matches the UX decision of 2026-10-12).
+
+Fourth round, 2026-11-02 (pack format docs/foundation/scenario-format.md accepted):
+- Gider split: one payment account shared by the rows in v1.
+- Foreign conversion: `convert: true` on a line, not a derived value (supersedes the third-round wording).
+- `open_book` opens a locked system expense account `bank_fee`; Transfer fee defaults to it.

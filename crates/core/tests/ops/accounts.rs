@@ -139,6 +139,19 @@ fn opening_a_book_opens_locked_debt_groups_for_receivables_and_payables() {
 }
 
 #[test]
+fn opening_a_book_opens_a_locked_bank_fee_expense_account() {
+    // Arrange
+    let b = book();
+    // Act
+    let fee = b.ledger.system_account("bank_fee").unwrap();
+    // Assert
+    let view = b.ledger.account(fee).unwrap();
+    assert_eq!(view.kind, aa_core::body::AccountKind::Expense);
+    assert!(view.locked);
+    assert_eq!(view.commodity, b.try_id);
+}
+
+#[test]
 fn a_locked_account_is_refused_a_rename_an_archive_and_an_undo() {
     // Arrange
     let mut b = book();

@@ -1,6 +1,6 @@
 # Scenario pack format (v1)
 
-**Status**: draft for owner review (2026-11-02). Decision record: [ADR-0024](../adr/0024-scenario-format-and-expression-grammar.md). Form behavior: [ux/gider](../product-designer/ux/gider.md), [gelir](../product-designer/ux/gelir.md), [transfer](../product-designer/ux/transfer.md), [borc](../product-designer/ux/borc.md).
+**Status**: accepted by the owner (2026-11-02). Decision record: [ADR-0024](../adr/0024-scenario-format-and-expression-grammar.md). Form behavior: [ux/gider](../product-designer/ux/gider.md), [gelir](../product-designer/ux/gelir.md), [transfer](../product-designer/ux/transfer.md), [borc](../product-designer/ux/borc.md).
 
 A pack is one JSON document. The core loads it, checks every name, type and expression, and refuses the whole pack on the first fault. A loaded scenario turns user inputs into a draft entry; it never writes. Every platform renders the form from `scenario_describe` and never reads the pack itself.
 
@@ -137,7 +137,7 @@ In v1 the expense accounts of one split share one commodity, so one `expense_rat
 
 **Borç**: a `direction` choice with four options; each sets `money` (`+` or `-`), `debt` (the opposite sign) and `group` (`receivable` or `payable`). Inputs: `person` (contact), `money` (asset), `amount` of `money`, `date`, `memo`. Lines: the money line, and the debt line on `{"system": "direction.group", "commodity_of": "money"}` with `contact: person`.
 
-## Open points for the owner
-1. Gider split rows in v1 carry an expense account and an amount, and share one payment account. The UX allows a different payment account per row (same currency). Recommended: one payment account in v1.
-2. Converting a foreign Gider: a `convert: true` flag on the line, instead of a separate derived value as first planned. Same calculator, but it works for each row of a split without new syntax.
-3. Transfer's fee needs an expense account; the draft uses a system account `bank_fee` that `open_book` would open. The alternative is that the user always picks one.
+## Owner decisions (2026-11-02)
+1. A Gider split shares one payment account in v1; each row has an expense account and an amount. A payment account per row may come later.
+2. A foreign amount is converted by `convert: true` on the line (the official `convert` calculator), not by a separate derived value.
+3. `open_book` opens a locked system expense account `bank_fee` ("Bank fees"); Transfer's fee goes there by default and the user may pick another expense account.
