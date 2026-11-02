@@ -8,7 +8,9 @@ metadata:
   modified: 2026-10-17T12:32:25.892Z
 ---
 
-State on 2026-11-02 (end): core-rebuild-5 is in REVIEW (cbdbe7f). The four reviewers ran; their findings are fixed (1f1568b, 5757bdf). The biggest: split rows in a foreign currency were converted one by one, and their rounding could exceed the core's one-unit rounding allowance. They now convert by running total. Deferred items are listed in the story's Review note. Next: the owner closes the story (move it to done through the ledger), then the next story per docs/ROADMAP.md.
+State on 2026-11-02 (closed): the owner closed core-rebuild-5 as done. Next story per docs/ROADMAP.md (release-and-quality-1, then core-rebuild-11 before sync); ask questions before designing.
+
+State on 2026-11-02 (end): core-rebuild-5 was in REVIEW (cbdbe7f). The four reviewers ran; their findings are fixed (1f1568b, 5757bdf). The biggest: split rows in a foreign currency were converted one by one, and their rounding could exceed the core's one-unit rounding allowance. They now convert by running total. Deferred items are listed in the story's Review note. Next: the owner closes the story (move it to done through the ledger), then the next story per docs/ROADMAP.md.
 
 State on 2026-11-02 (earlier): core-rebuild-5 has all three acceptance criteria met and pushed: post_entry opens accounts and contacts (7e8291d), system groups receivable/payable/bank_fee, pack format accepted (docs/foundation/scenario-format.md), pack loader (543a1d7), calculators (d658dcd), built-in pack (00755f5), draft engine with golden tests (65a9c8a), scenario_list/describe/draft in the contract (3237351). Reviewer agents (rust-reviewer, silent-failure-hunter, type-design-analyzer, pr-test-analyzer) were started on `0aa9d81..HEAD`; next: fix their findings, then move the story to review and ask the owner to close it.
 

@@ -3,7 +3,7 @@
 **ID:** core-rebuild-5
 **Epic:** core-rebuild
 **Sprint:** 7
-**Status:** review
+**Status:** done
 **Points:** 8
 
 ## Context
@@ -31,10 +31,10 @@ Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.m
 - Done: draft engine `scenario::draft` (reader, builder, preview) behind a `Books` trait; `Ledger::scenario_draft`. Golden tests for Gider (cash, card, split with a new account, dollar card with rate), Gelir (split, new account), Transfer (ATM with fee, card payment, lira to dollars, dollar fee), Borç (four actions, new contact, dollar child under the group, borrow with a negative base) and edges; a faulty pack yields an entry the ledger refuses. A left-out line opens no account. 38 tests; draft lines 95 to 99 percent; mutations on sign, base sign, kind, distinct and default caught.
 - Done: `scenario_list`, `scenario_describe` (`scenario::describe`, form without expressions) and `scenario_draft` in the API contract (22 operations) and docs/api/v1.md; a session test drafts, posts and checks every answer against the contract.
 - Review (2026-11-02): rust-reviewer, silent-failure-hunter, type-design-analyzer and pr-test-analyzer ran on `0aa9d81..HEAD`. Fixed: split rows converted by running total (rows summed rounding could exceed the one-unit rounding allowance and fail at post), a hidden `amount_in` that differs, negative split rows, `base_of` wins over a rate (Transfer has no `to_rate`; the loader refuses both), row indexes after a broken row, one error for a missing debt rate, differing rates for one currency, an amount whose optional account is empty, a non-boolean check as an internal error. Types: `Draft` is ready-or-refused (same wire shape), pack fields and `Quantity` fields are crate-private. Tests added: API round trip of all four scenarios, refused edit opens nothing, duplicate new id, new child under new parent, many-row rate loop. Deferred: `FormInput` as a tagged enum, field names on calculation errors, a golden JSON snapshot of the forms, book-country number format (needs a country setting).
-- Status: all acceptance criteria met; waiting for the owner to close.
+- Status: closed by the owner on 2026-11-02.
 
 ## Definition of Done
 
 - [x] Tests written first cover the acceptance criteria
 - [x] Code review and verification loop passed
-- [ ] Code merged to main
+- [x] Code merged to main
