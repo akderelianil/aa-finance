@@ -172,3 +172,47 @@ fn rule_failures_come_back_with_codes_the_contract_lists() {
     assert_eq!(nothing.unwrap_err(), "nothing_to_undo");
     assert_eq!(redo.unwrap_err(), "nothing_to_redo");
 }
+
+#[test]
+fn an_entry_that_opens_an_account_and_a_contact_fits_the_contract() {
+    // Arrange
+    let mut l = ledger();
+    let book = run(
+        &mut l,
+        "open_book",
+        json!({"base_code": "TRY", "base_scale": 2}),
+    )
+    .unwrap();
+    let cash = run(
+        &mut l,
+        "create_account",
+        json!({"name": "Cash", "parent": null, "kind": "asset", "commodity": book["doc_id"]}),
+    )
+    .unwrap();
+    let receivable =
+        run(&mut l, "system_account", json!({"key": "receivable"})).unwrap()["doc_id"].clone();
+    let (account, contact) = (
+        aa_core::DocId::new().to_string(),
+        aa_core::DocId::new().to_string(),
+    );
+    let lend = json!({
+        "date": "2026-11-02",
+        "lines": [
+            {"account": account, "amount": "20.00", "contact": contact},
+            {"account": cash["doc_id"], "amount": "-20.00"},
+        ],
+        "create_accounts": [{"id": account, "account": {
+            "name": "Friends", "parent": receivable, "kind": "asset", "commodity": book["doc_id"]}}],
+        "create_contacts": [{"id": contact, "contact": {"name": "Ayşe", "kind": "individual"}}],
+    });
+    // Act
+    let lent = run(&mut l, "post_entry", lend.clone()).unwrap();
+    let again = run(&mut l, "post_entry", lend);
+    // Assert
+    let view = run(&mut l, "entry", json!({"entry": lent["doc_id"]})).unwrap();
+    assert_eq!(view["lines"][0]["account"], json!(account));
+    assert_eq!(view["lines"][0]["contact"], json!(contact));
+    let friends = run(&mut l, "account", json!({"account": account})).unwrap();
+    assert_eq!(friends["parent"], receivable);
+    assert_eq!(again.unwrap_err(), "account_name_taken");
+}

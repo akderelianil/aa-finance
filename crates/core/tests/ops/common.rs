@@ -82,5 +82,7 @@ pub fn entry(lines: Vec<LineInput>) -> EntryInput {
         memo: Some("lunch".to_string()),
         no: None,
         lines,
+        create_accounts: Vec::new(),
+        create_contacts: Vec::new(),
     }
 }

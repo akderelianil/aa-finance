@@ -3,7 +3,7 @@
 Generated from the Rust test sources by `npm run test:catalog`; do not edit by hand. `npm run verify` fails when this file is out of date.
 What a topic covers is the `//!` comment at the top of its file; each test name reads as a sentence.
 
-Total: 291 tests.
+Total: 300 tests.
 
 ## core: integration tests (crates/core/tests)
 
@@ -22,13 +22,14 @@ Bad calls fail with a stable code in the error envelope, never with internal tex
 - An input the contract rejects is refused by the dispatcher too
 - An error message does not repeat what the caller sent
 
-### api/operations.rs (2)
+### api/operations.rs (3)
 A whole session through the named operations, every answer held to the contract.
 
 - A session through every operation fits the contract
 - Rule failures come back with codes the contract lists
+- An entry that opens an account and a contact fits the contract
 
-### ops/accounts.rs (18)
+### ops/accounts.rs (19)
 Commodities and accounts through the operations: the author and the time are stamped by the ledger, names change as new revisions, and archiving is a revision, never a delete.
 
 - An operation stamps the author and the time
@@ -40,6 +41,7 @@ Commodities and accounts through the operations: the author and the time are sta
 - A child account can be created under a parent
 - Naming a wrong kind of document as an account is a missing reference
 - Opening a book opens a locked rounding account
+- Opening a book opens locked debt groups for receivables and payables
 - A locked account is refused a rename an archive and an undo
 - An ordinary account has no system key and is not locked
 - An account name and a commodity code cannot be empty
@@ -95,6 +97,17 @@ The history marks the head and keeps a lost branch visible as a conflict (ADR-00
 - The last revision of a straight history is the head and nothing conflicts
 - A branch written elsewhere is kept as a conflict and the head stays
 - Every revision of a lost branch is a conflict not only its tip
+
+### ops/new_documents.rs (7)
+An entry that opens its own accounts and contacts (ADR-0024): a scenario draft names them with ids it chose, `post_entry` writes them with the entry in one transaction, under the same rules as `create_account` and `create_contact`, and writes nothing when any part is refused.
+
+- An entry opens its account and its contact in the same write
+- Nothing is written when the entry is refused
+- A new account follows the rules of create account
+- A new contact needs a free name
+- A foreign currency account opens under the receivable group and takes a rated line
+- A new document cannot take an id that is already used
+- Editing an entry can open an account too
 
 ### ops/settings.rs (8)
 Opening a book and the base currency through the operations: `open_book` writes the base currency and the settings together, the settings are read back from the file, and the base currency is locked by the first entry (ADR-0021, K21).

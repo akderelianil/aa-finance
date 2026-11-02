@@ -120,6 +120,25 @@ fn opening_a_book_opens_a_locked_rounding_account() {
 }
 
 #[test]
+fn opening_a_book_opens_locked_debt_groups_for_receivables_and_payables() {
+    // Arrange
+    let b = book();
+    // Act
+    let receivable = b.ledger.system_account("receivable").unwrap();
+    let payable = b.ledger.system_account("payable").unwrap();
+    // Assert
+    let receivable = b.ledger.account(receivable).unwrap();
+    let payable = b.ledger.account(payable).unwrap();
+    assert_eq!(receivable.kind, aa_core::body::AccountKind::Asset);
+    assert_eq!(payable.kind, aa_core::body::AccountKind::Liability);
+    for group in [&receivable, &payable] {
+        assert!(group.locked);
+        assert_eq!(group.parent, None);
+        assert_eq!(group.commodity, b.try_id);
+    }
+}
+
+#[test]
 fn a_locked_account_is_refused_a_rename_an_archive_and_an_undo() {
     // Arrange
     let mut b = book();

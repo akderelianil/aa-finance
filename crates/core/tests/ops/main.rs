@@ -7,5 +7,6 @@ mod common;
 mod contacts;
 mod entries;
 mod history;
+mod new_documents;
 mod settings;
 mod undo;

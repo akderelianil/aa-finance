@@ -1,9 +1,9 @@
 //! Contacts (ADR-0024): a minimal Rehber record (name and fixed kind) that a line can point to.
 //! Editing, archiving, links and the open balance come with the Rehber story.
 
-use super::{missing, name_key, non_empty, DocRef, Ledger};
+use super::{missing, DocRef, Ledger, Pending};
 use crate::body::{Body, ContactBody, ContactKind};
-use crate::error::{Error, Result, RuleCode};
+use crate::error::Result;
 use crate::ids::DocId;
 use crate::ops::ContactView;
 use serde::Deserialize;
@@ -18,21 +18,8 @@ pub struct ContactInput {
 impl Ledger {
     /// Adds a contact. Its name is unique in the book, ignoring case and the Turkish i.
     pub fn create_contact(&mut self, input: ContactInput) -> Result<DocRef> {
-        let name = non_empty(&input.name)?;
-        let wanted = name_key(&name);
-        if self
-            .store
-            .contacts()?
-            .iter()
-            .any(|(_, other)| name_key(other) == wanted)
-        {
-            return Err(Error::Rule(RuleCode::ContactNameTaken));
-        }
-        let body = Body::Contact(ContactBody {
-            name,
-            kind: input.kind,
-        });
-        self.write(DocId::new(), None, body)
+        let body = self.new_contact_body(&input, &Pending::default())?;
+        self.write(DocId::new(), None, Body::Contact(body))
     }
 
     pub fn contact(&self, contact: DocId) -> Result<ContactView> {

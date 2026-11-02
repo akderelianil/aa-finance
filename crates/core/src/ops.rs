@@ -15,13 +15,22 @@ use crate::store::{NewRevision, Restore, RestoreKind, RevisionRecord, Store};
 use serde::{Deserialize, Serialize};
 
 mod contacts;
+mod new_documents;
 mod views;
 
 /// The system key and the name of the account that takes the rounding differences of conversions.
 const ROUNDING_KEY: &str = "rounding";
 const ROUNDING_NAME: &str = "Rounding";
+/// The system groups of the debts of people (ADR-0024): what others owe us and what we owe them.
+/// The UI shows them by key in its own language.
+const RECEIVABLE_KEY: &str = "receivable";
+const RECEIVABLE_NAME: &str = "Receivables";
+const PAYABLE_KEY: &str = "payable";
+const PAYABLE_NAME: &str = "Payables";
 
 pub use contacts::ContactInput;
+use new_documents::Pending;
+pub use new_documents::{NewAccount, NewContact};
 pub use views::{AccountView, ContactView, EntryView, HistoryItem, LineView, SettingsView};
 
 /// The source of "now", in milliseconds since the Unix epoch. Tests move it by hand.
@@ -79,6 +88,12 @@ pub struct EntryInput {
     pub memo: Option<String>,
     pub no: Option<String>,
     pub lines: Vec<LineInput>,
+    /// Accounts the entry opens in the same write, under ids the caller chose.
+    #[serde(default)]
+    pub create_accounts: Vec<NewAccount>,
+    /// Contacts the entry opens in the same write, under ids the caller chose.
+    #[serde(default)]
+    pub create_contacts: Vec<NewContact>,
 }
 
 /// A ledger the operations act on, as one author.
@@ -112,20 +127,19 @@ impl Ledger {
         let settings = Body::Settings(SettingsBody {
             base_commodity: base,
         });
-        let rounding = Body::Account(AccountBody {
-            name: ROUNDING_NAME.to_string(),
-            parent: None,
-            kind: AccountKind::Expense,
-            commodity: base,
-            archived: false,
-            locked: true,
-            system_key: Some(ROUNDING_KEY.to_string()),
-        });
-        let revisions = vec![
+        let system = [
+            (ROUNDING_KEY, ROUNDING_NAME, AccountKind::Expense),
+            (RECEIVABLE_KEY, RECEIVABLE_NAME, AccountKind::Asset),
+            (PAYABLE_KEY, PAYABLE_NAME, AccountKind::Liability),
+        ];
+        let mut revisions = vec![
             self.revision(base, None, &commodity)?,
             self.revision(SETTINGS_DOC, None, &settings)?,
-            self.revision(DocId::new(), None, &rounding)?,
         ];
+        for (key, name, kind) in system {
+            let account = Body::Account(system_account_body(key, name, kind, base));
+            revisions.push(self.revision(DocId::new(), None, &account)?);
+        }
         let written = self.store.write_revisions(revisions)?;
         Ok(DocRef {
             doc_id: base,
@@ -170,45 +184,34 @@ impl Ledger {
     }
 
     pub fn create_account(&mut self, input: AccountInput) -> Result<DocRef> {
-        self.commodity(input.commodity)?;
-        let name = non_empty(&input.name)?;
-        if let Some(parent) = input.parent {
-            let parent = self.account_body(parent)?;
-            if parent.archived {
-                return Err(Error::Rule(RuleCode::AccountParentArchived));
-            }
-            if parent.kind != input.kind {
-                return Err(Error::Rule(RuleCode::AccountParentKindMismatch));
-            }
-        }
-        self.check_name_free(input.parent, &name, None)?;
-        let body = Body::Account(AccountBody {
-            name,
-            parent: input.parent,
-            kind: input.kind,
-            commodity: input.commodity,
-            archived: false,
-            locked: false,
-            system_key: None,
-        });
-        self.write(DocId::new(), None, body)
+        let body = self.new_account_body(&input, &Pending::default())?;
+        self.write(DocId::new(), None, Body::Account(body))
     }
 
     pub fn rename_account(&mut self, account: DocId, name: &str) -> Result<DocRef> {
         let name = non_empty(name)?;
         let parent = self.account_body(account)?.parent;
-        self.check_name_free(parent, &name, Some(account))?;
+        self.check_name_free(parent, &name, Some(account), &Pending::default())?;
         self.change_account(account, |body| body.name = name)
     }
 
-    /// Refuses a name that another account under the same parent already has (case ignored).
-    fn check_name_free(&self, parent: Option<DocId>, name: &str, own: Option<DocId>) -> Result<()> {
+    /// Refuses a name that another account under the same parent already has, stored or pending
+    /// (case and the Turkish i ignored).
+    fn check_name_free(
+        &self,
+        parent: Option<DocId>,
+        name: &str,
+        own: Option<DocId>,
+        pending: &Pending,
+    ) -> Result<()> {
         let wanted = name_key(name);
-        let taken = self
-            .store
-            .child_accounts(parent)?
-            .into_iter()
-            .any(|(id, other)| Some(id) != own && name_key(&other) == wanted);
+        let stored = self.store.child_accounts(parent)?;
+        let taken = stored
+            .iter()
+            .filter(|(id, _)| Some(*id) != own)
+            .map(|(_, other)| other.as_str())
+            .chain(pending.child_names(parent))
+            .any(|other| name_key(other) == wanted);
         if taken {
             return Err(Error::Rule(RuleCode::AccountNameTaken));
         }
@@ -219,15 +222,19 @@ impl Ledger {
         self.change_account(account, |body| body.archived = archived)
     }
 
+    /// Posts an entry, with the accounts and contacts it opens, in one write.
     pub fn post_entry(&mut self, input: EntryInput) -> Result<DocRef> {
-        let body = self.entry_body(input)?;
-        self.write(DocId::new(), None, Body::Entry(body))
+        let pending = self.pending(&input.create_accounts, &input.create_contacts)?;
+        let body = self.entry_body(input, &pending)?;
+        self.write_with(pending, DocId::new(), None, Body::Entry(body))
     }
 
     pub fn edit_entry(&mut self, entry: DocId, input: EntryInput) -> Result<DocRef> {
         self.live_entry_body(entry)?;
-        let body = self.entry_body(input)?;
-        self.write_next(entry, Body::Entry(body))
+        let parent = self.head_record(entry)?.id;
+        let pending = self.pending(&input.create_accounts, &input.create_contacts)?;
+        let body = self.entry_body(input, &pending)?;
+        self.write_with(pending, entry, Some(parent), Body::Entry(body))
     }
 
     /// Deletes an entry: a tombstone revision that keeps the lines for the history and takes them
@@ -419,13 +426,13 @@ impl Ledger {
         self.write_next(account, Body::Account(body))
     }
 
-    fn entry_body(&self, input: EntryInput) -> Result<EntryBody> {
+    fn entry_body(&self, input: EntryInput, pending: &Pending) -> Result<EntryBody> {
         let settings = self.settings()?;
         let (base, base_scale) = (settings.base_commodity, settings.base_scale);
         let (mut lines, converted): (Vec<_>, Vec<_>) = input
             .lines
             .iter()
-            .map(|line| self.line_body(line, base, base_scale))
+            .map(|line| self.line_body(line, base, base_scale, pending))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
             .unzip();
@@ -451,8 +458,14 @@ impl Ledger {
     }
 
     /// The line as stored, and whether the core converted it (which allows a rounding difference).
-    fn line_body(&self, line: &LineInput, base: DocId, base_scale: u8) -> Result<(LineBody, bool)> {
-        let account = self.account_body(line.account)?;
+    fn line_body(
+        &self,
+        line: &LineInput,
+        base: DocId,
+        base_scale: u8,
+        pending: &Pending,
+    ) -> Result<(LineBody, bool)> {
+        let account = self.account_in(line.account, pending)?;
         let scale = self.scale(account.commodity)?;
         let quantity = parse_amount(&line.amount, scale, Separators::CANONICAL)?;
         let given_base = line
@@ -497,7 +510,7 @@ impl Ledger {
             rate,
             contact: line
                 .contact
-                .map(|c| self.contact_body(c).map(|_| c))
+                .map(|c| self.contact_in(c, pending))
                 .transpose()?,
         };
         Ok((body, converted))
@@ -585,6 +598,19 @@ impl Ledger {
             doc_id,
             revision_id,
         })
+    }
+}
+
+/// A locked account the system opens with the book and finds by its key.
+fn system_account_body(key: &str, name: &str, kind: AccountKind, base: DocId) -> AccountBody {
+    AccountBody {
+        name: name.to_string(),
+        parent: None,
+        kind,
+        commodity: base,
+        archived: false,
+        locked: true,
+        system_key: Some(key.to_string()),
     }
 }
 

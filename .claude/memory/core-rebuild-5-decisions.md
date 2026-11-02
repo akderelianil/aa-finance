@@ -24,3 +24,9 @@ Second round, 2026-11-02 (owner picked every recommended option):
 - Grammar v1: integer amounts, `+`, `-`, unary `-`, `sum(list.field)`, comparisons, `and`/`or`/`not`; no `*` or `/` (currency conversion is a calculator).
 - Foreign currency: rate or base amount is required on a foreign line; the draft returns a field error. A suggested rate comes with the price history.
 - Contact document (2026-11-02): name plus kind (individual/brand/business, fixed after creation); names unique ignoring case, with the normalized name computed by the core (Turkish İ/ı), `contact_name_taken`; a line may carry a contact on any account (the scenario decides; only Borç in v1).
+
+Third round, 2026-11-02 (owner picked every recommended option):
+- Saving a draft that opens accounts or contacts: `post_entry` gains optional `create_accounts` and `create_contacts` (ids chosen by the draft); all written in one transaction or none. No separate `scenario_save`; ADR-0024 stays.
+- Borç groups: `open_book` opens two locked system accounts, keys `receivable` ("Kişilerden Alacaklar", asset) and `payable` ("Kişilere Borçlar", liability); scenarios find them by key. A missing currency child (e.g. USD) is a "create account" output under the group, named by the currency code.
+- Foreign Gider: the expense line is in the expense account's own commodity; the pack declares derived values that call the `convert` calculator. The grammar stays without `*`.
+- Borç contact input: a new typed name becomes a "create contact" output (kind individual), written with the entry (matches the UX decision of 2026-10-12).

@@ -193,7 +193,7 @@
       ]
     },
     "post_entry": {
-      "summary": "Posts a balanced entry (at least two lines).",
+      "summary": "Posts a balanced entry (at least two lines), with the accounts and contacts it opens, in one write.",
       "input": {
         "$ref": "#/$defs/EntryInput"
       },
@@ -214,7 +214,13 @@
         "rate_missing",
         "rate_base_conflict",
         "date_invalid",
-        "missing_reference"
+        "missing_reference",
+        "name_empty",
+        "account_name_taken",
+        "account_parent_archived",
+        "account_parent_kind_mismatch",
+        "contact_name_taken",
+        "conflict"
       ]
     },
     "edit_entry": {
@@ -254,7 +260,12 @@
         "rate_base_conflict",
         "date_invalid",
         "missing_reference",
-        "conflict"
+        "conflict",
+        "name_empty",
+        "account_name_taken",
+        "account_parent_archived",
+        "account_parent_kind_mismatch",
+        "contact_name_taken"
       ]
     },
     "delete_entry": {
@@ -760,6 +771,20 @@
           "items": {
             "$ref": "#/$defs/LineInput"
           }
+        },
+        "create_accounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NewAccount"
+          },
+          "description": "Accounts opened with the entry; all are written with it or none is."
+        },
+        "create_contacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NewContact"
+          },
+          "description": "Contacts opened with the entry; all are written with it or none is."
         }
       },
       "required": [
@@ -964,6 +989,40 @@
       "required": [
         "name",
         "kind"
+      ],
+      "additionalProperties": false
+    },
+    "NewAccount": {
+      "description": "An account the entry opens in the same write, under an id the caller chose (a scenario draft picks it).",
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/DocId"
+        },
+        "account": {
+          "$ref": "#/$defs/AccountInput"
+        }
+      },
+      "required": [
+        "id",
+        "account"
+      ],
+      "additionalProperties": false
+    },
+    "NewContact": {
+      "description": "A contact the entry opens in the same write, under an id the caller chose.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/DocId"
+        },
+        "contact": {
+          "$ref": "#/$defs/ContactInput"
+        }
+      },
+      "required": [
+        "id",
+        "contact"
       ],
       "additionalProperties": false
     }
