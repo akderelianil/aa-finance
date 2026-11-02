@@ -32,6 +32,7 @@ Short records of decisions that shape the code. Format: Nygard (context, decisio
 | [0021](0021-sealed-ledger-kernel.md) | Sealed ledger kernel: the invariants, their codes and tests | accepted | 2026-10-17 |
 | [0022](0022-book-settings-document.md) | The book settings document: levels, fixed id, base currency lock | accepted | 2026-10-17 |
 | [0023](0023-api-contract-is-the-authority.md) | The API contract file is the authority (named operations, JSON, one version) | accepted | 2026-10-17 |
+| [0024](0024-scenario-format-and-expression-grammar.md) | Scenario format and a minimal expression grammar of our own | accepted | 2026-11-02 |
 
 
 Related: [ARCHITECTURE](../ARCHITECTURE.md) (product decisions), [local-first overview](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/backend/architecture/overview.md) (technical design), [PIN gate](https://github.com/akderelianil/aa-finance/blob/prototype-final/docs/pin-gate.md) (full PIN plan).

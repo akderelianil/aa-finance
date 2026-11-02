@@ -3,7 +3,7 @@
 **ID:** core-rebuild-5
 **Epic:** core-rebuild
 **Sprint:** 7
-**Status:** todo
+**Status:** in-progress
 **Points:** 8
 
 ## Context
@@ -12,13 +12,18 @@ Scenarios as data (ADR-0016): schema, safe expressions, official calculators, pr
 
 ## Acceptance Criteria
 
-- [ ] Expression crate verified (licence, releases) or a minimal grammar chosen, recorded in an ADR note
+- [x] Expression crate verified (licence, releases) or a minimal grammar chosen, recorded in an ADR note (ADR-0024)
 - [ ] Golden tests for each scenario including foreign currency and card payment; a faulty scenario cannot corrupt the books
 - [ ] Form description is stable and documented for all platforms to render
 
 ## Technical Notes
 
 Decisions: docs/adr/0008 to 0019. Dependencies: docs/foundation/migration-plan.md.
+
+## Progress (2026-11-02)
+
+- ADR-0024: own minimal grammar, scenario format, describe/draft API, choice options, minimal contact document, required rate on foreign lines.
+- Next: expression module (`scenario::expr`: lexer, parser, type check, checked evaluation), tests first.
 
 ## Definition of Done
 

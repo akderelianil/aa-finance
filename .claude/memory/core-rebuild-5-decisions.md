@@ -17,3 +17,9 @@ Decided with the owner before coding core-rebuild-5:
 
 **Why:** keeps CR-4 inside 8 points and keeps rules in one place ([[core-rebuild-4-decisions]]).
 **How to apply:** write an ADR note for the grammar choice (acceptance criterion 1), then tests first.
+
+Second round, 2026-11-02 (owner picked every recommended option):
+- Contact on a line: a minimal `contact` document kind (name only) and `create_contact` now; the database checks a line's contact id. Rehber story adds edit, archive and open balance later.
+- Borç direction: a `choice` input whose options carry their own values (sign, system group); no `if` in the grammar.
+- Grammar v1: integer amounts, `+`, `-`, unary `-`, `sum(list.field)`, comparisons, `and`/`or`/`not`; no `*` or `/` (currency conversion is a calculator).
+- Foreign currency: rate or base amount is required on a foreign line; the draft returns a field error. A suggested rate comes with the price history.

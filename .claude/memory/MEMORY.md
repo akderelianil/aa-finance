@@ -4,4 +4,4 @@
 - [Owner wants pushback](owner-wants-pushback.md) — ask a lot, criticise, say no, explain terms simply; answer in Turkish
 - [Verify before claiming](verify-before-claiming.md) — search by behavior, check git and project rules before saying something is missing; my slips of 2026-10-17
 - [Core-rebuild-4 decisions](core-rebuild-4-decisions.md) — owner decisions 2026-10-16/17; base currency, ADR-0021 kernel and the settings document (ADR-0022) done
-- [Core-rebuild-5 decisions](core-rebuild-5-decisions.md) — scenario engine choices agreed 2026-10-17 (own grammar, describe+draft, built-in pack)
+- [Core-rebuild-5 decisions](core-rebuild-5-decisions.md) — scenario engine choices of 2026-10-17 and 2026-11-02 (ADR-0024, contact document, choice options, required rate)
